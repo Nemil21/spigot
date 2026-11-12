@@ -242,10 +242,12 @@ const smoothScroll = (): ScrollBehavior =>
 
 function PortalFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-[1120px] space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Balance and keys</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className={ui.pageTitle}>
+          Balance and <span className={ui.accentWord}>keys</span>
+        </h1>
+        <p className={ui.pageLede}>
           Fund your agent with PayPal, issue API keys and connect Claude.
         </p>
       </header>

@@ -182,7 +182,7 @@ export function AuditScreen({ client = defaultApi }: AuditScreenProps) {
         ) : (
           <>
             <p
-              className="border-b border-line px-5 py-2.5 text-xs font-medium text-muted tabular-nums sm:px-6"
+              className={`border-b border-line px-5 py-2.5 tabular-nums sm:px-6 ${ui.statLabel}`}
               data-audit-count=""
             >
               {formatCount(audit.value.events.length)} event
@@ -243,8 +243,8 @@ function SearchForm({
       className="flex flex-wrap items-end gap-3 border-b border-line bg-surface-2/40 px-5 py-4 sm:px-6"
     >
       {SEARCH_FIELDS.map((f) => (
-        <label key={f.key} className="flex min-w-48 flex-1 flex-col text-xs font-medium text-muted">
-          {f.label}
+        <label key={f.key} className="flex min-w-48 flex-1 flex-col">
+          <span className={ui.statLabel}>{f.label}</span>
           <input
             type="search"
             name={f.key}
@@ -311,7 +311,7 @@ function Tile({
       aria-busy={loading || undefined}
       className="min-w-0 bg-surface px-5 py-4"
     >
-      <p className="flex items-center gap-2 text-xs font-medium text-muted">
+      <p className={`flex items-center gap-2 ${ui.statLabel}`}>
         {!loading && (
           <span
             className={`inline-block size-2 rounded-full ${TONE[tone]}`}
@@ -321,7 +321,7 @@ function Tile({
         )}
         {label}
       </p>
-      <p className="mt-2 text-xl font-semibold leading-tight tracking-tight text-ink tabular-nums">
+      <p className="mt-2.5 text-[22px] font-medium leading-tight tracking-[-0.02em] text-ink tabular-nums">
         {loading ? <Skeleton className="h-6 w-24" /> : value}
       </p>
       {hint && !loading && <p className="mt-1.5 text-xs leading-relaxed text-muted">{hint}</p>}
@@ -609,7 +609,9 @@ function RunPayout({ client, onDone }: { client: ApiClient; onDone: () => void }
         <div className="min-w-0 flex-1">
           <h2 className={`${ui.panelTitle} flex flex-wrap items-center gap-2`}>
             Run payout now
-            <span className="rounded-full bg-warning-tint px-2 py-0.5 text-xs font-medium text-warning">
+            <span
+              className={`rounded-sm bg-warning-tint px-1.5 py-0.5 text-warning ${ui.caption} text-[10px]`}
+            >
               Demo control
             </span>
           </h2>
@@ -689,10 +691,12 @@ function RunPayout({ client, onDone }: { client: ApiClient; onDone: () => void }
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-6" data-screen="W14">
+    <div className="mx-auto max-w-[1120px] space-y-6" data-screen="W14">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Admin / audit</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className={ui.pageTitle}>
+          Admin / <span className={ui.accentWord}>audit</span>
+        </h1>
+        <p className={ui.pageLede}>
           Find any money event by its PayPal id and prove the ledger balances.
         </p>
       </header>
