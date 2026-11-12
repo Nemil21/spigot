@@ -461,7 +461,7 @@ flowchart LR
 ## Critical path
 
 - **Longest P0 code chain (11 h incl. review):** SP-002 (2) → SP-005 (1.5) → SP-016 (1.5) → SP-017a (1.5) → SP-017b (1.5) → SP-042 (1.5). The schema → ledger → metering → paid-read chain sets the floor: even with unlimited workers, P0 code can't finish before ~17:30 IST. Keep these tickets on the fastest workers and review them first.
-- **Demo-critical chain (10.5 h):** SP-002 (2) → SP-005 (1.5) → SP-016 (1.5) → SP-017a (1.5) → SP-022a (1.5) → SP-039 (1). Ends with the Claude Desktop dry run.
+- **Demo-critical chain (10.5 h):** SP-002 (2) → SP-005 (1.5) → SP-016 (1.5) → SP-017a (1.5) → SP-022a (1.5) → SP-039 (1). Ends with SP-039's local Claude Desktop check (the tools listed and a `quote` answered) and the written dry-run checklist. The end-to-end dry run itself is SP-046, which can start only once the video's screens and scripts have merged (SP-027b, SP-028, SP-029, SP-030b, SP-031, SP-032, SP-036, SP-037, SP-038); see its projected time in the ticket table.
 - **AI chain (parallel, ~9.5 h):** SP-002 (2) → SP-009a crawler (2) → SP-012a schema agent (2) → SP-014 approve (1.5) → SP-029 W06 (2).
 - **Spine set (dispatch first):** SP-001a, SP-001b, SP-002, SP-005, SP-007a, SP-007b, SP-009a, SP-010, SP-011, SP-012a, SP-013, SP-014, SP-015, SP-016, SP-017a, SP-018, SP-020, SP-021, SP-022a.
 
