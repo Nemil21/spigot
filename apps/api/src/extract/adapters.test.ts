@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { canonicalize, checkRegexPattern, extract, recordHash } from '@spigot/shared';
+import {
+  canonicalize,
+  checkRegexPattern,
+  extract,
+  nativeRegexEngine,
+  recordHash,
+} from '@spigot/shared';
 import { nodeSha256, re2Engine } from './adapters.js';
 
 describe('nodeSha256', () => {
@@ -33,6 +39,22 @@ describe('re2Engine', () => {
     expect(re.firstGroup('a'.repeat(100_000) + '!')).toBeNull();
     expect(performance.now() - t0).toBeLessThan(1000);
   });
+
+  // Review on PR #16: these pass the spec check but the native engine refuses them; RE2 must
+  // still run them in linear time.
+  it.each(['\\d+\\d+\\d+x', '\\s*\\s*\\s*$', '.*a.*b.*c'])(
+    'runs %s in linear time on adversarial input',
+    (p) => {
+      expect(checkRegexPattern(p)).toBeNull();
+      expect(() => nativeRegexEngine.compile(p)).toThrow();
+      const re = re2Engine.compile(p);
+      const t0 = performance.now();
+      re.firstGroup('1'.repeat(100_000));
+      re.firstGroup(' '.repeat(100_000) + 'x');
+      re.firstGroup('a'.repeat(100_000));
+      expect(performance.now() - t0).toBeLessThan(1000);
+    },
+  );
 
   it('plugs into extract', () => {
     const spec = {

@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest';
 // apps/web imports this package, so it must not need Node polyfills (SP-001d).
 // tsconfig (lib ES2022, types []) enforces this at build time; this test is the backstop.
 const srcDir = fileURLToPath(new URL('.', import.meta.url));
-const sources = readdirSync(srcDir)
+// Recursive, so module directories such as `extract/` (SP-011) are covered too.
+const sources = readdirSync(srcDir, { recursive: true, encoding: 'utf8' })
+  .map((f) => f.split('\\').join('/'))
   .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
   .map((f) => [f, readFileSync(join(srcDir, f), 'utf8')] as const);
 
@@ -17,6 +19,14 @@ describe('packages/shared is browser-safe', () => {
       'copy.ts',
       'errors.ts',
       'events.ts',
+      'extract/canonical.ts',
+      'extract/coerce.ts',
+      'extract/extract.ts',
+      'extract/index.ts',
+      'extract/jsonpath.ts',
+      'extract/regex.ts',
+      'extract/spec.ts',
+      'extract/transforms.ts',
       'gate.ts',
       'globals.d.ts',
       'index.ts',

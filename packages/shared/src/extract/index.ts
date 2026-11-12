@@ -15,10 +15,16 @@ export {
 } from './coerce.js';
 export { compileTransform, type CompiledTransform, type TransformContext } from './transforms.js';
 export {
+  analyzeRegex,
   checkRegexPattern,
   nativeRegexEngine,
+  NATIVE_MIN_INPUT,
+  NATIVE_STEP_BUDGET,
+  nativeInputCap,
+  nativeSteps,
   REGEX_INPUT_MAX,
   REGEX_MAX_LENGTH,
   type CompiledRegex,
+  type RegexAnalysis,
   type RegexEngine,
 } from './regex.js';

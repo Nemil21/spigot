@@ -80,6 +80,7 @@ const table: Array<[transform: string, input: Value, expected: Value]> = [
   ['regex:(?:Unit )(\\w+)', 'Unit 3B', '3B'],
   ['regex:(\\d+)', 'none', null],
   ['regex:(\\d+)', 2150, '2150'],
+  ['regex:\\d+\\d+\\d+x', '123x', null], // over the native step budget: refused, never run
 ];
 
 describe('transforms', () => {
