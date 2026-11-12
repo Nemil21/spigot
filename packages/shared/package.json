@@ -42,6 +42,11 @@
       "source": "./src/cluster.ts",
       "types": "./dist/cluster.d.ts",
       "default": "./dist/cluster.js"
+    },
+    "./extract": {
+      "source": "./src/extract/index.ts",
+      "types": "./dist/extract/index.d.ts",
+      "default": "./dist/extract/index.js"
     }
   },
   "files": [
@@ -52,6 +57,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "zod": "^4.1.0"
   }
 }
