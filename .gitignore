@@ -1,0 +1,10 @@
+.DS_Store
+.env
+.env.*
+node_modules/
+!.env.example
+dist/
+coverage/
+*.tsbuildinfo
+test-results/
+playwright-report/
