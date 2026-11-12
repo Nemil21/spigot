@@ -231,7 +231,7 @@ export default function LandingPage() {
             </Link>
           </nav>
 
-          <div className="grid gap-8 px-[max(16px,calc(72*var(--u)))] pt-24 sm:grid-cols-[1fr_calc(568*var(--u))] sm:gap-0 sm:pt-[calc(176*var(--u))]">
+          <div className="grid gap-8 px-[max(16px,calc(72*var(--u)))] pt-24 sm:grid-cols-[1fr_calc(460*var(--u))] sm:gap-0 sm:pt-[calc(176*var(--u))]">
             <div>
               <p className="flex items-center gap-[calc(8*var(--u))] text-[max(14px,calc(15*var(--u)))] text-white/75 [&_svg]:size-[max(16px,calc(18*var(--u)))]">
                 Built on <PayPalMark /> <span className="font-semibold text-white">PayPal</span>
@@ -244,8 +244,8 @@ export default function LandingPage() {
                 for your site.
               </h1>
             </div>
-            <div className="sm:pt-[calc(58*var(--u))]">
-              <p className="max-w-[calc(460*var(--u))] text-[max(17px,calc(20*var(--u)))] leading-[1.5] text-white/80">
+            <div className="sm:pt-[calc(52*var(--u))]">
+              <p className="text-[max(17px,calc(20*var(--u)))] leading-[1.5] text-white/80">
                 Turn your site into a paid API for AI agents. PayPal pays you.
               </p>
               <Link
