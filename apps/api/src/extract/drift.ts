@@ -387,7 +387,12 @@ export async function admitChangedPage(
        ON CONFLICT (dataset_id, run_id, page_id) DO UPDATE SET held = true`,
       [datasetId, runId, pageId],
     );
-    if (decision === 'PENDING') decision = await decide(tx, ds, runId, false);
+    if (decision !== 'PENDING') {
+      // Decided earlier: only this page. The decider released the held batch; a crash there
+      // is swept up at run end (`settleRunDrift`).
+      return { decision, toRelease: decision === 'PASSED' ? [pageId] : [] };
+    }
+    decision = await decide(tx, ds, runId, false);
     const toRelease = decision === 'PASSED' ? await heldPages(tx, datasetId, runId) : [];
     return { decision, toRelease };
   });
