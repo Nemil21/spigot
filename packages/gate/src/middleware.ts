@@ -11,6 +11,12 @@ import {
   type LoadedPolicy,
   type PolicyRefresher,
 } from './refresher.js';
+import {
+  createSearchVerifier,
+  spoofedBotName,
+  type SearchVerifier,
+  type SearchVerifierOptions,
+} from './verifySearch.js';
 
 export interface GateRequest {
   method?: string;
@@ -53,11 +59,18 @@ export interface GateOptions {
   now?: () => number;
   /** Test seam: replaces `classify` (fail-open tests inject a throwing one). */
   classify?: typeof defaultClassify;
+  /**
+   * Reverse-DNS verification of SEARCH UAs (features/02 rule 5). On by default; `false` turns
+   * it off. A SEARCH UA from an IP that failed verification is treated as SCRAPER_TOOL.
+   */
+  verifySearch?: false | SearchVerifierOptions;
 }
 
 export interface SpigotGate extends GateHandler {
   readonly refresher: PolicyRefresher;
   readonly flusher: HitFlusher;
+  /** Null when `verifySearch: false`. */
+  readonly verifier: SearchVerifier | null;
   /** Stop both background timers (tests, graceful shutdown). */
   stop(): void;
 }
@@ -147,6 +160,7 @@ export function spigotGate(opts: GateOptions): SpigotGate {
   const classify = opts.classify ?? defaultClassify;
   const now = opts.now ?? Date.now;
   const demo = opts.demo === true;
+  const verifier = opts.verifySearch === false ? null : createSearchVerifier(opts.verifySearch);
 
   // Avoided bytes for a 402 are estimated from the gated pages this gate has served
   // (data-model.md `bot_hits.bytes`); 0 until one has been served.
@@ -166,7 +180,22 @@ export function spigotGate(opts: GateOptions): SpigotGate {
       path: pathOf(req),
       headers: req.headers,
     };
-    const r = classify(input, loaded.policy);
+    const gated = loaded.policy.gatedPaths.some((re) => re.test(input.path));
+    let r = classify(input, loaded.policy);
+    // Rule 5: a cache read only; an unknown IP passes while its lookup runs in the background.
+    // Simulated demo traffic is never verified (sim:bots sends search UAs from ordinary IPs).
+    if (
+      r.category === 'SEARCH' &&
+      verifier !== null &&
+      !isSimulated &&
+      verifier.check(input.ip, r.botName) === 'FAILED'
+    ) {
+      r = {
+        category: 'SCRAPER_TOOL',
+        botName: spoofedBotName(r.botName),
+        decision: gated ? loaded.policy.decisions.SCRAPER_TOOL : 'PASS',
+      };
+    }
 
     if (r.decision === 'QUOTE') {
       send402(req, res, loaded);
@@ -176,7 +205,6 @@ export function spigotGate(opts: GateOptions): SpigotGate {
     }
 
     const decision: HitDecision = r.decision;
-    const gated = loaded.policy.gatedPaths.some((re) => re.test(input.path));
     res.once('close', () => {
       try {
         const bytes = contentLength(res);
@@ -218,6 +246,7 @@ export function spigotGate(opts: GateOptions): SpigotGate {
   return Object.assign(handler, {
     refresher,
     flusher,
+    verifier,
     stop() {
       refresher.stop();
       flusher.stop();
