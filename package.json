@@ -33,6 +33,7 @@
     "demo:mutate": "npm run demo:mutate -w @spigot/demo-site --",
     "demo:reset": "npm run demo:reset -w @spigot/api --",
     "demo:payout": "npm run demo:payout -w @spigot/api --",
+    "demo:dry-run": "tsx --conditions=source scripts/demo-dry-run.ts",
     "demo:decline": "npm run demo:decline -w @spigot/api --"
   },
   "devDependencies": {
