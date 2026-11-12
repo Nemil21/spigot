@@ -98,17 +98,25 @@ const ENDPOINT: Record<ReadKind, Endpoint> = {
   changes: 'changes.list',
 };
 
-/** What gets hashed into `request_hash` (with the dataset id and endpoint, by SP-016). */
+/**
+ * What gets hashed into `request_hash` (with the dataset id and endpoint, by SP-016): what the
+ * client asked for, never a publisher setting, so the limit is the requested one, not the clamp.
+ */
 function canonicalRequest(req: NormalizedRead): unknown {
   switch (req.kind) {
     case 'records':
-      return { filters: req.filters, sort: req.sort, limit: req.limit, cursor: req.cursor };
+      return {
+        filters: req.filters,
+        sort: req.sort,
+        limit: req.requestedLimit,
+        cursor: req.cursor,
+      };
     case 'record':
       return { key: req.key };
     case 'changes':
       return {
         since: req.cursor === null ? null : String(req.cursor),
-        limit: req.limit,
+        limit: req.requestedLimit,
         include: req.includeRecord ? 'record' : null,
       };
   }

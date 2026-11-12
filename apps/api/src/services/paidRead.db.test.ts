@@ -443,6 +443,38 @@ describe.skipIf(!testDatabaseUrl)('paid-read services', { timeout: 120_000 }, ()
     expect(await charges(w)).toBe(1);
   });
 
+  test('idempotency: an owner changing max_records_per_call does not turn a retry into a 409', async () => {
+    const w = await world({ balanceMicros: 1_000_000 });
+    await q(`UPDATE datasets SET max_records_per_call = 10 WHERE id = $1`, [w.datasetId]);
+    const explicit = read(w, { limit: 500 }); // clamped to 10
+    const omitted = read(w); // default 50, clamped to 10
+    const a = await paidRead(ctx(w), explicit);
+    const b = await paidRead(ctx(w), omitted);
+    expect([a.count, b.count]).toEqual([10, 10]);
+
+    await q(`UPDATE datasets SET max_records_per_call = 100 WHERE id = $1`, [w.datasetId]);
+    const a2 = await paidRead(ctx(w), explicit);
+    const b2 = await paidRead(ctx(w), omitted);
+    expect(a2).toMatchObject({
+      status: 200,
+      replay: true,
+      callId: a.callId,
+      chargedMicros: 0,
+      count: 10,
+    });
+    expect(b2).toMatchObject({
+      status: 200,
+      replay: true,
+      callId: b.callId,
+      chargedMicros: 0,
+      count: 10,
+    });
+    expect(await charges(w)).toBe(2);
+
+    // A new key gets the new clamp.
+    expect((await paidRead(ctx(w), read(w, { limit: 500 }))).count).toBe(100);
+  });
+
   test('no Idempotency-Key: an identical call within the minute replays (auto key)', async () => {
     const w = await world({ balanceMicros: 1_000_000 });
     const now = new Date('2026-11-12T10:00:10Z');

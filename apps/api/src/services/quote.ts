@@ -53,14 +53,20 @@ export interface NormalizedRead {
   kind: ReadKind;
   filters: FilterClause[];
   sort: SortDirection;
+  /** Effective limit: the default when omitted, clamped by the dataset. Runs the query. */
   limit: number;
+  /**
+   * The limit the client sent (null when omitted), unclamped. This is what gets hashed: an
+   * owner changing `max_records_per_call` mustn't turn a retry of the same request into a 409.
+   */
+  requestedLimit: number | null;
   cursor: string | number | null;
   key: string | null;
   includeRecord: boolean;
 }
 
-function parseLimit(raw: unknown, fallback: number): number {
-  if (raw === undefined || raw === null || raw === '') return fallback;
+function parseLimit(raw: unknown): number | null {
+  if (raw === undefined || raw === null || raw === '') return null;
   const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN;
   if (!Number.isSafeInteger(n) || n < 1) {
     throw new ApiError('VALIDATION_ERROR', 'limit must be a positive integer.');
@@ -91,11 +97,12 @@ export function normalizeRead(p: ReadParams, ds: ServedDataset): NormalizedRead 
       `${b.field}\0${b.op}\0${JSON.stringify(b.value)}`,
     ),
   );
+  const requestedLimit = kind === 'record' ? null : parseLimit(p.limit);
   const limit =
     kind === 'records'
-      ? Math.min(parseLimit(p.limit, DEFAULT_RECORDS_LIMIT), ds.maxRecordsPerCall)
+      ? Math.min(requestedLimit ?? DEFAULT_RECORDS_LIMIT, ds.maxRecordsPerCall)
       : kind === 'changes'
-        ? Math.min(parseLimit(p.limit, DEFAULT_CHANGES_LIMIT), HARD_MAX_LIMIT)
+        ? Math.min(requestedLimit ?? DEFAULT_CHANGES_LIMIT, HARD_MAX_LIMIT)
         : 1;
   if (kind === 'record' && (typeof p.key !== 'string' || p.key.length === 0)) {
     throw new ApiError('VALIDATION_ERROR', 'A record key is required.');
@@ -106,6 +113,7 @@ export function normalizeRead(p: ReadParams, ds: ServedDataset): NormalizedRead 
     filters,
     sort: kind === 'records' ? parseSort(p.sort) : 'desc',
     limit,
+    requestedLimit,
     cursor: kind === 'record' ? null : cursor,
     key: kind === 'record' ? (p.key as string) : null,
     includeRecord: kind === 'changes' && p.includeRecord === true,
