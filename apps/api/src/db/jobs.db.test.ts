@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import type pg from 'pg';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { runEvery, runJobTick } from './jobs.js';
 import { twoPools, testDatabaseUrl, type TwoPools } from './test-db.js';
 
@@ -15,18 +16,41 @@ describe.skipIf(!testDatabaseUrl)('runEvery', () => {
   });
 
   test('started in two processes (two pools), the job runs once per tick', async () => {
-    const ran: Array<{ proc: string; tick: number }> = [];
-    const job = (proc: string) =>
-      runEvery(pools[proc as 'a' | 'b'], 'once_per_tick', 100, async () => {}, {
-        onRun: (tick) => ran.push({ proc, tick }),
-      });
-    const handles = [job('a'), job('b')];
-    await sleep(1_250);
-    await Promise.all(handles.map((h) => h.stop()));
+    // Fake clock, real Postgres: step one tick boundary at a time and wait until both
+    // processes have finished their attempt, so a slow runner can't lose a tick.
+    const EVERY = 100;
+    const TICKS = 12;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const first = Math.floor(Date.now() / EVERY) + 1;
+    vi.setSystemTime((first - 1) * EVERY + EVERY / 2); // mid-tick: each step crosses one boundary
 
-    const ticks = ran.map((r) => r.tick);
-    expect(new Set(ticks).size).toBe(ticks.length); // no tick ran twice
-    expect(ticks.length).toBeGreaterThanOrEqual(9); // ~12 ticks in 1.25 s; allow slack
+    const ran: number[] = [];
+    let settled = 0;
+    let onSettled = () => {};
+    const job = (pool: pg.Pool) =>
+      runEvery(pool, 'once_per_tick', EVERY, async () => {}, {
+        onRun: (tick) => ran.push(tick),
+        onSettled: () => {
+          settled++;
+          onSettled();
+        },
+      });
+    const handles = [job(pools.a), job(pools.b)];
+    try {
+      for (let i = 1; i <= TICKS; i++) {
+        const bothSettled = new Promise<void>((resolve) => {
+          onSettled = () => settled === 2 * i && resolve();
+        });
+        await vi.advanceTimersByTimeAsync(EVERY);
+        await bothSettled;
+      }
+    } finally {
+      await Promise.all(handles.map((h) => h.stop()));
+      vi.useRealTimers();
+    }
+
+    // Every tick ran exactly once across the two processes: none skipped, none twice.
+    expect(ran.sort((x, y) => x - y)).toEqual(Array.from({ length: TICKS }, (_, i) => first + i));
   });
 
   test('a process whose timer fires after the other finished does not rerun the tick', async () => {
