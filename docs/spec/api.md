@@ -63,9 +63,10 @@ The gate fetches this at boot and every 60 s in the background (2 s timeout). On
 ### `POST /api/gate/hits` (gate key)
 ```json
 { "sentAt": "…", "buckets": [ { "bucket": "2026-11-11T17:42:00Z", "category": "AI_TRAINING", "botName": "GPTBot",
-  "decision": "QUOTE_402", "hits": 41, "bytes": 0 } ] }
+  "decision": "QUOTE_402", "hits": 41, "bytes": 0, "isSimulated": false } ] }
 ```
 → `204`. Fire-and-forget from the gate (2 s timeout, dropped on failure). Upserts `bot_hits`.
+Every bucket carries `isSimulated` (required, no default): `true` only for SIM traffic (`SPIGOT_GATE_DEMO=1` and `X-Spigot-Sim: 1`), so simulated bots never count as real ones; it maps to `bot_hits.is_simulated`, which is part of the upsert key. Both payloads are validated by the zod schemas in `@spigot/shared/gate`.
 
 ## The 402 contract
 
