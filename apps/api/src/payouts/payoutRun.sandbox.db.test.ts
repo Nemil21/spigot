@@ -17,7 +17,7 @@ import { payoutRun } from './payoutRun.js';
  *   PAYPAL_MODE=sandbox TEST_DATABASE_URL=… npx vitest run --project db apps/api/src/payouts/payoutRun.sandbox.db.test.ts
  * A $1.60 payout ($2.00 charged, 20% commission) to DEMO_PUBLISHER_PAYOUT_EMAIL (the separate
  * sandbox business account; paying the merchant itself fails SELF_PAY_NOT_ALLOWED) → 201 PENDING.
- * SP-001b's client replaces the token code below once it lands.
+ * Uses the same token-only transport as SP-001c's sandbox contract test (no config load).
  */
 const enabled = process.env.PAYPAL_MODE === 'sandbox' && !!testDatabaseUrl;
 

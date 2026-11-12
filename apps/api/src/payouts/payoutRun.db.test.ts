@@ -8,6 +8,7 @@ import { getOrCreateAccount, platformAccounts } from '../ledger/accounts.js';
 import { ledgerCheck } from '../ledger/check.js';
 import { post } from '../ledger/ledger.js';
 import { chargeEntries, payoutReturnedEntries, topupEntries } from '../ledger/postings.js';
+import { FakePayPal } from '../paypal/fake/core.js';
 import { FakePayPalExtras } from '../paypal/fake/extras.js';
 import { moneyOut } from '../paypal/moneyOut.js';
 import type { PayPalTransport } from '../paypal/transport.js';
@@ -527,6 +528,15 @@ describe.skipIf(!testDatabaseUrl)('payoutRun', { timeout: 30_000 }, () => {
       'PERIOD_TAKEN',
     );
     expect(await batches()).toHaveLength(1);
+  });
+
+  test("SP-001b's PayPal client (PAYPAL_MODE=stub path) plugs in as `pp`", async () => {
+    const a = await newPublisher();
+    await charge(a, 20_000_000);
+    const core = new FakePayPal();
+    const res = await payoutRun('MANUAL_DEMO', {}, deps({ pp: core.client() }));
+    expect(res.outcome).toBe('PENDING');
+    expect(core.extras.payouts.batchBySenderId(res.batchId!)).toBeDefined();
   });
 
   test('needs deps', async () => {
