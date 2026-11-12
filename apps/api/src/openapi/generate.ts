@@ -17,6 +17,7 @@ import {
 import { stringify } from 'yaml';
 import { z } from 'zod';
 import { ERROR_STATUS, type ErrorCode } from '@spigot/shared';
+import { claimRequestBody, claimResponse } from '../routes/v1-claims.js';
 import { topupRequestBody } from '../routes/v1-topups.js';
 import {
   FILTER_SYNTAX,
@@ -59,6 +60,8 @@ const S = {
   PriceAboveMax: priceAboveMax402Body.meta({ id: 'PriceAboveMax' }),
   TopupRequest: topupRequestBody.meta({ id: 'TopupRequest' }),
   Topup: topupResponse.meta({ id: 'Topup' }),
+  ClaimRequest: claimRequestBody.meta({ id: 'ClaimRequest' }),
+  Claim: claimResponse.meta({ id: 'Claim' }),
 };
 
 /** The committed file's server; the served copy uses `APP_BASE_URL` instead. */
@@ -80,6 +83,7 @@ export const DOCUMENTED_ROUTES = [
   'GET /v1/:site/datasets/:dataset/changes',
   'GET /v1/balance',
   'POST /v1/topups',
+  'POST /v1/claims',
 ] as const;
 
 const IDEMPOTENCY =
@@ -374,6 +378,30 @@ function registerPaths(r: OpenAPIRegistry): void {
       502: error(502, 'PayPal could not be reached.', ['PAYPAL_ERROR']),
     },
   });
+
+  r.registerPath({
+    method: 'post',
+    path: '/v1/claims',
+    operationId: 'createClaim',
+    tags: ['Claims'],
+    summary: 'Report a bad record from one of your paid calls',
+    description:
+      "Within 7 days of the call, for a record that call served (`recordKey` as returned, e.g. `listings/l-123`; `callId` from `Spigot-Call-Id`). One claim per record per call: resending returns the same claim. `MISSING_FIELD` and `DUPLICATE` are checked at once and, when confirmed, the record's price is credited back to your balance (`AUTO_CREDITED`). Other reasons, and credits above 10% of your charges over 7 days, stay `OPEN` for the publisher to decide. Free; any scope.",
+    security: keyed,
+    request: { body: { required: true, content: json(S.ClaimRequest) } },
+    responses: {
+      200: { description: 'The claim.', content: json(S.Claim) },
+      400: badRequest(['VALIDATION_ERROR']),
+      401: unauthenticated,
+      404: error(404, 'No call with that id among your calls.', ['NOT_FOUND']),
+      422: error(
+        422,
+        'The call was not charged, is more than 7 days old, or did not serve that record.',
+        ['CLAIM_NOT_ELIGIBLE'],
+      ),
+      429: rateLimited,
+    },
+  });
 }
 
 // ── Document ────────────────────────────────────────────────────────────────────────────────
@@ -409,6 +437,7 @@ export function generateOpenApi(opts: GenerateOptions = {}): Record<string, unkn
       { name: 'Records', description: 'Paid record reads.' },
       { name: 'Changes', description: 'Paid changes feed.' },
       { name: 'Balance', description: 'Prepaid balance and PayPal top-ups.' },
+      { name: 'Claims', description: 'Report bad records; confirmed ones are credited back.' },
     ],
   });
   return doc as unknown as Record<string, unknown>;

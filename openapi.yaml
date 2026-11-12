@@ -33,6 +33,8 @@ tags:
     description: Paid changes feed.
   - name: Balance
     description: Prepaid balance and PayPal top-ups.
+  - name: Claims
+    description: Report bad records; confirmed ones are credited back.
 components:
   securitySchemes:
     bearerAuth:
@@ -204,6 +206,7 @@ components:
                 - TOPUP_FAILED
                 - AUTO_TOPUP_CAP_REACHED
                 - REFUND_EXCEEDS_UNUSED
+                - CLAIM_NOT_ELIGIBLE
                 - RATE_LIMITED
                 - INTERNAL_ERROR
                 - PAYPAL_ERROR
@@ -335,6 +338,7 @@ components:
                 - TOPUP_FAILED
                 - AUTO_TOPUP_CAP_REACHED
                 - REFUND_EXCEEDS_UNUSED
+                - CLAIM_NOT_ELIGIBLE
                 - RATE_LIMITED
                 - INTERNAL_ERROR
                 - PAYPAL_ERROR
@@ -443,6 +447,7 @@ components:
                 - TOPUP_FAILED
                 - AUTO_TOPUP_CAP_REACHED
                 - REFUND_EXCEEDS_UNUSED
+                - CLAIM_NOT_ELIGIBLE
                 - RATE_LIMITED
                 - INTERNAL_ERROR
                 - PAYPAL_ERROR
@@ -549,6 +554,7 @@ components:
                 - TOPUP_FAILED
                 - AUTO_TOPUP_CAP_REACHED
                 - REFUND_EXCEEDS_UNUSED
+                - CLAIM_NOT_ELIGIBLE
                 - RATE_LIMITED
                 - INTERNAL_ERROR
                 - PAYPAL_ERROR
@@ -825,6 +831,52 @@ components:
           maximum: 50000
       required:
         - amountCents
+    Claim:
+      type: object
+      properties:
+        claimId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - OPEN
+            - AUTO_CREDITED
+            - CREDITED
+            - REJECTED
+        creditMicros:
+          type: integer
+      required:
+        - claimId
+        - status
+        - creditMicros
+    ClaimRequest:
+      type: object
+      properties:
+        callId:
+          type: string
+          format: uuid
+        recordKey:
+          type: string
+          minLength: 1
+          maxLength: 500
+        reason:
+          type: string
+          enum:
+            - STALE
+            - WRONG_VALUE
+            - MISSING_FIELD
+            - DUPLICATE
+            - REMOVED
+        note:
+          type:
+            - string
+            - "null"
+          maxLength: 2000
+      required:
+        - callId
+        - recordKey
+        - reason
   parameters: {}
 paths:
   /v1/catalog:
@@ -1786,6 +1838,77 @@ paths:
                 $ref: "#/components/schemas/ErrorEnvelope"
         "502":
           description: "PayPal could not be reached. Codes: `PAYPAL_ERROR`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /v1/claims:
+    post:
+      operationId: createClaim
+      tags:
+        - Claims
+      summary: Report a bad record from one of your paid calls
+      description: "Within 7 days of the call, for a record that call served (`recordKey` as returned, e.g. `listings/l-123`; `callId` from `Spigot-Call-Id`). One claim per record per call: resending returns the same claim. `MISSING_FIELD` and `DUPLICATE` are checked at once and, when confirmed, the record's price is credited back to your balance (`AUTO_CREDITED`). Other reasons, and credits above 10% of your charges over 7 days, stay `OPEN` for the publisher to decide. Free; any scope."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimRequest"
+      responses:
+        "200":
+          description: The claim.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Claim"
+        "400":
+          description: "Invalid path, query, header or body. Codes: `VALIDATION_ERROR`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: "Missing, malformed, unknown or revoked API key. Codes: `UNAUTHENTICATED`, `KEY_REVOKED`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: "No call with that id among your calls. Codes: `NOT_FOUND`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          description: "The call was not charged, is more than 7 days old, or did not serve that record. Codes: `CLAIM_NOT_ELIGIBLE`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          description: "Over the per-minute limit; retry after `Retry-After` seconds. Codes: `RATE_LIMITED`."
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: integer
+                description: Calls allowed per minute for this key (or IP).
+              required: true
+              description: Calls allowed per minute for this key (or IP).
+            RateLimit-Remaining:
+              schema:
+                type: integer
+                description: Calls left in the current window.
+              required: true
+              description: Calls left in the current window.
+            Retry-After:
+              schema:
+                type: integer
+                description: Seconds to wait.
+              required: true
+              description: Seconds to wait.
           content:
             application/json:
               schema:
