@@ -6,3 +6,4 @@ export * from './robots.js';
 export * from './refresher.js';
 export * from './flusher.js';
 export * from './middleware.js';
+export * from './verifySearch.js';
