@@ -1,4 +1,6 @@
 import { ApiError } from '../api/client';
+import { buttonClass } from './Button';
+import { IconAlert, IconRetry } from './icons';
 
 /** What to say for an error: the API's own message when it sent one, else a plain fallback. */
 export function errorMessage(error: unknown): string {
@@ -23,16 +25,29 @@ export function ErrorBanner({
   retrying?: boolean;
 }) {
   return (
-    <div role="alert" className="rounded-md border border-danger bg-danger-tint p-4 text-danger">
-      <p className="font-medium">{title}</p>
-      <p className="mt-1 text-sm">{errorMessage(error)}</p>
+    <div
+      role="alert"
+      className="flex flex-col gap-3 rounded-lg border border-danger/25 bg-danger-tint px-4 py-3.5 sm:flex-row sm:items-center"
+    >
+      <div className="flex min-w-0 flex-1 gap-3">
+        <IconAlert className="mt-0.5 text-danger" />
+        <div className="min-w-0">
+          <p className="text-base font-semibold text-ink">{title}</p>
+          <p className="mt-0.5 text-sm text-body">{errorMessage(error)}</p>
+        </div>
+      </div>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
           disabled={retrying}
-          className="mt-3 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent disabled:opacity-60"
+          className={buttonClass({
+            variant: 'secondary',
+            size: 'sm',
+            className: 'self-start sm:self-auto',
+          })}
         >
+          <IconRetry size={14} />
           {retrying ? 'Retrying…' : 'Retry'}
         </button>
       )}

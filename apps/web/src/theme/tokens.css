@@ -1,13 +1,25 @@
 @import 'tailwindcss';
 
 /*
- * Spigot semantic tokens (SP-024a; features/13 §6 Theme). Deliberately not Holdfast's look:
- * Holdfast is white / charcoal / orange with Geist; Spigot is cool slate with a deep "tap water"
- * teal accent and a brass/amber money colour, in light and dark.
+ * Spigot design tokens (SP-024a; features/13 §6 Theme). A sibling of Holdfast v4, not a clone
+ * (owner decision 2026-11-12): it shares v4's system ideas (mono labels, one serif accent word,
+ * hairlines, square radii) but never its palette, fonts or mark. Holdfast is white / charcoal /
+ * orange in Geist; Spigot is cool slate with a deep "tap water" teal accent and a brass money
+ * colour, in Instrument Sans + JetBrains Mono + Instrument Serif, in light and dark.
  *
- * Components use the semantic names only (bg-surface, text-ink, border-line, text-accent …), never
- * raw hex. Values live in the CSS variables below and are mirrored in src/theme/tokens.ts for
- * canvas consumers (AG Charts); tokens.test.ts fails if the two drift.
+ * Rules the components follow:
+ *   - Semantic colour names only (bg-surface, text-ink, border-line, text-accent …), never raw hex.
+ *     Values live in the CSS variables below and are mirrored in src/theme/tokens.ts for canvas
+ *     consumers (AG Charts); tokens.test.ts fails if the two drift.
+ *   - Teal is the one accent: primary actions, the current nav item, focus and live state. Brass
+ *     is reserved for money. Status colours appear only on status.
+ *   - Type: a fixed rem scale (below). Body copy in product screens is text-base (14 px); labels and
+ *     table text are text-sm (13 px); page titles text-2xl.
+ *   - Surfaces: canvas → surface (cards, panels) → surface-2 (wells, table headers). Structure is
+ *     1 px hairlines and 2–6 px radii; shadows are near-flat and only overlays really lift.
+ *   - Voice: Instrument Sans for text, JetBrains Mono
+ *     UPPERCASE letter-spaced (`label` utility) for buttons, nav, KPI labels and chips, and
+ *     Instrument Serif italic in teal for one accent word in a heading (`<Accent>`).
  *
  * Dark mode: `data-theme="dark"` on <html> (set by src/theme/mode.ts from the user's choice or the
  * OS preference).
@@ -15,60 +27,64 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 :root {
-  --sp-canvas: #f3f6f7;
+  --sp-canvas: #f7f8f9;
   --sp-surface: #ffffff;
-  --sp-surface-2: #e9eef1;
-  --sp-border: #cdd7dd;
-  --sp-line: #dfe6ea;
-  --sp-ink: #0d1b24;
-  --sp-body: #364955;
-  --sp-muted: #677a86;
+  --sp-surface-2: #f1f3f5;
+  --sp-border: #d8dee3;
+  --sp-line: #e7ebee;
+  --sp-ink: #0c1820;
+  --sp-body: #3a4952;
+  --sp-muted: #5f6e78;
   --sp-accent: #0b6e75;
-  --sp-accent-strong: #08545a;
-  --sp-accent-tint: #dbeff0;
+  --sp-accent-strong: #085a60;
+  --sp-accent-tint: #e2f1f1;
+  --sp-accent-key: #c3e5e6;
   --sp-on-accent: #ffffff;
   --sp-money: #8a5a00;
-  --sp-money-tint: #fbf0d9;
-  --sp-positive: #1b7a4b;
-  --sp-positive-tint: #dcf2e5;
-  --sp-warning: #a15c00;
-  --sp-warning-tint: #fdeccf;
-  --sp-danger: #b8322a;
-  --sp-danger-tint: #fbe4e1;
-  --sp-info: #2a5db0;
-  --sp-info-tint: #e0eafa;
+  --sp-money-tint: #fbf1dc;
+  --sp-positive: #1a7548;
+  --sp-positive-tint: #e1f3e8;
+  --sp-warning: #9a5800;
+  --sp-warning-tint: #fdf0d6;
+  --sp-danger: #b42f27;
+  --sp-danger-tint: #fce8e6;
+  --sp-info: #2a5bab;
+  --sp-info-tint: #e5edfb;
   --sp-sim: #6c45c9;
-  --sp-sim-tint: #ece5fb;
+  --sp-sim-tint: #efe9fc;
   --sp-focus: #1f9aa3;
+  --sp-shadow-rgb: 12 24 32;
   color-scheme: light;
 }
 
 [data-theme='dark'] {
-  --sp-canvas: #0a1217;
-  --sp-surface: #101b21;
-  --sp-surface-2: #16242c;
-  --sp-border: #2b3c46;
-  --sp-line: #1d2b33;
-  --sp-ink: #e4edf1;
-  --sp-body: #b3c3cc;
-  --sp-muted: #7e919c;
+  --sp-canvas: #0a0f13;
+  --sp-surface: #10171c;
+  --sp-surface-2: #162027;
+  --sp-border: #27333c;
+  --sp-line: #1c262d;
+  --sp-ink: #e7eef2;
+  --sp-body: #b6c3cb;
+  --sp-muted: #84949f;
   --sp-accent: #3cc0c8;
-  --sp-accent-strong: #74d8de;
-  --sp-accent-tint: #0f3438;
-  --sp-on-accent: #04191b;
-  --sp-money: #f2b33d;
-  --sp-money-tint: #3a2a08;
-  --sp-positive: #4cc38a;
-  --sp-positive-tint: #0f3121;
+  --sp-accent-strong: #7ad9de;
+  --sp-accent-tint: #0e3135;
+  --sp-accent-key: #145257;
+  --sp-on-accent: #03191b;
+  --sp-money: #f0b445;
+  --sp-money-tint: #36280b;
+  --sp-positive: #4fc48c;
+  --sp-positive-tint: #0f2e20;
   --sp-warning: #f0aa45;
-  --sp-warning-tint: #3a2809;
-  --sp-danger: #f27b70;
-  --sp-danger-tint: #3d1512;
-  --sp-info: #7fa8f2;
-  --sp-info-tint: #15264a;
-  --sp-sim: #b49cff;
-  --sp-sim-tint: #2a1f4d;
+  --sp-warning-tint: #362609;
+  --sp-danger: #f27d72;
+  --sp-danger-tint: #3a1613;
+  --sp-info: #85acf2;
+  --sp-info-tint: #152446;
+  --sp-sim: #b59dff;
+  --sp-sim-tint: #271d48;
   --sp-focus: #5fd3da;
+  --sp-shadow-rgb: 0 0 0;
   color-scheme: dark;
 }
 
@@ -85,6 +101,7 @@
   --color-accent: var(--sp-accent);
   --color-accent-strong: var(--sp-accent-strong);
   --color-accent-tint: var(--sp-accent-tint);
+  --color-accent-key: var(--sp-accent-key);
   --color-on-accent: var(--sp-on-accent);
   --color-money: var(--sp-money);
   --color-money-tint: var(--sp-money-tint);
@@ -99,27 +116,104 @@
   --color-sim: var(--sp-sim);
   --color-sim-tint: var(--sp-sim-tint);
   --color-focus: var(--sp-focus);
+
+  /* Depth: offset, soft blur, tinted by the mode's shadow colour. */
+  --shadow-card: 0 1px 2px 0 rgb(var(--sp-shadow-rgb) / 0.04);
+  --shadow-raised: 0 4px 14px 0 rgb(var(--sp-shadow-rgb) / 0.06);
+  --shadow-overlay:
+    0 2px 6px 0 rgb(var(--sp-shadow-rgb) / 0.08), 0 16px 40px -8px rgb(var(--sp-shadow-rgb) / 0.22);
 }
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --shadow-card: 0 1px 2px 0 rgb(13 27 36 / 0.06), 0 2px 8px 0 rgb(13 27 36 / 0.05);
+  --font-sans:
+    'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* One accent word per heading, always teal: <Accent>agents</Accent>. Never body copy. */
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
+
+  --tracking-label: 0.06em;
+
+  /* Type scale: fixed rem, ~1.2 ratio for product UI; 3xl and up are for public pages. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-md: 1rem;
+  --text-md--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.625rem;
+  --text-lg--letter-spacing: -0.005em;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.75rem;
+  --text-xl--letter-spacing: -0.012em;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 2rem;
+  --text-2xl--letter-spacing: -0.018em;
+  --text-3xl: 2.125rem;
+  --text-3xl--line-height: 2.5rem;
+  --text-3xl--letter-spacing: -0.022em;
+  --text-4xl: 2.875rem;
+  --text-4xl--line-height: 1.08;
+  --text-4xl--letter-spacing: -0.028em;
+  --text-5xl: 3.75rem;
+  --text-5xl--line-height: 1.02;
+  --text-5xl--letter-spacing: -0.034em;
+
+  /* Square-ish: 2–6 px everywhere, status chips included. rounded-full only for dots. */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Loading = skeletons, never spinners on money numbers (screens.md). */
-  --animate-skeleton: skeleton 1.3s ease-in-out infinite;
+  --animate-skeleton: skeleton 1.6s ease-in-out infinite;
   @keyframes skeleton {
     0%,
     100% {
       opacity: 1;
     }
     50% {
-      opacity: 0.5;
+      opacity: 0.55;
     }
   }
+  --animate-rise: rise 220ms var(--ease-out-expo) both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+}
+
+/* Mono UPPERCASE, letter-spaced: buttons, nav, KPI and field labels, chips. */
+@utility label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+/* Marker highlight behind a few words of a heading (wraps cleanly across lines). */
+@utility marker {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 58%,
+    var(--sp-accent-key) 58%,
+    var(--sp-accent-key) 94%,
+    transparent 94%
+  );
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding-inline: 0.08em;
+  margin-inline: -0.08em;
 }
 
 @layer base {
@@ -127,10 +221,41 @@
     background: var(--sp-canvas);
     color: var(--sp-ink);
     font-family: var(--font-sans);
+    font-size: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scrollbar-color: var(--sp-border) transparent;
+    caret-color: var(--sp-accent);
+  }
+  body {
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--sp-accent-tint);
+    color: var(--sp-ink);
   }
   :focus-visible {
     outline: 2px solid var(--sp-focus);
     outline-offset: 2px;
+  }
+  a {
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--sp-muted);
+    opacity: 1;
   }
   /* Money and counts line up in columns. */
   .tabular {
@@ -143,6 +268,8 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

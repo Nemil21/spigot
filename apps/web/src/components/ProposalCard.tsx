@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router';
 import { SpigotGrid } from '../grid';
 import { href } from '../routes';
+import { buttonClass } from './Button';
 import { Money } from './Money';
 
 /**
@@ -100,7 +101,7 @@ const BADGE_CLASS: Record<SourceBadge, string> = {
 function Badge({ children, className }: { children: string; className: string }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${className}`}
+      className={`label inline-flex h-5 items-center whitespace-nowrap rounded-xs px-1.5 text-2xs ${className}`}
     >
       {children}
     </span>
@@ -180,7 +181,7 @@ export function ProposalCard({
     <article
       aria-labelledby={headingId}
       data-dataset-id={p.datasetId}
-      className="rounded-lg border border-line bg-surface p-5 shadow-sm"
+      className="rounded-lg border border-line bg-surface p-5 sm:p-6"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -251,7 +252,9 @@ export function ProposalCard({
 
       {p.aiRationale && (
         <details className="mt-3 text-sm">
-          <summary className="cursor-pointer text-muted">Why Claude chose these fields</summary>
+          <summary className="cursor-pointer text-muted hover:text-ink">
+            Why Claude chose these fields
+          </summary>
           <p className="mt-2 whitespace-pre-line text-body">{p.aiRationale}</p>
         </details>
       )}
@@ -262,10 +265,10 @@ export function ProposalCard({
         </p>
       )}
 
-      <footer className="mt-4 flex gap-2">
+      <footer className="mt-5 flex gap-2 border-t border-line pt-4">
         <Link
           to={href('datasetEditor', { datasetId: p.datasetId })}
-          className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong"
+          className={buttonClass()}
           aria-label={`Review ${p.typeName}`}
         >
           Review
@@ -274,7 +277,7 @@ export function ProposalCard({
           type="button"
           onClick={() => onReject(p)}
           disabled={rejecting}
-          className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-body hover:bg-surface-2 disabled:opacity-60"
+          className={buttonClass({ variant: 'secondary' })}
           aria-label={`Reject ${p.typeName}`}
         >
           {rejecting ? 'Rejecting…' : 'Reject'}
