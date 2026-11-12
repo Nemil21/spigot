@@ -31,8 +31,8 @@
     "sim:bots": "tsx scripts/sim-bots.ts",
     "sim:buyers": "node scripts/not-yet.mjs sim:buyers SP-036",
     "demo:mutate": "npm run demo:mutate -w @spigot/demo-site --",
-    "demo:reset": "node scripts/not-yet.mjs demo:reset SP-038",
-    "demo:payout": "node scripts/not-yet.mjs demo:payout SP-038",
+    "demo:reset": "npm run demo:reset -w @spigot/api --",
+    "demo:payout": "npm run demo:payout -w @spigot/api --",
     "demo:decline": "node scripts/not-yet.mjs demo:decline SP-047b"
   },
   "devDependencies": {

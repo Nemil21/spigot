@@ -334,7 +334,10 @@ describe.skipIf(!testDatabaseUrl)('paid-read services', { timeout: 120_000 }, ()
     expect(await charges(w)).toBe(0);
     expect(await bal(w)).toBe(1_000_000);
 
-    await q(`UPDATE datasets SET status = 'PROPOSED' WHERE id = $1`, [w.datasetId]);
+    // Never published: no active schema (PROPOSED with one is a demo reset, which is a 410).
+    await q(`UPDATE datasets SET status = 'PROPOSED', active_schema_id = NULL WHERE id = $1`, [
+      w.datasetId,
+    ]);
     expect(await code(paidRead(ctx(w), read(w)))).toBe('404 NOT_FOUND');
     expect(await code(paidRead(ctx(w), read(w, { dataset: 'nope' })))).toBe('404 NOT_FOUND');
     expect(await code(paidRead(ctx(w), read(w, { site: 'no-such-site' })))).toBe('404 NOT_FOUND');
@@ -605,7 +608,10 @@ describe.skipIf(!testDatabaseUrl)('paid-read services', { timeout: 120_000 }, ()
   test('catalog lists sold datasets only; describe gives visible fields, ops, pricing, licence', async () => {
     const w = await world();
     const hidden = await world();
-    await q(`UPDATE datasets SET status = 'PROPOSED' WHERE id = $1`, [hidden.datasetId]);
+    // Never published: no active schema (PROPOSED with one is a demo reset, which is a 410).
+    await q(`UPDATE datasets SET status = 'PROPOSED', active_schema_id = NULL WHERE id = $1`, [
+      hidden.datasetId,
+    ]);
     await q(
       `INSERT INTO crawl_runs (site_id, trigger, status, finished_at) VALUES ($1, 'MANUAL', 'SUCCEEDED', '2026-11-12T01:00:00Z')`,
       [w.siteId],
