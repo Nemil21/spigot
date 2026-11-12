@@ -36,7 +36,7 @@ W11 Buyer portal (balance, top-up, auto top-up, top-ups table) · W15 error copy
 ### Auto top-up (P1)
 Called from `chargeAndRecord` (07) when a charge fails on balance:
 1. `SELECT … FROM buyers WHERE id=$1 FOR UPDATE`.
-2. Skip unless: `auto_topup_enabled`, `vault_id` set, no AUTO top-up `CREATED` in flight, and `month_auto_sum + amount ≤ monthly_topup_cap_cents`. Also require `balance + amount ≥ price` (else it wouldn't help → 402).
+2. Skip unless: `auto_topup_enabled`, `vault_id` set, no `VAULT_MIT` top-up `CREATED` in flight, and `month_vault_mit_sum + amount ≤ monthly_topup_cap_cents` (AUTO + MCP vault top-ups, data-model rule 11). Also require `balance + amount ≥ price` (else it wouldn't help → 402).
 3. Insert `topups` (trigger AUTO, method VAULT_MIT) → `pp.createTopupOrder` with `vault_id` + `stored_credential` → card captures in the create call (`COMPLETED`) → `creditTopup`.
 4. Retry the charge once. The response carries `Spigot-Auto-Topup: 2000` and the MCP result mentions it ("Topped up $20 from your saved PayPal method").
 5. On decline (`INSTRUMENT_DECLINED`, testable with `PayPal-Mock-Response`): top-up FAILED, set `auto_topup_enabled=false`, return 402 with "auto top-up declined", notify the buyer (W11 banner).

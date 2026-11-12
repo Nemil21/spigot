@@ -93,6 +93,7 @@ describe('SP-023 OpenAPI document', () => {
         expect.arrayContaining(['Link', 'Spigot-Price', 'Cache-Control']),
       );
       expect(Object.keys(o.responses['200']!.headers!).sort()).toEqual([
+        'Spigot-Auto-Topup',
         'Spigot-Balance-Micros',
         'Spigot-Call-Id',
         'Spigot-Charged-Micros',

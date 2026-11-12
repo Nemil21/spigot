@@ -4,8 +4,9 @@
 //
 //   idempotency lookup → dataset LIVE / LIVE_STALE (else 410) → query (limit clamped) →
 //   serialize (visible fields only) → price = n × unit → price > max → 402 PRICE_ABOVE_MAX (no
-//   row, no txn) → chargeAndRecord (one txn: CHARGE, api_calls row, audit; 402
-//   INSUFFICIENT_BALANCE when short).
+//   row, no txn) → chargeAndRecord (one txn: CHARGE, api_calls row, audit; when short, auto
+//   top-up from the saved method and retry once (SP-047a), else 402 INSUFFICIENT_BALANCE /
+//   AUTO_TOPUP_CAP_REACHED / TOPUP_FAILED).
 //
 // The query runs before the charge so the price is exact. The unit price is read once, with the
 // dataset row, and passed to `chargeAndRecord` as the snapshot: an owner's price edit while this
@@ -46,6 +47,7 @@ import {
 } from './payment402.js';
 import { loadSite402, requireSold, resolveDataset } from './lookup.js';
 import type { Queryable } from '../db/pool.js';
+import { autoTopupError, autoTopupHook, type AutoTopupDeps } from '../topups/autoTopup.js';
 import {
   normalizeRead,
   unitPriceMicros,
@@ -62,6 +64,11 @@ export interface PaidReadContext extends MeterContext {
    * edit mid-call). Never set in production code.
    */
   afterQuery?: () => Promise<void>;
+  /**
+   * Auto top-up on a short balance (SP-047a): the PayPal client and config. Unset → no auto
+   * top-up (a short call is a plain 402). An explicit `onInsufficient` wins over this.
+   */
+  autoTopup?: Omit<AutoTopupDeps, 'db'>;
 }
 
 export interface PaidReadParams extends ReadParams {
@@ -90,6 +97,8 @@ export interface PaidReadResult {
   count: number;
   /** `Link`, `Cache-Control`, `Spigot-Price` on a 402; null otherwise. */
   headers: Headers402 | null;
+  /** `Spigot-Auto-Topup`: cents this call topped up from the saved PayPal method (SP-047a). */
+  autoTopupCents?: number;
 }
 
 const ENDPOINT: Record<ReadKind, Endpoint> = {
@@ -220,7 +229,13 @@ export async function paidRead(
 ): Promise<PaidReadResult> {
   // One clock reading for the whole call, so the auto key we look up is the one SP-016 claims.
   const now = ctx.now?.() ?? new Date();
-  const meter: MeterContext = { ...ctx, now: () => now };
+  const auto =
+    ctx.autoTopup && !ctx.onInsufficient ? autoTopupHook({ db: ctx.db, ...ctx.autoTopup }) : null;
+  const meter: MeterContext = {
+    ...ctx,
+    now: () => now,
+    ...(auto ? { onInsufficient: auto.onInsufficient } : {}),
+  };
   const q = ctx.db.pool;
 
   const resolved = await resolveDataset(q, params.site, params.dataset);
@@ -325,9 +340,18 @@ export async function paidRead(
     count: served.count,
     isSimulated: b.isSimulated,
     ...(params.simulatedAt !== undefined ? { simulatedAt: params.simulatedAt } : {}),
-    paymentRequiredBody: ({ balanceMicros }) =>
-      insufficientBalanceBody(site, links, { quote, balanceMicros, channel: ctx.channel }),
+    paymentRequiredBody: ({ balanceMicros }) => {
+      const body = insufficientBalanceBody(site, links, {
+        quote,
+        balanceMicros,
+        channel: ctx.channel,
+      });
+      // Auto top-up hit the cap or was declined: say so instead of "top up".
+      const error = autoTopupError(auto?.outcome() ?? null);
+      return error ? { ...body, error } : body;
+    },
   });
+  const autoTopupCents = auto?.toppedUpCents() ?? null;
 
   return {
     status: res.status,
@@ -338,6 +362,7 @@ export async function paidRead(
     replay: res.replay,
     count: res.status === 200 ? countOf(res.body) : 0,
     headers: res.status === 402 ? headers402(site, links) : null,
+    ...(autoTopupCents !== null ? { autoTopupCents } : {}),
   };
 }
 

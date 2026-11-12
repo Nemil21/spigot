@@ -252,6 +252,8 @@ export const PAID_RESPONSE_HEADERS = {
   'Spigot-Records': 'Records (or changes) in the body.',
   'Spigot-Call-Id': 'The call id (use it for claims).',
   'Spigot-Replay': '`true` when this is a stored response replayed for the same Idempotency-Key.',
+  'Spigot-Auto-Topup':
+    'Cents topped up from your saved PayPal method because this call found the balance short (auto top-up).',
 } as const;
 
 /** Headers on every 402 (same as the gate's). */

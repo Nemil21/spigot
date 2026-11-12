@@ -1155,6 +1155,12 @@ paths:
                 description: "`true` when this is a stored response replayed for the same Idempotency-Key."
               required: false
               description: "`true` when this is a stored response replayed for the same Idempotency-Key."
+            Spigot-Auto-Topup:
+              schema:
+                type: integer
+                description: Cents topped up from your saved PayPal method because this call found the balance short (auto top-up).
+              required: false
+              description: Cents topped up from your saved PayPal method because this call found the balance short (auto top-up).
           content:
             application/json:
               schema:
@@ -1172,7 +1178,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
         "402":
-          description: "Payment needed; nothing was charged. `PAYMENT_REQUIRED`: no API key sent (the body lists the datasets and how to pay). `INSUFFICIENT_BALANCE`: the call costs more than your balance (body has the quote and `topUpUrl`). `PRICE_ABOVE_MAX`: the call costs more than `max_price_micros` (body has the quote)."
+          description: "Payment needed; nothing was charged. `PAYMENT_REQUIRED`: no API key sent (the body lists the datasets and how to pay). `INSUFFICIENT_BALANCE`: the call costs more than your balance (body has the quote and `topUpUrl`). `PRICE_ABOVE_MAX`: the call costs more than `max_price_micros` (body has the quote). With auto top-up on: `AUTO_TOPUP_CAP_REACHED` (this month's cap is used up) or `TOPUP_FAILED` (PayPal declined the saved method; auto top-up is now off)."
           headers:
             Link:
               schema:
@@ -1339,6 +1345,12 @@ paths:
                 description: "`true` when this is a stored response replayed for the same Idempotency-Key."
               required: false
               description: "`true` when this is a stored response replayed for the same Idempotency-Key."
+            Spigot-Auto-Topup:
+              schema:
+                type: integer
+                description: Cents topped up from your saved PayPal method because this call found the balance short (auto top-up).
+              required: false
+              description: Cents topped up from your saved PayPal method because this call found the balance short (auto top-up).
           content:
             application/json:
               schema:
@@ -1356,7 +1368,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
         "402":
-          description: "Payment needed; nothing was charged. `PAYMENT_REQUIRED`: no API key sent (the body lists the datasets and how to pay). `INSUFFICIENT_BALANCE`: the call costs more than your balance (body has the quote and `topUpUrl`). `PRICE_ABOVE_MAX`: the call costs more than `max_price_micros` (body has the quote)."
+          description: "Payment needed; nothing was charged. `PAYMENT_REQUIRED`: no API key sent (the body lists the datasets and how to pay). `INSUFFICIENT_BALANCE`: the call costs more than your balance (body has the quote and `topUpUrl`). `PRICE_ABOVE_MAX`: the call costs more than `max_price_micros` (body has the quote). With auto top-up on: `AUTO_TOPUP_CAP_REACHED` (this month's cap is used up) or `TOPUP_FAILED` (PayPal declined the saved method; auto top-up is now off)."
           headers:
             Link:
               schema:
@@ -1540,6 +1552,12 @@ paths:
                 description: "`true` when this is a stored response replayed for the same Idempotency-Key."
               required: false
               description: "`true` when this is a stored response replayed for the same Idempotency-Key."
+            Spigot-Auto-Topup:
+              schema:
+                type: integer
+                description: Cents topped up from your saved PayPal method because this call found the balance short (auto top-up).
+              required: false
+              description: Cents topped up from your saved PayPal method because this call found the balance short (auto top-up).
           content:
             application/json:
               schema:
@@ -1557,7 +1575,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
         "402":
-          description: "Payment needed; nothing was charged. `PAYMENT_REQUIRED`: no API key sent (the body lists the datasets and how to pay). `INSUFFICIENT_BALANCE`: the call costs more than your balance (body has the quote and `topUpUrl`). `PRICE_ABOVE_MAX`: the call costs more than `max_price_micros` (body has the quote)."
+          description: "Payment needed; nothing was charged. `PAYMENT_REQUIRED`: no API key sent (the body lists the datasets and how to pay). `INSUFFICIENT_BALANCE`: the call costs more than your balance (body has the quote and `topUpUrl`). `PRICE_ABOVE_MAX`: the call costs more than `max_price_micros` (body has the quote). With auto top-up on: `AUTO_TOPUP_CAP_REACHED` (this month's cap is used up) or `TOPUP_FAILED` (PayPal declined the saved method; auto top-up is now off)."
           headers:
             Link:
               schema:

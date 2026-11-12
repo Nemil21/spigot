@@ -7,6 +7,7 @@ import {
   TOPUP_STATUSES,
   autoTopupCapReachedMessage,
   autoTopupDeclinedMessage,
+  autoTopupDoneMessage,
   chargedLine,
   crawlBlockedMessage,
   creditedLine,
@@ -80,6 +81,12 @@ describe('W15 copy (screens.md)', () => {
   it('words a saved PayPal wallet decline', () => {
     expect(autoTopupDeclinedMessage({ method: 'PAYPAL' })).toBe(
       'PayPal declined the saved PayPal account. Auto top-up is off until you update it.',
+    );
+  });
+
+  it('words an auto top-up for the MCP result', () => {
+    expect(autoTopupDoneMessage({ amountCents: 2_000 })).toBe(
+      'Topped up $20 from your saved PayPal method.',
     );
   });
 

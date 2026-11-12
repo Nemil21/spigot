@@ -176,7 +176,7 @@ Indexes: `(dataset_id, updated_at desc, id)`, `(dataset_id, removed_at)`, GIN on
 | auto_topup_enabled | bool default false | |
 | auto_topup_amount_cents | int default 2000 | $20 |
 | auto_topup_threshold_micros | bigint default 2000000 | Top up when balance < $2 |
-| monthly_topup_cap_cents | int default 10000 | $100; sum of AUTO top-ups this calendar month may not exceed |
+| monthly_topup_cap_cents | int default 10000 | $100; sum of `VAULT_MIT` top-ups (AUTO + MCP) this calendar month (UTC) may not exceed (rule 11) |
 | vault_id | text | PayPal vault token (card or PayPal wallet), from S7/S8 |
 | vault_kind | text | `CARD`, `PAYPAL` |
 | per_call_max_micros | bigint default 1000000 | Safety cap: a single call may not cost more than $1 unless the request raises `max_price` |
@@ -435,6 +435,6 @@ ACCRUING (implicit: payable balance) ──batch built──> PENDING ──PayP
 8. **Record upsert.** `INSERT … ON CONFLICT (dataset_id, record_key) DO UPDATE … WHERE records.hash <> EXCLUDED.hash RETURNING` — only a real change bumps `version` and writes a `record_versions` row.
 9. **One crawl per site.** Partial unique index on `crawl_runs(site_id) where status in ('QUEUED','RUNNING')`. A second "Crawl now" returns the live run.
 10. **One payout run at a time.** `payoutRun` takes `pg_advisory_lock('payout')`. A publisher with a PENDING item is skipped in the next batch until it resolves.
-11. **Auto top-up at most once in flight.** `SELECT … FROM buyers WHERE id=$1 FOR UPDATE`; skip if a `topups` row with `trigger='AUTO'` is `CREATED` for this buyer; check the month's AUTO sum + amount ≤ `monthly_topup_cap_cents`.
+11. **Vault top-ups at most once in flight, within the cap.** Every `VAULT_MIT` top-up (AUTO from a short call, MCP `top_up` from the vault) goes through `reserveVaultTopup()`: a short tx takes `SELECT … FROM buyers WHERE id=$1 FOR UPDATE` and re-reads the balance (if another call's top-up already covers the price, skip); skip if a `topups` row with `method='VAULT_MIT'` (any trigger) is `CREATED` for this buyer; check this calendar month's (UTC) `VAULT_MIT` sum (AUTO + MCP; every status but `FAILED` / `ABANDONED`, so in-flight and later-refunded top-ups count) + amount ≤ `monthly_topup_cap_cents`; insert the row and COMMIT. The PayPal call runs after the commit, never under the buyer lock.
 12. **Webhook dedupe.** Insert into `webhook_events` with PayPal's event id as PK; on conflict, skip.
 13. **Hidden fields never leave.** The serializer builds output only from the active schema's `visible=true` fields (allowlist, not denylist).

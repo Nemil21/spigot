@@ -192,6 +192,14 @@ export function autoTopupDeclinedMessage(args: { method?: 'CARD' | 'PAYPAL' } = 
   return `PayPal declined the ${saved}. Auto top-up is off until you update it.`;
 }
 
+/**
+ * The MCP result line after a paid call auto topped up (features/08 §Auto top-up 4): "Topped up
+ * $20 from your saved PayPal method." REST sends `Spigot-Auto-Topup: 2000` instead.
+ */
+export function autoTopupDoneMessage(args: { amountCents: number }): string {
+  return `Topped up ${formatCents(args.amountCents)} from your saved PayPal method.`;
+}
+
 /** 410 `DATASET_UNPUBLISHED`. */
 export const DATASET_UNPUBLISHED_MESSAGE = 'The owner stopped selling this data.';
 
