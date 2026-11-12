@@ -36,6 +36,8 @@ export interface TenantB {
   callId: string;
   /** One of B's live records (SP-053 `/api/records/:id/versions`). */
   recordId: string;
+  /** One of B's OPEN claims (SP-048b `/api/claims/:id/decide`). */
+  claimId: string;
 }
 
 export const cases: TenancyCase[] = [

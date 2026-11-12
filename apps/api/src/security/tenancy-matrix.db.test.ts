@@ -85,6 +85,8 @@ interface Buyer {
   topupId: string;
   orderId: string;
   callId: string;
+  /** An OPEN claim on that call (SP-048b's `/api/claims/:id/decide`). */
+  claimId: string;
 }
 
 interface Reply {
@@ -299,6 +301,11 @@ describe.skipIf(!testDatabaseUrl)(
         [id],
       );
       expect(c).toBeDefined();
+      const [cl] = await q<{ id: string }>(
+        `INSERT INTO claims (api_call_id, record_id, buyer_id, reason, note)
+         VALUES ($1, $2, $3, 'WRONG_VALUE', 'sp042') RETURNING id`,
+        [c!.id, site.recordId, id],
+      );
       return {
         id,
         name,
@@ -309,6 +316,7 @@ describe.skipIf(!testDatabaseUrl)(
         topupId: t!.id,
         orderId,
         callId: c!.id,
+        claimId: cl!.id,
       };
     }
 
@@ -349,6 +357,9 @@ describe.skipIf(!testDatabaseUrl)(
           bB.id,
         ]),
         calls: await rows(`SELECT to_jsonb(c) j FROM api_calls c WHERE buyer_id = $1 ORDER BY id`, [
+          bB.id,
+        ]),
+        claims: await rows(`SELECT to_jsonb(c) j FROM claims c WHERE buyer_id = $1 ORDER BY id`, [
           bB.id,
         ]),
         // Buyer B's balance only: B's PUBLISHER_PAYABLE rightly grows when buyer A buys B's public
@@ -395,6 +406,7 @@ describe.skipIf(!testDatabaseUrl)(
       bB.topupId,
       bB.orderId,
       bB.callId,
+      bB.claimId,
     ];
     /** Also never in a reply to A on a session (tenant) route: B's catalog is public, not A's. */
     const tenantMarkers = () => [
@@ -429,6 +441,7 @@ describe.skipIf(!testDatabaseUrl)(
       topupId: bB.topupId,
       callId: bB.callId,
       recordId: B.recordId,
+      claimId: bB.claimId,
     });
     /** B's real ids in the case's `:param`s (throws for an `/api` param with no known id). */
     const fillVariants = (c: LoadedCase) => tenantUrls(c, tenantB(), randomUUID);

@@ -32,6 +32,7 @@ const B: TenantB = {
   topupId: 'b-topup',
   callId: 'b-call',
   recordId: 'b-record',
+  claimId: 'b-claim',
 };
 const RANDOM = () => 'random-id';
 
