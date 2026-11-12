@@ -317,8 +317,15 @@ describe.skipIf(!testDatabaseUrl)('SP-009b crawl API (Postgres + demo site)', ()
       status: 'SUCCEEDED',
       workflowRunId: `inproc:${runId}`,
       pagesTotal: done.pagesTotal,
-      aiCalls: 0, // W10's AI-calls column (SP-054)
     });
+    // W10's AI-calls column (SP-054): the run's `ai_calls` (the discovery run's schema-agent calls).
+    const { rows: aiRows } = await pool.query<{ ai_calls: number }>(
+      'SELECT ai_calls FROM crawl_runs WHERE id = $1',
+      [runId],
+    );
+    const listed = (await getJson(`/api/sites/${site.siteId}/crawl-runs?limit=20`, pub.cookie)).body
+      .runs[0];
+    expect(listed.aiCalls).toBe(aiRows[0]!.ai_calls);
   }, 60_000);
 
   it('a mid-run reconnect gets the current counters first, then live progress and done', async () => {
