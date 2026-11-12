@@ -189,7 +189,7 @@ SPIGOT_API_BASE=http://localhost:3000 SPIGOT_GATE_KEY=gk_… SPIGOT_VERIFY_TOKEN
   npm run dev -w @spigot/demo-site
 ```
 
-`npm run dev` starts only the API. If port 3000 is taken, set both `PORT` and `APP_BASE_URL` (e.g. `PORT=3100 APP_BASE_URL=http://localhost:3100 npm run dev`) and use that port for the demo site's `SPIGOT_API_BASE` too.
+`npm run dev` starts only the API; start it before the demo site. A demo site started first logs `[spigot-gate] policy not loaded` and passes every request until its next policy refresh (60 s). If port 3000 is taken, set both `PORT` and `APP_BASE_URL` (e.g. `PORT=3100 APP_BASE_URL=http://localhost:3100 npm run dev`) and use that port for the demo site's `SPIGOT_API_BASE` too.
 
 **4. Open it.**
 
