@@ -56,6 +56,12 @@ export interface ProposeDeps {
   concurrency?: number;
   /** Pages read per snapshot batch (default 200). */
   batchSize?: number;
+  /**
+   * SP-064 (`CRAWL_RENDER=browser` only): called for a template without a dataset before its
+   * samples are read; marks a JS-heavy template `render = 'browser'` and re-renders its pages, so
+   * the model and the APPROVE extraction see rendered HTML (`crawl/render.ts`).
+   */
+  prepareRender?: (templateId: string) => Promise<unknown>;
 }
 
 export interface ProposeOptions {
@@ -484,6 +490,7 @@ export async function proposeForSite(
         [templateId],
       );
       const ds = existing.rows[0];
+      if (!ds && deps.prepareRender) await deps.prepareRender(templateId);
       if (!ds)
         return proposeTemplate(deps, { site, runId, countCall }, { template: t, templateId });
       return {

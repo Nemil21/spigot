@@ -4,7 +4,9 @@
 // (unit tests, a process that never built the app) the hook isn't registered and the job no-ops.
 import type { FastifyBaseLogger } from 'fastify';
 import type { Config } from '../config.js';
+import { defaultCrawlDeps } from '../crawl/deps.js';
 import { onDiscoveryDone } from '../crawl/hooks.js';
+import { prepareTemplateRender } from '../crawl/render.js';
 import type { Db } from '../db/index.js';
 import { schemaModelFor, type SchemaModel } from './claude.js';
 import { proposeForSite, type ProposeDeps, type ProposeResult } from './propose.js';
@@ -50,7 +52,14 @@ export function startSchemaAgent(opts: StartOptions): () => void {
   let model = opts.model;
   const runtime: SchemaAgentRuntime = {
     // Lazy: a live-mode process without ANTHROPIC_API_KEY still boots; proposing throws then.
-    deps: () => ({ db: opts.db, model: (model ??= schemaModelFor(opts.config)) }),
+    deps: () => ({
+      db: opts.db,
+      model: (model ??= schemaModelFor(opts.config)),
+      prepareRender:
+        opts.config.CRAWL_RENDER === 'browser'
+          ? (templateId) => prepareTemplateRender(defaultCrawlDeps(), templateId)
+          : undefined,
+    }),
     log: opts.log,
   };
   current = runtime;
