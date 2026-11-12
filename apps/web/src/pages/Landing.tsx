@@ -200,7 +200,7 @@ export default function LandingPage() {
                   I'm an agent builder
                 </Link>
               </div>
-              <p className="mt-8 rounded-md border-l-4 border-accent bg-accent-tint px-4 py-3 text-ink">
+              <p className="mt-8 rounded-md border border-accent/30 bg-accent-tint px-4 py-3 text-ink">
                 <strong className="font-semibold">1 AI bot for every 31 human visits</strong>, up
                 from 1 in 200.{' '}
                 <a
