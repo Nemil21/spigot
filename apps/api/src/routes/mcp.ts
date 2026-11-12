@@ -13,6 +13,7 @@ const mcp: FastifyPluginAsync = async (app) => {
   const sessions = new McpSessions(await loadToolModules(), {
     db: app.db,
     baseUrl: app.config.APP_BASE_URL,
+    config: app.config,
     log: app.log.child({ mcp: true }),
   });
   app.addHook('onClose', async () => sessions.closeAll());
