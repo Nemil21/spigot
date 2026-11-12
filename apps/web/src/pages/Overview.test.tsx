@@ -149,16 +149,21 @@ describe('W04 Overview (SP-027b)', () => {
     ).toBeInTheDocument();
 
     // Grid: grouped by category (badge in the group row), GPTBot with its SIM chip.
-    await waitFor(() => expect(gridRow('AI_TRAINING|GPTBot|QUOTE_402|sim')).not.toBeNull());
-    const gpt = gridRow('AI_TRAINING|GPTBot|QUOTE_402|sim')!;
-    expect(gpt).toHaveTextContent('6,120');
-    expect(gpt).toHaveTextContent('Sent to API');
-    expect(gpt).toHaveTextContent('SIM');
-    expect(
-      within(gpt).getByRole('img', { name: /GPTBot: .* hits in the last 24 h/ }),
-    ).toBeInTheDocument();
-    expect(document.querySelector('[data-category="AI_TRAINING"]')).toHaveTextContent(
-      'AI training',
+    // AG Grid mounts React cell renderers (chip, sparkline, badge) a frame after the row itself.
+    await waitFor(() => {
+      const gpt = gridRow('AI_TRAINING|GPTBot|QUOTE_402|sim');
+      expect(gpt).not.toBeNull();
+      expect(gpt).toHaveTextContent('6,120');
+      expect(gpt).toHaveTextContent('Sent to API');
+      expect(gpt).toHaveTextContent('SIM');
+      expect(
+        within(gpt!).getByRole('img', { name: /GPTBot: .* hits in the last 24 h/ }),
+      ).toBeInTheDocument();
+    });
+    await waitFor(() =>
+      expect(document.querySelector('[data-category="AI_TRAINING"]')).toHaveTextContent(
+        'AI training',
+      ),
     );
 
     const feed = screen.getByRole('region', { name: 'Activity' });
@@ -172,6 +177,12 @@ describe('W04 Overview (SP-027b)', () => {
     const { fetch } = server();
     setup(fetch);
     await waitFor(() => expect(gridRow('SEARCH|Googlebot|PASS|real')).not.toBeNull());
+    // The chip is a React cell renderer, mounted after the row: wait until every SIM row has it.
+    await waitFor(() => {
+      const simIds = leafRowIds().filter((id) => id.endsWith('|sim'));
+      expect(simIds.length).toBeGreaterThan(0);
+      for (const id of simIds) expect(within(gridRow(id)!).queryByText('SIM'), id).not.toBeNull();
+    });
     let sim = 0;
     for (const id of leafRowIds()) {
       const row = gridRow(id)!;
