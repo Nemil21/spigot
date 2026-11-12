@@ -78,10 +78,14 @@ describe.skipIf(!testDatabaseUrl)(
     /** A LIVE `listings` dataset of 20 records; l-2 has a null required `title`. */
     async function world() {
       const tag = randomUUID().slice(0, 8);
-      const [pub] = await q<{ id: string }>(
-        `INSERT INTO publishers (name, email, payout_email) VALUES ($1, $2, $2) RETURNING id`,
-        [`Pub ${tag}`, `pub-${tag}@example.com`],
-      );
+      // Signed up (not inserted) so the publisher has a session for the W08 claims tab routes.
+      const email = `pub-${tag}@example.com`;
+      const signup = await agent()
+        .post('/api/auth/signup')
+        .set('Origin', ORIGIN)
+        .send({ name: `Pub ${tag}`, email, password: 'correct horse', payoutEmail: email });
+      expect(signup.status).toBe(201);
+      const [pub] = await q<{ id: string }>(`SELECT id FROM publishers WHERE email = $1`, [email]);
       const [s] = await q<{ id: string }>(
         `INSERT INTO sites (publisher_id, origin, slug, verify_token, crawl_key_hash, gate_key_hash, status)
          VALUES ($1, $2, $3, 'v', 'c', 'g', 'READY') RETURNING id`,
@@ -122,7 +126,12 @@ describe.skipIf(!testDatabaseUrl)(
         .get(`/v1/s-${tag}/datasets/listings/records?limit=${N}`)
         .set('Authorization', `Bearer ${buyer.key}`);
       expect(res.status).toBe(200);
-      return { buyer, publisherId: pub!.id, callId: res.headers['spigot-call-id'] as string };
+      return {
+        buyer,
+        publisherId: pub!.id,
+        publisherCookie: cookiesOf(signup),
+        callId: res.headers['spigot-call-id'] as string,
+      };
     }
 
     const fileClaim = (cookie: string, body: Record<string, unknown>) =>
@@ -220,6 +229,47 @@ describe.skipIf(!testDatabaseUrl)(
         [w.callId],
       );
       expect(call!.credited).toBe(UNIT);
+      await expectLedgerClean();
+    });
+
+    it('W12 → W08 loop: an OPEN claim reaches the publisher; Credit shows up in the buyer list', async () => {
+      const w = await world();
+      const filed = await fileClaim(w.buyer.cookie, {
+        callId: w.callId,
+        recordKey: 'listings/l-7',
+        reason: 'WRONG_VALUE',
+        note: 'Rent is different on the site',
+      });
+      expect(filed.body).toMatchObject({ status: 'OPEN', creditMicros: 0 });
+
+      // SP-048b's routes, as the W08 claims tab calls them.
+      const open = await agent().get('/api/claims?status=OPEN').set('Cookie', w.publisherCookie);
+      expect(open.status).toBe(200);
+      expect(open.body.claims).toEqual([
+        expect.objectContaining({
+          id: filed.body.claimId,
+          recordKey: 'listings/l-7',
+          reason: 'WRONG_VALUE',
+          amountMicros: UNIT,
+        }),
+      ]);
+      const decided = await agent()
+        .post(`/api/claims/${filed.body.claimId}/decide`)
+        .set('Origin', ORIGIN)
+        .set('Cookie', w.publisherCookie)
+        .send({ decision: 'CREDIT' });
+      expect(decided.status).toBe(200);
+      expect(decided.body).toMatchObject({ status: 'CREDITED', creditMicros: UNIT });
+
+      const [mine] = (await listClaims(w.buyer.cookie)).body.claims;
+      expect(mine).toMatchObject({
+        id: filed.body.claimId,
+        status: 'CREDITED',
+        creditMicros: UNIT,
+        decidedBy: 'PUBLISHER',
+      });
+      const usage = await agent().get('/api/buyer/usage').set('Cookie', w.buyer.cookie);
+      expect(usage.body.rows[0]).toMatchObject({ id: w.callId, creditedMicros: UNIT });
       await expectLedgerClean();
     });
 
