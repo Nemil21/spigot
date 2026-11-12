@@ -57,3 +57,6 @@ export const notice = {
 /** Short code chips (triggers, channels). */
 export const tag =
   'inline-flex items-center rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] font-medium text-body ring-1 ring-inset ring-line';
+
+/** Grids with up to this many rows size to their rows (no empty band); longer ones scroll. */
+export const GRID_AUTO_HEIGHT_ROWS = 15;
