@@ -1,0 +1,17 @@
+<%- include('partials/head') %>
+<article class="open-house">
+  <h1>Open house<% if (listing) { %>: <%= listing.title %><% } %></h1>
+  <dl class="facts">
+    <dt>Date</dt><dd data-k="date"><time class="oh-start" datetime="<%= openHouse.starts_at %>"><%= day(openHouse.starts_at) %></time></dd>
+    <dt>Time</dt><dd data-k="time"><%= time(openHouse.starts_at) %> to <time class="oh-end" datetime="<%= openHouse.ends_at %>"><%= time(openHouse.ends_at) %></time> (Central)</dd>
+    <% if (listing) { %>
+    <dt>Listing</dt><dd data-k="listing"><a class="oh-listing" href="/listings/<%= listing.slug %>"><%= listing.street_address %>, <%= listing.city %></a></dd>
+    <dt>Rent</dt><dd data-k="rent"><%= money(listing.price_usd) %> / month</dd>
+    <% } %>
+    <% if (agent) { %>
+    <dt>Host</dt><dd data-k="host"><a class="oh-host" href="/agents/<%= agent.slug %>"><%= agent.name %></a>, <span class="agent-phone"><%= agent.phone %></span></dd>
+    <% } %>
+  </dl>
+  <p class="oh-notes"><%= openHouse.notes %></p>
+</article>
+<%- include('partials/foot') %>

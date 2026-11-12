@@ -1,0 +1,7 @@
+<li class="card listing-card">
+  <span class="status-badge status-<%= l.status %>"><%= l.status === 'leased' ? 'Leased' : 'Available' %></span>
+  <h3><a href="/listings/<%= l.slug %>"><%= l.title %></a></h3>
+  <div class="price"><%= money(l.price_usd) %><span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted"><%= beds(l.bedrooms) %> · <%= baths(l.bathrooms) %> · <%= num(l.sqft) %> sq ft</div>
+  <div class="muted"><%= l.neighbourhood %>, <%= l.city %></div>
+</li>

@@ -1,0 +1,23 @@
+<%- include('partials/head') %>
+<article class="agent">
+  <h1 class="agent-name"><%= agent.name %></h1>
+  <p class="agent-brokerage"><%= agent.brokerage %></p>
+  <p><a class="agent-phone" href="tel:<%= agent.phone.replace(/[^0-9]/g, '') %>"><%= agent.phone %></a> · <a class="agent-email" href="mailto:<%= agent.email %>"><%= agent.email %></a></p>
+  <dl class="facts">
+    <dt>Brokerage</dt><dd data-k="brokerage"><%= agent.brokerage %></dd>
+    <dt>Licence</dt><dd data-k="license"><%= agent.license_no %></dd>
+    <dt>Experience</dt><dd data-k="experience"><%= agent.years_experience %> years</dd>
+    <dt>Languages</dt><dd data-k="languages"><%= agent.languages.join(', ') %></dd>
+    <dt>Areas</dt><dd data-k="areas"><%= agent.neighbourhoods.join(', ') %></dd>
+    <dt>Active listings</dt><dd data-k="active_listings"><%= active.length %></dd>
+    <dt>Leased recently</dt><dd data-k="leased_listings"><%= leasedCount %></dd>
+  </dl>
+  <p class="agent-bio"><%= agent.bio %></p>
+  <h2>Active listings</h2>
+  <% if (active.length === 0) { %><p class="muted">No active listings right now.</p><% } else { %>
+  <ul class="grid agent-listings">
+    <% active.forEach(function (l) { %><%- include('partials/listing-card', { l: l }) %><% }) %>
+  </ul>
+  <% } %>
+</article>
+<%- include('partials/foot') %>

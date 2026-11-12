@@ -1,0 +1,18 @@
+<form class="search" action="/search" method="get">
+  <label>Beds (min)
+    <select name="beds">
+      <option value="">Any</option>
+      <% [0,1,2,3,4].forEach(function (b) { %><option value="<%= b %>"<%= q.beds === b ? ' selected' : '' %>><%= b === 0 ? 'Studio+' : b + '+' %></option><% }) %>
+    </select>
+  </label>
+  <label>Max rent ($)
+    <input name="max_rent" type="number" min="0" step="50" value="<%= q.maxRent ?? '' %>" placeholder="2000">
+  </label>
+  <label>Neighbourhood
+    <select name="neighbourhood">
+      <option value="">Anywhere</option>
+      <% neighbourhoods.forEach(function (n) { %><option<%= q.neighbourhood === n ? ' selected' : '' %>><%= n %></option><% }) %>
+    </select>
+  </label>
+  <button type="submit">Search</button>
+</form>

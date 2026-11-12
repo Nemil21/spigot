@@ -1,0 +1,9 @@
+<%- include('partials/head') %>
+<h1>Find a place to rent around Austin</h1>
+<p class="muted"><%= num(counts.listings) %> listings from <%= num(counts.agents) %> local agents, <%= counts.openHouses %> upcoming open houses.</p>
+<%- include('partials/search-form') %>
+<h2>Featured listings</h2>
+<ul class="grid featured">
+  <% featured.forEach(function (l) { %><%- include('partials/listing-card', { l: l }) %><% }) %>
+</ul>
+<%- include('partials/foot') %>
