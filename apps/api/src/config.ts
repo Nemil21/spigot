@@ -80,6 +80,13 @@ const envSchema = z.object({
   // Required only when the feature is used (`requireKeys`).
   ANTHROPIC_API_KEY: optionalString,
   CLAUDE_MODEL: optionalString,
+  // OpenAI fallback for the AI features (schema agent, claims triage) when no Anthropic key.
+  OPENAI_API_KEY: optionalString,
+  OPENAI_MODEL: optionalString,
+  // Unset → Anthropic when ANTHROPIC_API_KEY is set, else OpenAI when OPENAI_API_KEY is set.
+  AI_PROVIDER: optionalString
+    .transform((v) => v?.toLowerCase())
+    .pipe(z.enum(['anthropic', 'openai']).optional()),
   AG_GRID_LICENSE_KEY: optionalString,
   PAYPAL_WEBHOOK_ID: optionalString,
   RENDER_API_KEY: optionalString,
@@ -151,6 +158,8 @@ export interface Config extends Omit<ParsedEnv, 'SCHEMA_AGENT_MODE'> {
 export type FeatureKey =
   | 'ANTHROPIC_API_KEY'
   | 'CLAUDE_MODEL'
+  | 'OPENAI_API_KEY'
+  | 'OPENAI_MODEL'
   | 'AG_GRID_LICENSE_KEY'
   | 'PAYPAL_WEBHOOK_ID'
   | 'RENDER_API_KEY'
@@ -244,6 +253,20 @@ export function requireKeys<K extends FeatureKey>(
   const missing = keys.filter((k) => !config[k]);
   if (missing.length) throw new MissingFeatureConfigError(feature, missing);
   return Object.fromEntries(keys.map((k) => [k, config[k] as string])) as { [P in K]: string };
+}
+
+export type AiProvider = 'anthropic' | 'openai';
+
+/**
+ * Which model API the live AI features use: `AI_PROVIDER` if set; otherwise Anthropic when
+ * `ANTHROPIC_API_KEY` is set (unchanged behaviour), else OpenAI when `OPENAI_API_KEY` is set,
+ * else Anthropic (whose missing key is then reported by `requireKeys`).
+ */
+export function aiProviderFor(config: Config): AiProvider {
+  if (config.AI_PROVIDER) return config.AI_PROVIDER;
+  if (config.ANTHROPIC_API_KEY) return 'anthropic';
+  if (config.OPENAI_API_KEY) return 'openai';
+  return 'anthropic';
 }
 
 /** Admin emails, for `ADMIN_EMAILS`-gated routes. Throws if none are configured. */

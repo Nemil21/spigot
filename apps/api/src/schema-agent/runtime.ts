@@ -51,7 +51,7 @@ export function logResult(log: Log, r: ProposeResult): void {
 export function startSchemaAgent(opts: StartOptions): () => void {
   let model = opts.model;
   const runtime: SchemaAgentRuntime = {
-    // Lazy: a live-mode process without ANTHROPIC_API_KEY still boots; proposing throws then.
+    // Lazy: a live-mode process without an AI key (Anthropic or OpenAI) still boots; proposing throws then.
     deps: () => ({
       db: opts.db,
       model: (model ??= schemaModelFor(opts.config)),

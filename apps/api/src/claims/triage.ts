@@ -16,7 +16,8 @@
 // no network call; `live` is the Messages API with the schema agent's retry policy.
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
-import { requireKeys, type Config } from '../config.js';
+import { createOpenAiClient, DEFAULT_OPENAI_MODEL } from '../ai/openai.js';
+import { aiProviderFor, requireKeys, type Config } from '../config.js';
 import type { Queryable } from '../db/index.js';
 import {
   DEFAULT_CLAUDE_MODEL,
@@ -177,6 +178,40 @@ export function createLiveTriageModel(opts: LiveTriageOptions): TriageModel {
   };
 }
 
+// --- live (OpenAI) -----------------------------------------------------------------------------
+
+export interface OpenAiTriageOptions {
+  apiKey: string;
+  model?: string;
+  /** Tests inject a fetch. */
+  fetch?: typeof fetch;
+  retry?: RetryOptions;
+}
+
+/** Same seam on OpenAI Chat Completions (only `OPENAI_API_KEY` set): one forced `recommend` call. */
+export function createOpenAiTriageModel(opts: OpenAiTriageOptions): TriageModel {
+  const modelId = opts.model ?? DEFAULT_OPENAI_MODEL;
+  const client = createOpenAiClient({ apiKey: opts.apiKey, fetch: opts.fetch, timeoutMs: 60_000 });
+  return {
+    mode: 'live',
+    modelId,
+    async recommend(_ctx, userPrompt) {
+      const res = await withModelRetry(
+        () =>
+          client.callTool({
+            model: modelId,
+            system: TRIAGE_SYSTEM,
+            messages: [{ role: 'user', content: userPrompt }],
+            tool: RECOMMEND_TOOL,
+            maxCompletionTokens: 2_000,
+          }),
+        opts.retry,
+      );
+      return { input: res.input, model: res.model, replayed: false, stopReason: res.stopReason };
+    },
+  };
+}
+
 // --- recorded ----------------------------------------------------------------------------------
 
 /**
@@ -231,9 +266,16 @@ export function createRecordedTriageModel(
   };
 }
 
-/** The model for this config: recorded replay, or live (needs `ANTHROPIC_API_KEY`). */
+/** The model for this config: recorded replay, or live on Anthropic or (only `OPENAI_API_KEY`) OpenAI. */
 export function triageModelFor(config: Config): TriageModel {
   if (config.SCHEMA_AGENT_MODE === 'recorded') return createRecordedTriageModel();
+  if (aiProviderFor(config) === 'openai') {
+    const { OPENAI_API_KEY } = requireKeys(config, 'Claims triage (live mode)', 'OPENAI_API_KEY');
+    return createOpenAiTriageModel({
+      apiKey: OPENAI_API_KEY,
+      model: config.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL,
+    });
+  }
   const { ANTHROPIC_API_KEY } = requireKeys(
     config,
     'Claims triage (live mode)',
