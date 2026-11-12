@@ -16,6 +16,7 @@ import {
   type BotsReport,
   type SiteSummary,
 } from '../overview/types';
+import { KPI_STRIP, PAGE, PageHeader, Panel } from './Panel';
 import { paths } from '../routes';
 
 /** Events the feed shows; the newest page is refetched and merged when SSE says something changed. */
@@ -237,18 +238,14 @@ export default function OverviewPage({
 
   // --- Render ---------------------------------------------------------------------------------
   const frame = (body: ReactNode, header?: ReactNode) => (
-    <section className="mx-auto max-w-7xl space-y-6 px-6 py-8" data-screen="W04">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">Overview</h1>
-          <p className="mt-1 text-sm text-muted">
-            {site
-              ? `Who's crawling ${site.origin.replace(/^https?:\/\//, '')}`
-              : "Who's crawling you"}
-          </p>
-        </div>
-        {header}
-      </div>
+    <section className={PAGE} data-screen="W04">
+      <PageHeader
+        title="Overview"
+        description={
+          site ? `Who's crawling ${site.origin.replace(/^https?:\/\//, '')}` : "Who's crawling you"
+        }
+        actions={header}
+      />
       {body}
     </section>
   );
@@ -290,12 +287,12 @@ export default function OverviewPage({
 
   const earned = data?.earnedThisWeek;
   const controls = (
-    <div className="flex flex-wrap items-center gap-4 text-sm">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
       <LiveBadge status={streamStatus} />
       <label className="flex items-center gap-2 text-body">
         Category
         <select
-          className="rounded-md border border-border bg-surface px-2 py-1 text-ink"
+          className="h-8 rounded-md border border-border bg-surface pl-2.5 pr-8 text-sm text-ink hover:border-muted"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
@@ -323,7 +320,11 @@ export default function OverviewPage({
     <>
       {site?.status === 'PENDING_VERIFY' && <UnverifiedBanner siteId={site.id} />}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5" aria-label="Key numbers" role="group">
+      <div
+        className={`${KPI_STRIP} grid-cols-2 lg:grid-cols-5 [&>div:last-child]:col-span-2 lg:[&>div:last-child]:col-span-1`}
+        aria-label="Key numbers"
+        role="group"
+      >
         <Kpi label="Bot visits (7 d)" loading={loading} value={t && formatCount(t.botHits)} />
         <Kpi label="Bots vs people" loading={loading} value={t?.ratio} />
         <Kpi
@@ -358,22 +359,29 @@ export default function OverviewPage({
         />
       </div>
 
-      <div className="rounded-lg border border-line bg-surface p-4 shadow-card">
-        <h2 className="text-sm font-semibold text-ink">Bot hits by category</h2>
+      <Panel
+        title="Bot hits by category"
+        description="People are left out: they outnumber bots and would flatten the chart."
+      >
         {data ? (
           <HitsArea report={data} categories={chartCategories} />
         ) : (
-          <Skeleton className="mt-3 block h-[260px] w-full" />
+          <Skeleton className="block h-[260px] w-full" />
         )}
-      </div>
+      </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-3">
-          <h2 className="text-sm font-semibold text-ink">Who's crawling you</h2>
+      <div className="grid gap-6">
+        <Panel
+          title="Who's crawling you"
+          description="Open a row for sample paths and decisions."
+          flush
+        >
           {!data ? (
-            <Skeleton className="block h-[460px] w-full" />
+            <div className="p-5">
+              <Skeleton className="block h-[420px] w-full" />
+            </div>
           ) : t!.botHits === 0 ? (
-            <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-10 text-center text-body">
+            <div className="px-6 py-14 text-center text-body">
               <p>The gate is installed. No bots yet; they usually show up within a day.</p>
               {!includeSim && <p className="mt-2 text-sm text-muted">Simulated bots are hidden.</p>}
             </div>
@@ -383,10 +391,11 @@ export default function OverviewPage({
               flashSource={current?.live ? data : null}
               onOpen={setOpen}
               now={now}
+              bare
             />
           )}
           {data && t!.estimate && (
-            <p className="text-xs text-muted">
+            <p className="border-t border-line px-5 py-3 text-xs text-muted">
               "Would have paid" is an estimate: pages sent to your API × records per page ×{' '}
               {data.totals.estimateBasis.priceSource === 'LIVE'
                 ? 'your live price'
@@ -396,7 +405,7 @@ export default function OverviewPage({
               .
             </p>
           )}
-        </div>
+        </Panel>
         <ActivityFeed
           events={activity.status === 'ready' ? activity.data : []}
           fresh={fresh}
@@ -422,7 +431,7 @@ function UnverifiedBanner({ siteId }: { siteId: string }) {
   return (
     <div
       role="status"
-      className="rounded-md border border-warning bg-warning-tint px-4 py-3 text-sm text-warning"
+      className="rounded-lg border border-warning/30 bg-warning-tint px-4 py-3 text-sm text-warning"
     >
       This site isn't verified yet, so nothing is for sale.{' '}
       <Link

@@ -33,6 +33,8 @@ export interface BotsGridProps {
   /** Formats "Last seen"; injectable for tests. */
   now?: () => number;
   height?: number;
+  /** Drawn inside a panel (no grid frame). */
+  bare?: boolean;
 }
 
 export interface RowDiff {
@@ -81,6 +83,7 @@ export function BotsGrid({
   onOpen,
   now = Date.now,
   height = 460,
+  bare = false,
 }: BotsGridProps) {
   const apiRef = useRef<GridApi<BotRow> | null>(null);
   const shown = useRef<readonly BotRow[]>([]);
@@ -192,6 +195,7 @@ export function BotsGrid({
   return (
     <SpigotGrid<BotRow>
       height={height}
+      bare={bare}
       columnDefs={columnDefs}
       defaultColDef={{ resizable: true, sortable: true }}
       autoGroupColumnDef={{

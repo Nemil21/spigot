@@ -18,6 +18,7 @@ import {
   type Earnings,
   type EarningsGridRow,
 } from './earningsData';
+import { KPI_STRIP, PAGE, Panel } from './Panel';
 
 /**
  * W08 Earnings (screens.md §W08; features/13 §4; SP-030b). KPI tiles, stacked bars per day by
@@ -168,7 +169,7 @@ export function EarningsScreen({
       <section
         aria-label="Earnings totals"
         aria-busy={loading || undefined}
-        className="grid grid-cols-3 gap-3 xl:grid-cols-6"
+        className={`${KPI_STRIP} grid-cols-2 sm:grid-cols-3 xl:grid-cols-6`}
       >
         <Kpi
           label="Gross"
@@ -184,7 +185,7 @@ export function EarningsScreen({
         <Kpi
           label="Your earnings"
           loading={loading}
-          value={k && <Money micros={k.netMicros} className="text-accent" />}
+          value={k && <Money micros={k.netMicros} className="text-money" />}
         />
         <Kpi
           label="Payable now"
@@ -201,8 +202,8 @@ export function EarningsScreen({
         <Kpi label="Buyers" loading={loading} value={k && formatCount(k.buyers)} />
       </section>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <div role="tablist" aria-label="Earnings views" className="flex gap-1">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-line">
+        <div role="tablist" aria-label="Earnings views" className="-mb-px flex gap-6">
           {(['sales', 'ledger', 'claims'] as const).map((t) => (
             <button
               key={t}
@@ -210,38 +211,48 @@ export function EarningsScreen({
               role="tab"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-                tab === t ? 'bg-surface-2 text-ink' : 'text-muted hover:text-ink'
+              className={`border-b-2 pb-3 pt-1 text-sm font-medium transition-colors ${
+                tab === t
+                  ? 'border-accent text-ink'
+                  : 'border-transparent text-muted hover:text-ink'
               }`}
             >
               {TAB_LABEL[t]}
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-sm text-body">
-          <input
-            type="checkbox"
-            checked={includeSim}
-            onChange={(e) => setIncludeSim(e.target.checked)}
-          />
-          Include simulated
-        </label>
-        {tab === 'sales' && !empty && (
-          <>
-            <label className="flex items-center gap-2 text-sm text-body">
-              <input type="checkbox" checked={pivot} onChange={(e) => setPivot(e.target.checked)} />
-              Pivot by channel
-            </label>
-            <button
-              type="button"
-              onClick={() => gridApi.current && exportEarningsCsv(gridApi.current)}
-              disabled={loading}
-              className="ml-auto rounded-md border border-border px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-60"
-            >
-              Export CSV
-            </button>
-          </>
-        )}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pb-2.5">
+          <label className="flex items-center gap-2 text-sm text-body">
+            <input
+              className="accent-accent"
+              type="checkbox"
+              checked={includeSim}
+              onChange={(e) => setIncludeSim(e.target.checked)}
+            />
+            Include simulated
+          </label>
+          {tab === 'sales' && !empty && (
+            <>
+              <label className="flex items-center gap-2 text-sm text-body">
+                <input
+                  className="accent-accent"
+                  type="checkbox"
+                  checked={pivot}
+                  onChange={(e) => setPivot(e.target.checked)}
+                />
+                Pivot by channel
+              </label>
+              <button
+                type="button"
+                onClick={() => gridApi.current && exportEarningsCsv(gridApi.current)}
+                disabled={loading}
+                className="h-8 rounded-md border border-border bg-surface px-3 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-surface-2 disabled:opacity-60"
+              >
+                Export CSV
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {tab === 'claims' ? (
@@ -261,14 +272,26 @@ export function EarningsScreen({
         <EmptyNotice site={site} origin={origin} />
       ) : (
         <>
-          <EarningsBars bars={bars} />
-          <EarningsGrid
-            rows={gridRows}
-            pivotMode={pivot}
-            flash={flash}
-            onReady={onReady}
-            onOpenRow={setOpenRow}
-          />
+          <Panel
+            title="Your earnings per day"
+            description="After Spigot's 20%, by dataset (UTC days)"
+          >
+            <EarningsBars bars={bars} />
+          </Panel>
+          <Panel
+            title="By buyer and dataset"
+            description="Open a row for its sales. New charges flash as they land."
+            flush
+          >
+            <EarningsGrid
+              bare
+              rows={gridRows}
+              pivotMode={pivot}
+              flash={flash}
+              onReady={onReady}
+              onOpenRow={setOpenRow}
+            />
+          </Panel>
           {openRow && <RowDetail row={openRow} onClose={() => setOpenRow(null)} />}
         </>
       )}
@@ -278,12 +301,12 @@ export function EarningsScreen({
 
 function Frame({ status, children }: { status: EventStreamStatus; children: React.ReactNode }) {
   return (
-    <div className="space-y-6" data-screen="W08">
-      <header className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold text-ink">Earnings</h1>
+    <div className={PAGE} data-screen="W08">
+      <header className="flex flex-wrap items-center gap-3 pb-2">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Earnings</h1>
         {status === 'open' && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-positive">
-            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-positive" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-positive-tint px-2 py-0.5 text-xs font-medium text-positive">
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-positive" />
             Live
           </span>
         )}
@@ -333,10 +356,10 @@ function RowDetail({ row, onClose }: { row: EarningsGridRow; onClose: () => void
   return (
     <section
       aria-label="Sales detail"
-      className="rounded-lg border border-line bg-surface p-4 shadow-card"
+      className="rounded-xl border border-line bg-surface p-5 shadow-card"
     >
-      <div className="flex items-start justify-between">
-        <h2 className="font-semibold text-ink">
+      <div className="flex items-start justify-between gap-4">
+        <h2 className="text-sm font-semibold text-ink">
           {row.buyer} · {row.dataset} · {row.channel}
           {row.isSimulated ? ' · SIM' : ''}
         </h2>
@@ -344,11 +367,11 @@ function RowDetail({ row, onClose }: { row: EarningsGridRow; onClose: () => void
           Close
         </button>
       </div>
-      <dl className="mt-3 grid grid-cols-4 gap-3 text-sm">
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-4">
         {items.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-muted">{label}</dt>
-            <dd className="tabular-nums text-ink">{value}</dd>
+            <dt className="text-xs text-muted">{label}</dt>
+            <dd className="mt-0.5 font-medium tabular-nums text-ink">{value}</dd>
           </div>
         ))}
       </dl>

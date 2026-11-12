@@ -49,6 +49,9 @@ export const gridTheme = themeQuartz.withParams({
   inputFocusBorder: { color: v('focus') },
 });
 
+/** For a grid that sits inside a panel: the panel draws the frame, so the grid has none. */
+export const gridThemeBare = gridTheme.withParams({ wrapperBorder: false, wrapperBorderRadius: 0 });
+
 /** AG Charts theme for a mode. Charts draw on canvas, so values are hex from tokens.ts. */
 export function chartTheme(mode: ThemeMode): AgChartTheme {
   const t = tokens[mode];
