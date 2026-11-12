@@ -7,7 +7,7 @@
 //   the monthly cap as auto top-up (data-model rule 11), so an agent looping on `top_up` stops at
 //   the cap (422 `AUTO_TOPUP_CAP_REACHED`, W15 copy, no PayPal call), not only at the rate limit.
 //   COMPLETED → `{ status: 'COMPLETED', balanceMicros }`.
-// - **No saved method** (SP-022b): SP-018b's `createTopupForAgent`, a CAPTURE-intent wallet order
+// - **No saved method, or it was declined** (SP-022b): SP-018b's `createTopupForAgent`, a CAPTURE-intent wallet order
 //   whose approval link the agent hands to its human.
 import { autoTopupCapReachedMessage, autoTopupDeclinedMessage } from '@spigot/shared';
 import { ApiError } from '../http/errors.js';
@@ -73,7 +73,10 @@ export async function agentTopUp(
       input.now,
     );
   const vaulted = await deps.db.pool.query<{ vaulted: boolean }>(
-    `SELECT vault_id IS NOT NULL AS vaulted FROM buyers WHERE id = $1`,
+    // A method PayPal declined stays saved but isn't charged again (features/08 §Edge cases:
+    // re-approve link) until the buyer saves a method or turns auto top-up back on in W11.
+    `SELECT vault_id IS NOT NULL AND auto_topup_declined_at IS NULL AS vaulted
+       FROM buyers WHERE id = $1`,
     [input.buyerId],
   );
   if (vaulted.rows[0]?.vaulted) {

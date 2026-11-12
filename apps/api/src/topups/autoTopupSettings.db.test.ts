@@ -543,6 +543,26 @@ describe.skipIf(!testDatabaseUrl)(
       expect((await getSettings(b)).body).toMatchObject({ enabled: false });
       expect((await getSettings(b)).body.declinedAt).toEqual(expect.any(String));
       expect(await balanceOf(app.db.pool, b.id)).toBe(0);
+
+      // The agent tries again: an approval link, never a second order on the declined card.
+      expect(creates()).toHaveLength(1);
+      const again = await topUp(client, { amountCents: 2000 });
+      expect(again.isError).toBeFalsy();
+      expect(again.structuredContent).toMatchObject({
+        status: 'AWAITING_APPROVAL',
+        method: 'PAYPAL_WALLET',
+      });
+      expect((again.structuredContent as { approveUrl: string }).approveUrl).toMatch(/checkoutnow/);
+      // One more create: the wallet order behind the link. Still one VAULT_MIT row.
+      expect(creates()).toHaveLength(2);
+      const rows = await vaultTopups(b);
+      expect(rows).toEqual([expect.objectContaining({ status: 'FAILED', trigger: 'MCP' })]);
+
+      // Turning auto top-up back on in W11 lets top_up use the saved method again.
+      await putSettings(b, ON);
+      setTopupPayPal(pp);
+      const third = await topUp(client, { amountCents: 2000 });
+      expect(third.structuredContent).toMatchObject({ status: 'COMPLETED', method: 'VAULT_MIT' });
     });
 
     // ------------------------------------------------------------------------------------------
