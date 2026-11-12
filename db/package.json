@@ -1,0 +1,27 @@
+{
+  "name": "@spigot/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Spigot Postgres schema (db/migrations) and the idempotent migration runner",
+  "exports": {
+    "./migrate.mjs": {
+      "types": "./migrate.d.mts",
+      "default": "./migrate.mjs"
+    },
+    "./testing.mjs": {
+      "types": "./testing.d.mts",
+      "default": "./testing.mjs"
+    }
+  },
+  "scripts": {
+    "migrate": "node migrate.mjs",
+    "test": "vitest run --dir test --maxWorkers=2"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "pg": "^8.16.0"
+  }
+}

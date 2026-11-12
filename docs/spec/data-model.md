@@ -2,6 +2,10 @@
 
 Postgres. All IDs are UUIDs unless noted. Every table has `created_at timestamptz default now()` and `updated_at`.
 
+**Schema source of truth:** `db/migrations/001_init.sql` (SP-002, frozen at merge). Later changes are new files named `NNN_sp0XX_<topic>.sql` (e.g. `002_sp049_refund_status.sql`); `npm run migrate` applies them in order, is idempotent, and refuses two files with the same `NNN`.
+- `updated_at` is kept current by a touch trigger on every mutable table **except `records`** (see below). The append-only tables (`ledger_entries`, `audit_events`) have only `created_at`.
+- Status columns are `text` + `CHECK (status IN (...))`; the allowed edges live in `apps/api/src/db/transition.ts` (`transition(tx, table, id, from, to, extra?)`, rule 1).
+
 **Money units.**
 - The ledger and all per-call prices are in **integer micros** (`bigint`, 1 USD = 1,000,000 micros). $1.50 per 1,000 records = 1,500 micros per record.
 - Anything sent to or received from PayPal (top-ups, refunds, payouts) is in **integer cents** with a `currency` column (USD only).
@@ -21,6 +25,7 @@ Postgres. All IDs are UUIDs unless noted. Every table has `created_at timestampt
 | commission_bps | int not null default 2000 | Our cut (20%) |
 | payout_threshold_cents | int not null default 1000 | $10 minimum before a payout item is created |
 | is_simulated | bool default false | |
+| is_demo | bool not null default false | Only an `is_demo` publisher may take the dataset `DEMO_RESET` transition (SP-038) |
 
 ### sites
 | Column | Type | Notes |
@@ -116,8 +121,9 @@ Owned by the extractor only.
 | source_lastmod | timestamptz | |
 | crawled_at | timestamptz | |
 | removed_at | timestamptz | Soft delete; emits a `remove` change |
+| updated_at | timestamptz not null | Time of the last **content** change, set explicitly by SP-013's upsert (insert, update, remove, revive). No touch trigger: a freshness-only `crawled_at` refresh must not move it |
 
-Indexes: `(dataset_id, updated_at desc)`, `(dataset_id, removed_at)`, GIN on `data jsonb_path_ops`, plus expression indexes on the two or three filter fields the approved schema marks `filterable` (created at approve time; for the demo: `(data->>'price_usd')::int`, `(data->>'bedrooms')::int`, `data->>'city'`).
+Indexes: `(dataset_id, updated_at desc, id)`, `(dataset_id, removed_at)`, GIN on `data jsonb_path_ops`, plus expression indexes on the two or three filter fields the approved schema marks `filterable` (created at approve time; for the demo: `(data->>'price_usd')::int`, `(data->>'bedrooms')::int`, `data->>'city'`).
 
 ### record_versions (the changes feed)
 | Column | Type | Notes |
@@ -136,8 +142,8 @@ Indexes: `(dataset_id, updated_at desc)`, `(dataset_id, removed_at)`, GIN on `da
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| site_id | uuid FK | Partial unique index on (site_id) where status in ('QUEUED','RUNNING'): one live run per site |
-| trigger | text | `CONNECT`, `MANUAL`, `SCHEDULE`, `PING`, `DEMO_MUTATE` |
+| site_id | uuid FK | Partial unique index on (site_id) where status in ('QUEUED','RUNNING') and trigger <> 'APPROVE': one live run per site |
+| trigger | text | `CONNECT`, `MANUAL`, `SCHEDULE`, `PING`, `DEMO_MUTATE`, `APPROVE` (approve-time extraction, SP-014a; may overlap a crawl, SP-013's dataset locks keep the watermark safe) |
 | status | text | `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `PAUSED` |
 | workflow_run_id | text | Render Workflows run id, or `inproc:<id>` in fallback mode |
 | pages_total, pages_fetched, pages_not_modified, pages_failed | int | Progress for W10 |
@@ -165,6 +171,7 @@ Indexes: `(dataset_id, updated_at desc)`, `(dataset_id, removed_at)`, GIN on `da
 | id | uuid PK | |
 | name | text | "Acme Agents" |
 | email | text unique | Buyer portal login (magic link or password, P0 password) |
+| password_hash | text | P0 password login |
 | auto_topup_enabled | bool default false | |
 | auto_topup_amount_cents | int default 2000 | $20 |
 | auto_topup_threshold_micros | bigint default 2000000 | Top up when balance < $2 |
@@ -173,6 +180,7 @@ Indexes: `(dataset_id, updated_at desc)`, `(dataset_id, removed_at)`, GIN on `da
 | vault_kind | text | `CARD`, `PAYPAL` |
 | per_call_max_micros | bigint default 1000000 | Safety cap: a single call may not cost more than $1 unless the request raises `max_price` |
 | is_simulated | bool default false | |
+| mock_decline_next | bool not null default false | Demo: the next top-up is declined by the mock (`ALLOW_MOCK_DECLINE`, sandbox only) |
 
 ### api_keys
 | id, buyer_id FK, name, prefix (first 8 chars, shown), key_hash (SHA-256), scopes text[] (`read`, `topup`), rate_limit_per_min int default 60, last_used_at, revoked_at |
@@ -183,7 +191,8 @@ Used by REST (`Authorization: Bearer sk_spg_…`) and MCP.
 |---|---|---|
 | id | uuid PK | **Also the `PayPal-Request-Id`** for order create |
 | buyer_id | uuid FK | |
-| amount_cents | int not null | 500–50,000 ($5–$500) |
+| amount_cents | int not null | 500–50,000 ($5–$500), CHECK |
+| currency | text not null default 'USD' | USD only |
 | method | text | `PAYPAL_WALLET`, `CARD`, `VAULT_MIT` |
 | trigger | text | `MANUAL`, `AUTO`, `MCP`, `SIM` |
 | paypal_order_id | text unique | |
@@ -192,6 +201,10 @@ Used by REST (`Authorization: Bearer sk_spg_…`) and MCP.
 | refunded_cents | int not null default 0 | |
 | ledger_txn_id | uuid FK null | Set when the credit posts |
 | error_code | text | e.g. `INSTRUMENT_DECLINED` |
+| idempotency_key | text | Client `Idempotency-Key`; unique(buyer_id, idempotency_key) |
+| pending_reason | text | Capture `PENDING` reason; the row stays `AWAITING_APPROVAL`, no credit |
+| paypal_fee_cents | int | PayPal's fee, tracked outside the ledger |
+| needs_reconcile | bool not null default false | e.g. a capture amount that differs from the top-up |
 
 ### ledger_accounts
 | Column | Type | Notes |
@@ -207,16 +220,17 @@ Used by REST (`Authorization: Bearer sk_spg_…`) and MCP.
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| kind | text | `TOPUP`, `CHARGE`, `CREDIT`, `REFUND`, `PAYOUT_SENT`, `PAYOUT_SETTLED`, `PAYOUT_RETURNED` |
+| kind | text | `TOPUP`, `CHARGE`, `CREDIT`, `REFUND`, `REFUND_REVERSAL` (a failed refund puts the money back, SP-049), `PAYOUT_SENT`, `PAYOUT_SETTLED`, `PAYOUT_RETURNED`, `DEMO_RESET` (SP-038 zeroes demo balances without deleting entries) |
 | idempotency_key | text unique not null | e.g. `topup:<topupId>`, `charge:<apiCallId>`, `payout_item:<itemId>` |
 | ref_type, ref_id | text, uuid | `topup`, `api_call`, `claim`, `payout_item`, `balance_refund` |
 | memo | text | |
 | is_simulated | bool default false | |
+| created_at | timestamptz | The caller may backdate it **only** when `is_simulated` (SP-036's simulated week): an insert trigger enforces `is_simulated OR created_at >= now() - interval '5 minutes'`. Entries follow their txn's `is_simulated` |
 
 ### ledger_entries (append-only)
 | id bigserial PK, txn_id FK, account_id FK, amount_micros bigint (signed, ≠ 0), created_at |
 - A deferred constraint trigger checks `sum(amount_micros) = 0` per `txn_id` at commit.
-- No UPDATE or DELETE grants for the app role.
+- No UPDATE or DELETE grants for the app role (`REVOKE` from PUBLIC and `spigot_app`), plus a trigger that raises on UPDATE / DELETE / TRUNCATE so it holds even when the app connects as the owner.
 
 Sign convention: liabilities (buyer balances, payables, revenue, payouts in flight) are positive; `PAYPAL_CASH` (our asset at PayPal) is negative. Every txn sums to 0, so the sum of all `balance_micros` is always 0.
 
@@ -254,6 +268,9 @@ PayPal's own fees are tracked outside the ledger on `topups` and `payout_items` 
 | http_status | int | |
 | response_body | jsonb | Stored for 24 h for idempotent replay (purged by cron) |
 | charge_txn_id | uuid FK null | |
+| commission_bps | int | Snapshot of the publisher's commission at call time (SP-016, SP-048a) |
+| served_record_keys | jsonb | Keys + hashes served; kept ≥ 7 days for claims after `response_body` is purged |
+| hidden_at | timestamptz | SP-038 hides demo calls instead of deleting them |
 | is_simulated | bool default false | |
 | unique(api_key_id, idempotency_key) | | |
 
@@ -262,7 +279,8 @@ PayPal's own fees are tracked outside the ledger on `topups` and `payout_items` 
 unique(api_call_id, record_id): one claim per record per call.
 
 ### balance_refunds (P1)
-| id (PayPal-Request-Id), buyer_id, topup_id FK, amount_cents, paypal_refund_id unique, status (`REQUESTED`, `COMPLETED`, `FAILED`), ledger_txn_id |
+| id (PayPal-Request-Id), buyer_id, topup_id FK, amount_cents, currency, paypal_refund_id unique, status (`REQUESTED`, `PENDING`, `COMPLETED`, `FAILED`), ledger_txn_id, error_code, idempotency_key |
+unique(buyer_id, idempotency_key). `REQUESTED → PENDING | COMPLETED | FAILED`, `PENDING → COMPLETED | FAILED`.
 
 ### payout_batches
 | Column | Type | Notes |
@@ -274,6 +292,7 @@ unique(api_call_id, record_id): one claim per record per call.
 | paypal_batch_id | text unique | `payout_batch_id` from PayPal |
 | total_cents | int | |
 | item_count | int | |
+| needs_reconcile | bool not null default false | A duplicate-batch response with no `payout_batch_id` (SP-020) |
 
 ### payout_items
 | Column | Type | Notes |
@@ -285,6 +304,7 @@ unique(api_call_id, record_id): one claim per record per call.
 | gross_micros | bigint | Charges accrued in the period (for the statement) |
 | commission_micros | bigint | |
 | net_cents | int | `microsToCentsFloor(payable)` |
+| fee_cents | int | PayPal's payout fee, tracked outside the ledger |
 | paypal_item_id | text | |
 | status | text | See state machine |
 | error_code | text | e.g. `RECEIVER_UNREGISTERED` |
@@ -307,7 +327,11 @@ unique(api_call_id, record_id): one claim per record per call.
 | paypal_id | text | Order / capture / refund / payout item id |
 | data | jsonb | |
 
-No UPDATE or DELETE grants for the app role.
+No UPDATE or DELETE grants for the app role; the same append-only trigger as `ledger_entries`.
+
+### job_ticks
+| name text PK, last_tick bigint, last_run_at |
+`runEvery` (SP-002, `apps/api/src/db/jobs.ts`) claims each tick here under `pg_try_advisory_lock('job:<name>')`, so a job runs once per tick across API processes even when their timers aren't aligned.
 
 ## State machines
 
@@ -330,6 +354,7 @@ PROPOSED ──owner approves (price, visible fields, rights attested)──> LI
     │                                                                   │
     └─owner rejects──> REJECTED                                        └─owner unpublishes──> UNPUBLISHED (API returns 410)
 ```
+**`DEMO_RESET`:** `LIVE | LIVE_STALE | UNPUBLISHED → PROPOSED`, allowed **only** through SP-038's demo-reset path and only for an `is_demo` publisher (the code path checks and refuses otherwise). Records are kept.
 Only `LIVE` and `LIVE_STALE` datasets are sold. `LIVE_STALE` serves the last good records with `freshness.stale_since` set.
 
 ### Crawl run
@@ -347,8 +372,11 @@ CREATED ──(wallet) order PAYER_ACTION_REQUIRED──> AWAITING_APPROVAL ─�
 | CREATED | AWAITING_APPROVAL | Order created with PayPal wallet source | API |
 | CREATED / AWAITING_APPROVAL | COMPLETED | Capture status `COMPLETED` → ledger TOPUP posted in the same DB transaction | API return handler / webhook |
 | CREATED | FAILED | `INSTRUMENT_DECLINED` etc. | API |
+| AWAITING_APPROVAL | FAILED | Capture declined | API |
 | AWAITING_APPROVAL | ABANDONED | 30 min cron | Cron |
+| ABANDONED | COMPLETED | Late capture or webhook after the sweep (still credits once) | API / webhook / poller |
 | COMPLETED | PARTIALLY_REFUNDED | Refund COMPLETED | API (10) |
+| COMPLETED / PARTIALLY_REFUNDED | REFUNDED | Whole amount refunded | API (10) |
 
 Capture `PENDING` (rare, e.g. eCheck): stays `AWAITING_APPROVAL` with `pending_reason`; balance is credited only on `PAYMENT.CAPTURE.COMPLETED`.
 
@@ -373,6 +401,7 @@ ACCRUING (implicit: payable balance) ──batch built──> PENDING ──PayP
 | (payable ≥ threshold) | PENDING | `payoutRun` builds the batch and Payouts returns 201 | PAYOUT_SENT |
 | PENDING | SUCCESS | Webhook `PAYMENT.PAYOUTS-ITEM.SUCCEEDED` or poll | PAYOUT_SETTLED |
 | PENDING | UNCLAIMED | Item status `UNCLAIMED` | none yet (still in flight) |
+| UNCLAIMED | SUCCESS | Receiver claimed within 30 days | PAYOUT_SETTLED |
 | UNCLAIMED | RETURNED | Item `RETURNED` (30 days) | PAYOUT_RETURNED |
 | PENDING | FAILED | Item `FAILED`, `BLOCKED`, `DENIED`, `REFUNDED` | PAYOUT_RETURNED |
 
