@@ -87,7 +87,8 @@ const crawlRoutes: FastifyPluginAsync = async (app) => {
 
   const unsubscribeVerified = onSiteVerified(async (siteId) => {
     const started = await startDiscoveryCrawl(crawlDeps, siteId);
-    if (started.created) track(started.done);
+    // Only runs this process executes; a run owned elsewhere would hand back a poller.
+    if (started.created || started.resumed) track(started.done);
   });
   const unsubscribeFinished = onRunFinished(async (runId) => {
     await auditCrawlRunDone(app.db, runId);

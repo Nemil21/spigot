@@ -19,7 +19,8 @@ import { testDatabaseUrl } from '../db/test-db.js';
 import { cases } from '../security/tenancy/crawl.cases.js';
 import { buildServer } from '../server.js';
 import { REQUIRED_ENV } from '../test/env.js';
-import { auditCrawlRunDone } from './api.js';
+import { auditCrawlRunDone, requestCrawl } from './api.js';
+import type { CrawlDeps } from './deps.js';
 import { resetHostQueues } from './queue.js';
 
 /**
@@ -396,6 +397,45 @@ describe.skipIf(!testDatabaseUrl)('SP-009b crawl API (Postgres + demo site)', ()
     expect((await runsOf(site.siteId))[1]).toMatchObject({ id: liveId, trigger: 'MANUAL' });
     releasePages();
     await waitForEnd(liveId);
+  }, 60_000);
+
+  it('a 409 against a run owned by another process hands nothing to track (no poller kept)', async () => {
+    const pub = await newPublisher();
+    const siteId = await crawledSite(pub);
+    const deps: CrawlDeps = {
+      db: app.db,
+      crawlSecret: REQUIRED_ENV.SESSION_SECRET!,
+      allowLocal: true,
+      appBaseUrl: APP_ORIGIN,
+      minGapMs: 0,
+      sleep: (ms) => sleep(Math.min(ms, 10)),
+    };
+    // Another API / Workflows process's live run: not in this process, recently touched.
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO crawl_runs (site_id, trigger, status, workflow_run_id)
+       VALUES ($1, 'MANUAL', 'RUNNING', 'wf-other-process') RETURNING id`,
+      [siteId],
+    );
+    const foreignId = rows[0]!.id;
+
+    const tracked: Promise<unknown>[] = [];
+    const onStarted = (done: Promise<unknown>) => void tracked.push(done);
+    await expect(
+      requestCrawl(deps, pub.id, siteId, { trigger: 'MANUAL' }, onStarted),
+    ).rejects.toMatchObject({ code: 'CRAWL_IN_PROGRESS', details: { crawlRunId: foreignId } });
+    // Same through HTTP.
+    const res = await post(`/api/sites/${siteId}/crawl`, pub.cookie);
+    expect(res.status).toBe(409);
+    expect(res.body.error.details.crawlRunId).toBe(foreignId);
+    expect(tracked).toHaveLength(0);
+
+    // Once the foreign run ends, a run this process creates is handed over exactly once.
+    await pool.query(`UPDATE crawl_runs SET status = 'FAILED' WHERE id = $1`, [foreignId]);
+    const started = await requestCrawl(deps, pub.id, siteId, { trigger: 'MANUAL' }, onStarted);
+    expect(started.replayed).toBe(false);
+    expect(tracked).toHaveLength(1);
+    await tracked[0];
+    expect((await waitForEnd(started.crawlRunId)).status).toBe('SUCCEEDED');
   }, 60_000);
 
   it('Idempotency-Key: racing retries and later replays get the same run; another trigger → 409', async () => {

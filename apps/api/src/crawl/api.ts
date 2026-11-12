@@ -140,9 +140,10 @@ export async function requestCrawl(
     }
     throw err;
   }
-  // A joined run's `done` polls until it ends; nobody waits on it here.
   started.done.catch(() => {});
-  onStarted(started.done);
+  // Hand over `done` only when this process executes the run (created or adopted). A run owned
+  // by another process comes back as a poller (`waitForEnd`) that nobody needs to track.
+  if (started.created || started.resumed) onStarted(started.done);
 
   const { rows } = await db.pool.query<RunKeyRow>(
     'SELECT id, trigger, workflow_run_id, idempotency_key FROM crawl_runs WHERE id = $1',
@@ -164,7 +165,7 @@ export async function requestCrawl(
 export async function startDiscoveryCrawl(
   deps: CrawlDeps,
   siteId: string,
-): Promise<{ runId: string; created: boolean; done: Promise<unknown> }> {
+): Promise<{ runId: string; created: boolean; resumed: boolean; done: Promise<unknown> }> {
   const started = await startCrawl({ siteId, trigger: 'CONNECT' }, deps);
   started.done.catch(() => {});
   return started;
