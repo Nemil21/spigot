@@ -1,0 +1,4 @@
+# gitleaks false positives, one fingerprint each: commit:file:rule:line.
+# Add a line only after checking by hand that the value matches nothing in .env and that no real
+# credential appears in any revision (git grep over every rev). A real hit means removing the
+# secret from history, not pinning it.

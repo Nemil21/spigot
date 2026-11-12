@@ -91,6 +91,7 @@ describe('pages', () => {
     const res = await request(app).get(`/listings/${available.slug}`).expect(200);
     const blocks = jsonLdBlocks(res.text);
     expect(blocks).toHaveLength(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped JSON-LD in assertions
     const ld = blocks[0] as Record<string, any>;
     expect(validateSchemaOrg(ld)).toEqual([]);
     expect(ld['@context']).toBe('https://schema.org');
@@ -120,6 +121,7 @@ describe('pages', () => {
 
   it('D02 a leased listing shows SoldOut in JSON-LD and a "Leased" badge', async () => {
     const res = await request(app).get(`/listings/${leased.slug}`).expect(200);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped JSON-LD in assertions
     const ld = jsonLdBlocks(res.text)[0] as Record<string, any>;
     expect(ld.offers.availability).toBe(SOLD_OUT);
     const $ = cheerio.load(res.text);

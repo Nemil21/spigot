@@ -1,0 +1,7 @@
+# Secret scan config: gitleaks' default rules. Add path-scoped allowlists here for test fixtures
+# that only look like keys (path allowlists survive rebases; .gitleaksignore pins do not, because
+# every rebase gives the commits new SHAs).
+#   npm run security:secrets   (scripts/secret-scan.sh passes --config .gitleaks.toml)
+
+[extend]
+useDefault = true

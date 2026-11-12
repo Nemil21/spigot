@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+docs
+spikes
+package-lock.json
+*.md
+# Recorded / hand-written fixtures stay byte-for-byte.
+**/__fixtures__/

@@ -1,0 +1,14 @@
+{
+  "name": "@spigot/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Publisher dashboard, buyer portal and landing (React + Vite). Placeholder until SP-024a.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@spigot/shared": "0.0.0"
+  }
+}
