@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { formatCount, formatMicros } from '@spigot/shared/money';
 import type { IServerSideGetRowsParams } from 'ag-grid-community';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { createApiClient, type FetchLike } from '../api/client';
 import earningsFixture from '../fixtures/api/publishers/me/earnings.json';
 import ledgerFixture from '../fixtures/api/publishers/me/ledger.json';
@@ -283,23 +283,25 @@ describe('W08 Earnings', { timeout: 30_000 }, () => {
     renderScreen(fakeFetch({ [earningsPath(true)]: () => fixture }));
     await gridDrawn();
 
+    // jsdom has no createObjectURL: add it for this test only, and take it away again after.
     const blobs: Blob[] = [];
-    vi.stubGlobal(
-      'URL',
-      Object.assign(URL, {
-        createObjectURL: vi.fn((b: Blob) => {
-          blobs.push(b);
-          return 'blob:csv';
-        }),
-        revokeObjectURL: vi.fn(),
-      }),
-    );
+    const saved = { create: URL.createObjectURL, revoke: URL.revokeObjectURL };
+    URL.createObjectURL = vi.fn((b: Blob) => {
+      blobs.push(b);
+      return 'blob:csv';
+    });
+    URL.revokeObjectURL = vi.fn();
+    onTestFinished(() => {
+      URL.createObjectURL = saved.create;
+      URL.revokeObjectURL = saved.revoke;
+    });
     const clicks: string[] = [];
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
       this: HTMLAnchorElement,
     ) {
       clicks.push(this.download);
     });
+    onTestFinished(() => click.mockRestore());
 
     await userEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
     await waitFor(() => expect(blobs).toHaveLength(1));
@@ -310,7 +312,6 @@ describe('W08 Earnings', { timeout: 30_000 }, () => {
     expect(csv).toContain('Acme Agents');
     expect(csv).toContain('"MCP"');
     expect(csv).toContain(`"${(fixture.kpis.grossMicros / 1_000_000).toFixed(6)}"`);
-    click.mockRestore();
   });
 
   it('"Include simulated" off refetches without SIM', async () => {
