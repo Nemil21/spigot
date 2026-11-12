@@ -9,6 +9,8 @@
 
 /** Mono uppercase caption: column headers, stat labels, buttons. */
 export const caption = 'font-mono text-[11px] font-medium uppercase tracking-[0.06em]';
+/** Mono caption that keeps its real case (file names, commands). */
+export const monoMeta = 'font-mono text-[11px] font-medium text-muted';
 /** One accent word in a page heading, set in the serif italic. */
 export const accentWord = 'font-serif font-normal italic tracking-normal text-accent';
 /** Page heading (h1) and its one-line purpose. */
