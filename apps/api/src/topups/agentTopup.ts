@@ -1,4 +1,5 @@
 import { ApiError } from '../http/errors.js';
+import { checkClientKey } from '../meter/idempotency.js';
 import type { TopupDeps } from './capture.js';
 import { createTopup, MAX_TOPUP_CENTS, MIN_TOPUP_CENTS } from './createTopup.js';
 import type { TopupRow } from './row.js';
@@ -45,9 +46,8 @@ export async function createTopupForAgent(
       { minCents: MIN_TOPUP_CENTS, maxCents: MAX_TOPUP_CENTS },
     );
   }
-  if (typeof idempotencyKey !== 'string' || idempotencyKey.trim() === '') {
-    throw new ApiError('VALIDATION_ERROR', 'An idempotency key is required.');
-  }
+  // Same rule as W11's `Idempotency-Key` (1–255 printable ASCII).
+  checkClientKey(idempotencyKey);
 
   const created = await createTopup(deps, {
     buyerId,
@@ -58,6 +58,14 @@ export async function createTopupForAgent(
     trigger: 'MCP',
   });
   const { topup } = created;
+  // A W11 key that happens to be `mcp:<key>` names a portal top-up, not this agent's.
+  if (topup.trigger !== 'MCP') {
+    throw new ApiError(
+      'IDEMPOTENCY_MISMATCH',
+      'This idempotency key was already used for another top-up.',
+      { topupId: topup.id },
+    );
+  }
   return {
     topupId: topup.id,
     status: topup.status,

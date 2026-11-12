@@ -411,7 +411,21 @@ describe.skipIf(!testDatabaseUrl)('SP-018b top-up helpers (Postgres + FakePayPal
       expect(await topupCount(buyerId)).toBe(2);
     });
 
-    it('rejects an amount outside $5–$500 and an empty key', async () => {
+    it('a W11 key spelled `mcp:<key>` is refused, never handed back as the agent top-up', async () => {
+      const buyerId = await newBuyer();
+      const key = randomUUID();
+      await app.db.pool.query(
+        `INSERT INTO topups (buyer_id, amount_cents, method, trigger, idempotency_key)
+         VALUES ($1, 2000, 'PAYPAL_WALLET', 'MANUAL', $2)`,
+        [buyerId, `mcp:${key}`],
+      );
+      await expect(createTopupForAgent(deps(), buyerId, 2000, key)).rejects.toMatchObject({
+        code: 'IDEMPOTENCY_MISMATCH',
+      });
+      expect(await topupCount(buyerId)).toBe(1);
+    });
+
+    it('rejects an amount outside $5–$500 and a malformed key', async () => {
       const buyerId = await newBuyer();
       await expect(createTopupForAgent(deps(), buyerId, 499, 'k')).rejects.toMatchObject({
         code: 'VALIDATION_ERROR',

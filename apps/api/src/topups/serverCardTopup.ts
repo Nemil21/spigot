@@ -1,4 +1,5 @@
 import { audit, type ActorType } from '../audit/audit.js';
+import type { Tx } from '../db/index.js';
 import { ApiError } from '../http/errors.js';
 import { topupResultOf, type TestCard, type TopupResult } from '../paypal/index.js';
 import {
@@ -58,6 +59,8 @@ export type ServerCardTopupOutcome =
   /** Unknown outcome at PayPal: `needs_reconcile` is set and nothing more is tried. */
   | { status: 'NEEDS_RECONCILE'; topup: TopupRow; created: boolean; code: string };
 
+type SimActor = { actorType: ActorType; actorId: string };
+
 const DONE = new Set(['COMPLETED', 'PARTIALLY_REFUNDED', 'REFUNDED']);
 const OPEN = ['CREATED', 'AWAITING_APPROVAL', 'ABANDONED'];
 
@@ -96,7 +99,7 @@ export async function serverCardTopup(
   if (config.PAYPAL_MODE !== 'stub' && !config.paypalIsSandbox) {
     throw new Error('SIM card top-ups run only against the PayPal sandbox or the stub');
   }
-  const actor = { actorType: 'SIM' as ActorType, actorId: input.buyerId };
+  const actor: SimActor = { actorType: 'SIM', actorId: input.buyerId };
 
   const inserted = await db.tx(async (tx) => {
     const { rows } = await tx.query<TopupRow>(
@@ -143,7 +146,7 @@ export async function serverCardTopup(
 async function reconcileExisting(
   deps: TopupDeps,
   input: ServerCardTopupInput,
-  actor: { actorType: ActorType; actorId: string },
+  actor: SimActor,
 ): Promise<ServerCardTopupOutcome> {
   const { db } = deps;
   // Committed: `ON CONFLICT` waited for the inserting transaction.
@@ -186,16 +189,19 @@ async function reconcileExisting(
 
   // No order id yet: the winner is mid-create, or it died there. Flag only when stale, atomically
   // (the winner may store its order id at any moment).
-  const { rows: stale } = await db.pool.query<TopupRow>(
-    `UPDATE topups SET needs_reconcile = true, updated_at = now()
+  const stale = await db.tx(async (tx) => {
+    const { rows } = await tx.query<TopupRow>(
+      `UPDATE topups SET needs_reconcile = true, updated_at = now()
       WHERE id = $1 AND status = 'CREATED' AND paypal_order_id IS NULL AND NOT needs_reconcile
         AND created_at < now() - make_interval(secs => $2)
       RETURNING ${TOPUP_COLUMNS}`,
-    [row.id, SIM_CREATE_STALE_MS / 1000],
-  );
-  if (stale[0]) {
-    await alert(deps, stale[0], null, 'SIM_CREATE_STALE', actor);
-    return { status: 'NEEDS_RECONCILE', topup: stale[0], created: false, code: 'SIM_CREATE_STALE' };
+      [row.id, SIM_CREATE_STALE_MS / 1000],
+    );
+    if (rows[0]) await alert(tx, rows[0], null, 'SIM_CREATE_STALE', actor);
+    return rows[0] ?? null;
+  });
+  if (stale) {
+    return { status: 'NEEDS_RECONCILE', topup: stale, created: false, code: 'SIM_CREATE_STALE' };
   }
   return { status: 'IN_FLIGHT', topup: (await topupById(db, row.id)) ?? row, created: false };
 }
@@ -205,7 +211,7 @@ async function settle(
   deps: TopupDeps,
   row: TopupRow,
   result: TopupResult,
-  actor: { actorType: ActorType; actorId: string },
+  actor: SimActor,
   created: boolean,
 ): Promise<ServerCardTopupOutcome> {
   const { db } = deps;
@@ -269,18 +275,22 @@ async function flagReconcile(
   row: TopupRow,
   orderId: string | null,
   code: string,
-  actor: { actorType: ActorType; actorId: string },
+  actor: SimActor,
   created: boolean,
 ): Promise<ServerCardTopupOutcome> {
-  const { rows } = await deps.db.pool.query<TopupRow>(
-    `UPDATE topups
+  // The flag and its alert commit together.
+  const flagged = await deps.db.tx(async (tx) => {
+    const { rows } = await tx.query<TopupRow>(
+      `UPDATE topups
         SET needs_reconcile = true, error_code = coalesce(error_code, $3),
             paypal_order_id = coalesce(paypal_order_id, $2), updated_at = now()
       WHERE id = $1 AND status = ANY($4::text[])
       RETURNING ${TOPUP_COLUMNS}`,
-    [row.id, orderId, code, OPEN],
-  );
-  const flagged = rows[0];
+      [row.id, orderId, code, OPEN],
+    );
+    if (rows[0]) await alert(tx, rows[0], orderId, code, actor);
+    return rows[0] ?? null;
+  });
   if (!flagged) {
     // Settled meanwhile (a racing reconcile credited or failed it): report what it is now.
     const current = (await topupById(deps.db, row.id)) ?? row;
@@ -294,18 +304,17 @@ async function flagReconcile(
     }
     return { status: 'FAILED', topup: current, created, code: current.errorCode };
   }
-  await alert(deps, flagged, orderId, code, actor);
   return { status: 'NEEDS_RECONCILE', topup: flagged, created, code };
 }
 
 function alert(
-  deps: TopupDeps,
+  tx: Tx,
   row: TopupRow,
   orderId: string | null,
   code: string,
-  actor: { actorType: ActorType; actorId: string },
+  actor: SimActor,
 ): Promise<unknown> {
-  return audit(deps.db.pool, {
+  return audit(tx, {
     ...actor,
     entity: 'topups',
     entityId: row.id,
