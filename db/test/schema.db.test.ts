@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- untyped pg rows and caught errors in assertions */
 // SP-002 schema tests: migrate a throwaway database and check the constraints from the
 // ticket's acceptance criteria. Needs TEST_DATABASE_URL (see db/testing.mjs).
 
