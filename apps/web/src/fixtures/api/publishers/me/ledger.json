@@ -1,0 +1,380 @@
+{
+  "rows": [
+    {
+      "id": "900",
+      "txnId": "f0000000-0000-4000-8000-000000000001",
+      "kind": "PAYOUT_SENT",
+      "memo": "PayPal payout sent",
+      "amountMicros": -5000000,
+      "isSimulated": false,
+      "paypalId": "5UXD2E8A7EBQJ",
+      "paypalBatchId": "GD2SFTUDLMQ5L",
+      "ref": {
+        "type": "payout_item",
+        "id": "c0000000-0000-4000-8000-000000000001"
+      },
+      "createdAt": "2026-11-12T09:00:00.000Z"
+    },
+    {
+      "id": "899",
+      "txnId": "f0000000-0000-4000-8000-000000000898",
+      "kind": "CHARGE",
+      "memo": "19 records sold · bluebonnet/listings",
+      "amountMicros": 22800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000898"
+      },
+      "createdAt": "2026-11-06T12:00:00.000Z"
+    },
+    {
+      "id": "898",
+      "txnId": "f0000000-0000-4000-8000-000000000897",
+      "kind": "CHARGE",
+      "memo": "141 records sold · bluebonnet/listings",
+      "amountMicros": 169200,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000897"
+      },
+      "createdAt": "2026-11-07T12:00:00.000Z"
+    },
+    {
+      "id": "897",
+      "txnId": "f0000000-0000-4000-8000-000000000896",
+      "kind": "CHARGE",
+      "memo": "178 records sold · bluebonnet/listings",
+      "amountMicros": 213600,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000896"
+      },
+      "createdAt": "2026-11-08T12:00:00.000Z"
+    },
+    {
+      "id": "896",
+      "txnId": "f0000000-0000-4000-8000-000000000895",
+      "kind": "CHARGE",
+      "memo": "81 records sold · bluebonnet/listings",
+      "amountMicros": 97200,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000895"
+      },
+      "createdAt": "2026-11-09T12:00:00.000Z"
+    },
+    {
+      "id": "895",
+      "txnId": "f0000000-0000-4000-8000-000000000894",
+      "kind": "CHARGE",
+      "memo": "82 records sold · bluebonnet/agents",
+      "amountMicros": 32800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000894"
+      },
+      "createdAt": "2026-11-08T12:00:00.000Z"
+    },
+    {
+      "id": "894",
+      "txnId": "f0000000-0000-4000-8000-000000000893",
+      "kind": "CHARGE",
+      "memo": "18 records sold · bluebonnet/agents",
+      "amountMicros": 7200,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000893"
+      },
+      "createdAt": "2026-11-09T12:00:00.000Z"
+    },
+    {
+      "id": "893",
+      "txnId": "f0000000-0000-4000-8000-000000000892",
+      "kind": "CHARGE",
+      "memo": "92 records sold · bluebonnet/agents",
+      "amountMicros": 36800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000892"
+      },
+      "createdAt": "2026-11-10T12:00:00.000Z"
+    },
+    {
+      "id": "892",
+      "txnId": "f0000000-0000-4000-8000-000000000891",
+      "kind": "CHARGE",
+      "memo": "76 records sold · bluebonnet/agents",
+      "amountMicros": 30400,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000891"
+      },
+      "createdAt": "2026-11-11T12:00:00.000Z"
+    },
+    {
+      "id": "891",
+      "txnId": "f0000000-0000-4000-8000-000000000890",
+      "kind": "CHARGE",
+      "memo": "129 records sold · bluebonnet/listings",
+      "amountMicros": 154800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000890"
+      },
+      "createdAt": "2026-11-08T12:00:00.000Z"
+    },
+    {
+      "id": "890",
+      "txnId": "f0000000-0000-4000-8000-000000000889",
+      "kind": "CHARGE",
+      "memo": "109 records sold · bluebonnet/listings",
+      "amountMicros": 130800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000889"
+      },
+      "createdAt": "2026-11-10T12:00:00.000Z"
+    },
+    {
+      "id": "889",
+      "txnId": "f0000000-0000-4000-8000-000000000888",
+      "kind": "CHARGE",
+      "memo": "150 records sold · bluebonnet/listings",
+      "amountMicros": 180000,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000888"
+      },
+      "createdAt": "2026-11-11T12:00:00.000Z"
+    },
+    {
+      "id": "888",
+      "txnId": "f0000000-0000-4000-8000-000000000887",
+      "kind": "CHARGE",
+      "memo": "35 records sold · bluebonnet/listings",
+      "amountMicros": 42000,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000887"
+      },
+      "createdAt": "2026-11-12T12:00:00.000Z"
+    },
+    {
+      "id": "887",
+      "txnId": "f0000000-0000-4000-8000-000000000886",
+      "kind": "CHARGE",
+      "memo": "80 records sold · bluebonnet/listings",
+      "amountMicros": 96000,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000886"
+      },
+      "createdAt": "2026-11-06T12:00:00.000Z"
+    },
+    {
+      "id": "886",
+      "txnId": "f0000000-0000-4000-8000-000000000885",
+      "kind": "CHARGE",
+      "memo": "59 records sold · bluebonnet/listings",
+      "amountMicros": 70800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000885"
+      },
+      "createdAt": "2026-11-07T12:00:00.000Z"
+    },
+    {
+      "id": "885",
+      "txnId": "f0000000-0000-4000-8000-000000000884",
+      "kind": "CHARGE",
+      "memo": "79 records sold · bluebonnet/listings",
+      "amountMicros": 94800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000884"
+      },
+      "createdAt": "2026-11-08T12:00:00.000Z"
+    },
+    {
+      "id": "884",
+      "txnId": "f0000000-0000-4000-8000-000000000883",
+      "kind": "CHARGE",
+      "memo": "80 records sold · bluebonnet/listings",
+      "amountMicros": 96000,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000883"
+      },
+      "createdAt": "2026-11-11T12:00:00.000Z"
+    },
+    {
+      "id": "883",
+      "txnId": "f0000000-0000-4000-8000-000000000882",
+      "kind": "CHARGE",
+      "memo": "91 records sold · bluebonnet/listings",
+      "amountMicros": 109200,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000882"
+      },
+      "createdAt": "2026-11-12T12:00:00.000Z"
+    },
+    {
+      "id": "882",
+      "txnId": "f0000000-0000-4000-8000-000000000881",
+      "kind": "CHARGE",
+      "memo": "101 records sold · bluebonnet/agents",
+      "amountMicros": 40400,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000881"
+      },
+      "createdAt": "2026-11-08T12:00:00.000Z"
+    },
+    {
+      "id": "881",
+      "txnId": "f0000000-0000-4000-8000-000000000880",
+      "kind": "CHARGE",
+      "memo": "107 records sold · bluebonnet/agents",
+      "amountMicros": 42800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000880"
+      },
+      "createdAt": "2026-11-09T12:00:00.000Z"
+    },
+    {
+      "id": "880",
+      "txnId": "f0000000-0000-4000-8000-000000000879",
+      "kind": "CHARGE",
+      "memo": "34 records sold · bluebonnet/agents",
+      "amountMicros": 13600,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000879"
+      },
+      "createdAt": "2026-11-10T12:00:00.000Z"
+    },
+    {
+      "id": "879",
+      "txnId": "f0000000-0000-4000-8000-000000000878",
+      "kind": "CHARGE",
+      "memo": "137 records sold · bluebonnet/agents",
+      "amountMicros": 54800,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000878"
+      },
+      "createdAt": "2026-11-11T12:00:00.000Z"
+    },
+    {
+      "id": "878",
+      "txnId": "f0000000-0000-4000-8000-000000000877",
+      "kind": "CHARGE",
+      "memo": "79 records sold · bluebonnet/agents",
+      "amountMicros": 31600,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000877"
+      },
+      "createdAt": "2026-11-12T12:00:00.000Z"
+    },
+    {
+      "id": "877",
+      "txnId": "f0000000-0000-4000-8000-000000000876",
+      "kind": "CHARGE",
+      "memo": "120 records sold · bluebonnet/agents",
+      "amountMicros": 48000,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000876"
+      },
+      "createdAt": "2026-11-06T12:00:00.000Z"
+    },
+    {
+      "id": "876",
+      "txnId": "f0000000-0000-4000-8000-000000000875",
+      "kind": "CHARGE",
+      "memo": "101 records sold · bluebonnet/agents",
+      "amountMicros": 40400,
+      "isSimulated": false,
+      "paypalId": null,
+      "paypalBatchId": null,
+      "ref": {
+        "type": "api_call",
+        "id": "a0000000-0000-4000-8000-000000000875"
+      },
+      "createdAt": "2026-11-07T12:00:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}

@@ -9,7 +9,6 @@ import { buyerNav, href, paths, publisherNav } from './routes';
 /** Every screen in SP-024a's list: path → the stub's `data-screen` and heading. */
 const SCREENS: [path: string, screen: string, title: string][] = [
   ['/app/records', 'W07', 'Records'],
-  ['/app/earnings', 'W08', 'Earnings'],
   ['/app/crawls', 'W10', 'Crawls'],
   ['/app/admin/audit', 'W14', 'Audit'],
   ['/buyers/usage', 'W12', 'Usage and claims'],
@@ -97,6 +96,16 @@ describe('router', () => {
     expect(await renderAt(path)).toHaveTextContent(title);
   });
 
+  it('/app/earnings renders W08 (SP-030b), not a stub; its states are tested in pages/Earnings', async () => {
+    const router = createMemoryRouter(routes, { initialEntries: ['/app/earnings'] });
+    render(<RouterProvider router={router} />);
+    // First load of the AG Grid + Charts chunk can take over the default 1 s.
+    const h1 = await screen.findByRole('heading', { level: 1 }, { timeout: 10_000 });
+    expect(h1).toHaveTextContent('Earnings');
+    expect(h1.closest('[data-screen]')).toHaveAttribute('data-screen', 'W08');
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument();
+  });
+
   it('/app/install with no site points back to W02', async () => {
     SESSIONS['/api/sites'] = { sites: [] };
     try {
@@ -113,9 +122,15 @@ describe('router', () => {
 
   it('covers every path in the paths table', () => {
     const tested = new Set(
-      [...SCREENS, ...BUILT, ...LOGINS, ...BUYER_PAGES, ...ONBOARDING, ['/app/install']].map(
-        ([p]) => p!.split('?')[0],
-      ),
+      [
+        ...SCREENS,
+        ...BUILT,
+        ...LOGINS,
+        ...BUYER_PAGES,
+        ...ONBOARDING,
+        ['/app/install'],
+        ['/app/earnings'],
+      ].map(([p]) => p!.split('?')[0]),
     );
     for (const [name, p] of Object.entries(paths)) {
       const concrete = p.replace(':datasetId', 'ds_123').replace(':topupId', 'tp_1');

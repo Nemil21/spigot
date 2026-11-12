@@ -17,9 +17,18 @@ import { rangeSql, type Range } from './query.js';
 export const GROUP_BY = ['buyer', 'dataset', 'day'] as const;
 export type GroupBy = (typeof GROUP_BY)[number];
 
+/**
+ * Dimensions for `groupBy=a,b,…` (SP-030b): W08 asks for buyer × dataset × channel × day in one
+ * read, so its grid (Buyer → Dataset, channel leaves) and its per-day bars sum the same rows the
+ * KPIs come from. A single dimension still answers exactly as before.
+ */
+export const GROUP_DIMS = ['buyer', 'dataset', 'day', 'channel'] as const;
+export type GroupDim = (typeof GROUP_DIMS)[number];
+
 export interface EarningsQuery extends Range {
   publisherId: string;
-  groupBy: GroupBy;
+  /** One dimension, or several in order (no repeats). */
+  groupBy: GroupBy | readonly GroupDim[];
   includeSim: boolean;
 }
 
@@ -39,11 +48,24 @@ export interface ChannelSplit {
   grossMicros: number;
 }
 
+/** The value of each grouped dimension for one row; only the requested ones are set. */
+export interface EarningsDims {
+  buyer?: { id: string; name: string };
+  dataset?: { id: string; key: string };
+  /** `YYYY-MM-DD` (UTC). */
+  day?: string;
+  channel?: 'REST' | 'MCP';
+}
+
 export interface EarningsRow {
-  /** Display key: buyer name, `site/dataset`, or `YYYY-MM-DD` (UTC). */
+  /**
+   * Display key: buyer name, `site/dataset`, or `YYYY-MM-DD` (UTC); with several dimensions,
+   * their keys joined by ` · `.
+   */
   key: string;
-  /** Stable id for grouping: buyer id, dataset id, or the day. */
+  /** Stable id for grouping: buyer id, dataset id, or the day; with several, joined by `|`. */
   id: string;
+  dims: EarningsDims;
   isSimulated: boolean;
   calls: number;
   records: number;
@@ -60,23 +82,26 @@ export interface Earnings {
 }
 
 /** Group expressions over the `chargedCalls` CTE (aliased `c`). */
-const GROUP_SQL: Record<GroupBy, { id: string; key: string; order: string }> = {
+const DIM_SQL: Record<GroupDim, { id: string; key: string }> = {
   buyer: {
     id: `c.buyer_id::text`,
     key: `coalesce(c.buyer_name, 'Buyer ' || left(c.buyer_id::text, 8))`,
-    order: `"grossMicros" DESC, key, id`,
   },
   dataset: {
     id: `c.dataset_id::text`,
     key: `coalesce(c.site_slug, c.site_origin) || '/' || c.dataset_slug`,
-    order: `"grossMicros" DESC, key, id`,
   },
   day: {
     id: `to_char(c.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
     key: `to_char(c.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
-    order: `id, "isSimulated"`,
   },
+  channel: { id: `c.channel::text`, key: `c.channel::text` },
 };
+
+/** `buyer` → `['buyer']`; a list is used as given (the route has already checked it). */
+export function groupDims(groupBy: EarningsQuery['groupBy']): readonly GroupDim[] {
+  return typeof groupBy === 'string' ? [groupBy] : groupBy;
+}
 
 /**
  * The charged calls in scope, one row each, as a CTE body. `$1` is the publisher id and
@@ -149,28 +174,42 @@ async function read(client: pg.PoolClient, q: EarningsQuery): Promise<Earnings> 
     [q.publisherId, q.includeSim],
   );
 
-  const g = GROUP_SQL[q.groupBy];
+  const dims = groupDims(q.groupBy);
+  if (dims.length === 0 || new Set(dims).size !== dims.length) {
+    throw new RangeError('groupBy needs one or more distinct dimensions');
+  }
+  // Day-first reads are a time series (oldest first); anything else ranks by gross.
+  const order = dims[0] === 'day' ? `id, "isSimulated"` : `"grossMicros" DESC, key, id`;
+  const dimCols = dims
+    .map((d) => `${DIM_SQL[d].id} AS "${d}Id", ${DIM_SQL[d].key} AS "${d}Key"`)
+    .join(',\n              ');
+  const idExpr = dims.map((d) => `"${d}Id"`).join(` || '|' || `);
+  const keyExpr = dims.map((d) => `"${d}Key"`).join(` || ' · ' || `);
+  const dimOut = dims.map((d) => `"${d}Id", "${d}Key"`).join(', ');
+  const groupCols = dims.map((_, i) => `${2 * i + 1}, ${2 * i + 2}`).join(', ');
   const rowParams: unknown[] = [];
-  const rows = await client.query<{
-    key: string;
-    id: string;
-    isSimulated: boolean;
-    calls: number;
-    records: number;
-    changes: number;
-    grossMicros: number;
-    netMicros: number;
-    restCalls: number;
-    restGross: number;
-    mcpCalls: number;
-    mcpGross: number;
-  }>(
+  const rows = await client.query<
+    {
+      key: string;
+      id: string;
+      isSimulated: boolean;
+      calls: number;
+      records: number;
+      changes: number;
+      grossMicros: number;
+      netMicros: number;
+      restCalls: number;
+      restGross: number;
+      mcpCalls: number;
+      mcpGross: number;
+    } & Record<string, string>
+  >(
     `WITH c AS (${chargedCalls(q, rowParams)})
-     SELECT key, id, "isSimulated", calls, records, changes, "grossMicros", "netMicros",
+     SELECT ${keyExpr} AS key, ${idExpr} AS id, ${dimOut},
+            "isSimulated", calls, records, changes, "grossMicros", "netMicros",
             "restCalls", "restGross", "mcpCalls", "mcpGross"
      FROM (
-       SELECT ${g.key} AS key,
-              ${g.id} AS id,
+       SELECT ${dimCols},
               c.is_simulated AS "isSimulated",
               count(*)::int AS calls,
               sum(c.records)::bigint AS records,
@@ -182,9 +221,9 @@ async function read(client: pg.PoolClient, q: EarningsQuery): Promise<Earnings> 
               (count(*) FILTER (WHERE c.channel = 'MCP'))::int AS "mcpCalls",
               coalesce(sum(c.gross) FILTER (WHERE c.channel = 'MCP'), 0)::bigint AS "mcpGross"
        FROM c
-       GROUP BY 1, 2, 3
+       GROUP BY ${groupCols}, c.is_simulated
      ) g
-     ORDER BY ${g.order}`,
+     ORDER BY ${order}`,
     rowParams,
   );
 
@@ -193,6 +232,7 @@ async function read(client: pg.PoolClient, q: EarningsQuery): Promise<Earnings> 
     rows: rows.rows.map((r) => ({
       key: r.key,
       id: r.id,
+      dims: dimsOf(dims, r),
       isSimulated: r.isSimulated,
       calls: r.calls,
       records: r.records,
@@ -206,4 +246,17 @@ async function read(client: pg.PoolClient, q: EarningsQuery): Promise<Earnings> 
       },
     })),
   };
+}
+
+function dimsOf(dims: readonly GroupDim[], r: Record<string, unknown>): EarningsDims {
+  const out: EarningsDims = {};
+  for (const d of dims) {
+    const id = String(r[`${d}Id`]);
+    const key = String(r[`${d}Key`]);
+    if (d === 'buyer') out.buyer = { id, name: key };
+    else if (d === 'dataset') out.dataset = { id, key };
+    else if (d === 'day') out.day = id;
+    else out.channel = id as 'REST' | 'MCP';
+  }
+  return out;
 }
