@@ -22,12 +22,12 @@ Read the draft against what actually shipped. Delete or soften any sentence whos
 | Records, versions, JSON Patch changes feed | SP-013, SP-015 | |
 | Buyer REST API, quote, charge only on 2xx, idempotent | SP-016, SP-017a, SP-017b, SP-005 | |
 | PayPal top-up (Orders v2 CAPTURE, JS SDK v6 button) | SP-018a, SP-018b, SP-032 | |
-| Card fields top-up | SP-063 | |
+| Card fields top-up `[P1]` | SP-063 | |
 | Vault + merchant-initiated auto top-up `[P1]` | SP-047a, SP-047b, SP-047c | |
 | Payouts batch to publisher, 20% commission | SP-020, SP-021, SP-031 | |
 | Refund unused balance `[P1]` | SP-049, SP-050 | |
 | Claims + AI claims triage `[P1]` | SP-048a, SP-048b | |
-| PayPal webhooks with signature verification | SP-059 | |
+| PayPal webhooks with signature verification `[P1]` | SP-059 | |
 | MCP server; Claude Desktop as buyer agent | SP-022a, SP-022b, SP-039b | |
 | Drift detection + re-inference `[P1]` | SP-052a, SP-052b | |
 | AG Grid dashboard (bots, proposals, earnings, payouts) | SP-024a, SP-027b, SP-028, SP-030b, SP-031 | |
@@ -35,6 +35,7 @@ Read the draft against what actually shipped. Delete or soften any sentence whos
 | APIMatic Context Plugin used while coding PayPal | (process; confirm with the builders) | |
 | APIMatic SDK from `openapi.yaml` `[P1]` | SP-023, SP-056 | |
 | Log in with PayPal `[P1]` | SP-058 | |
+| "Whole loop works end to end" (Accomplishments) | every P0 row above, run once on Render | |
 | Live URLs, video URL, test accounts | SP-040, SP-046, SP-044b | |
 
 ### Built With (tick only what shipped)
@@ -47,7 +48,7 @@ Enter these as Devpost "Built With" tags. Remove any that didn't ship.
 | `paypal-vault` | card/wallet saved for auto top-up (SP-047a) |
 | `paypal-payouts` | payout run works (SP-020) |
 | `paypal-refunds` | refund unused balance works (SP-049) |
-| `paypal-webhooks` | webhook handler + signature verify (SP-059) |
+| `paypal-webhooks` | webhook handler + signature verify (SP-059, P1) |
 | `paypal-js-sdk-v6` | buyer portal button (SP-032) |
 | `claude-api` | schema agent (SP-012a) |
 | `claude-desktop` | buyer agent demo (SP-039b) |
@@ -101,8 +102,8 @@ So we asked: what if the site itself was the cheapest, cleanest way to get its o
 Spigot turns a website into a typed, paid API for AI agents, in minutes, without the owner writing code.
 
 1. **The gate.** The owner adds `spigot-gate`, a small middleware, to their site. Humans and search engines pass straight through. Declared AI bots and scrapers (GPTBot, `python-requests` and friends) get an HTTP 402 with a price and a link to the API. The gate decides locally in under a millisecond and fails open, so the site never goes down because of us.
-2. **The AI finds the data.** Spigot crawls the site's public pages from its sitemap. Claude reads a few sample pages from each layout and proposes record types: on our demo site it finds **Listing (2,341), Agent (88) and Open House (40)**, with fields and sample rows. It also writes the extractor for each one, runs it on 20 samples, checks the results and repairs its own mistakes. It flags personal data such as phone numbers.
-3. **The owner approves.** The owner hides `phone`, sets **$1.50 per 1,000 records** and clicks Publish. From then on the extractor is plain code: **zero AI calls per page**. Every re-crawl turns into versioned records and a changes feed (JSON Patch), so buyers can ask "what changed today?".
+2. **The AI finds the data.** Spigot crawls the site's public pages from its sitemap. Claude reads a few sample pages from each layout and proposes record types: on our demo site it finds **Listing (2,341), Agent (88) and Open House (40)**, with fields and sample rows. It also writes the extractor for each one, runs it on 20 samples, checks the results and repairs its own mistakes. It flags personal data such as agents' phone numbers and hides it by default.
+3. **The owner approves.** The owner reviews the proposal (Spigot has already hidden `agent_phone` as personal data), sets **$1.50 per 1,000 records** and clicks Publish. From then on the extractor is plain code: **zero AI calls per page**. Every re-crawl turns into versioned records and a changes feed (JSON Patch), so buyers can ask "what changed today?".
 4. **Agents pay with PayPal.** An agent builder gets an API key and tops up a prepaid balance with PayPal (Orders v2, JS SDK v6 button). [P1 SP-047: The payment method is saved in PayPal Vault, so when the agent runs low mid-task Spigot tops it up automatically, inside a monthly cap the human set.]
 5. **The agent buys data, not pages.** In Claude Desktop, over our MCP server, the agent asks for "3-bed rentals under $2k that changed today". It gets a free quote, then typed JSON. It's charged exactly `records × $0.0015`, only after a successful response, and a retried call with the same idempotency key is never charged twice.
 6. **The owner gets paid.** Every charge lands in a double-entry ledger: 80% to the publisher, 20% Spigot commission. Payouts go out as PayPal Payouts batches, weekly or with "Run payout now", and the dashboard shows the batch go from PENDING to SUCCESS.
@@ -120,7 +121,7 @@ The publisher dashboard (built with AG Grid) shows the bot report, the AI's prop
   - [P1 SP-047: **Vault** (`store_in_vault: ON_SUCCESS`) and merchant-initiated orders from the `vault_id` for auto top-up.]
   - **Payouts** batches to publishers, net of commission, with crash-safe resubmits keyed on `sender_batch_id`.
   - [P1 SP-049: **Refunds** (partial) of unused balance back to the original capture.]
-  - **Webhooks** with `verify-webhook-signature` to reconcile captures and payout items, with polling as a backup.
+  - Reconciliation of captures and payout items by polling PayPal's Orders and Payouts status. [P1 SP-059: **Webhooks** with `verify-webhook-signature` reconcile them as events arrive, with polling as the backup.]
   - **`PayPal-Request-Id`** on every money call, so retries never double-charge or double-pay.
   - Only the backend calls PayPal. No language model ever holds PayPal credentials.
 - **Money:** a double-entry ledger in Postgres, in micros (1 USD = 1,000,000) so we can charge $0.0015 per record. Every transaction must balance to zero, and every money event has an audit row with its PayPal IDs.
