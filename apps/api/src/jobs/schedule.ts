@@ -2,6 +2,7 @@ import { startCrawl, type CrawlRunResult } from '../crawl/crawlSite.js';
 import { CRAWL_DEFAULTS, defaultCrawlDeps, type CrawlDeps } from '../crawl/deps.js';
 import type { LedgerCheckResult } from '../ledger/check.js';
 import { recordLedgerCheck } from '../ops/ledgerStatus.js';
+import { handOffToWorkflows } from '../workflows/dispatch.js';
 
 /**
  * Scheduled re-crawl and nightly check (SP-061; features/03 §Logic 8, features/07 §Ledger check).
@@ -99,19 +100,29 @@ export async function nightlyCheck(deps: CrawlDeps): Promise<NightlyResult> {
 }
 
 let override: CrawlDeps | undefined;
+let cached: CrawlDeps | undefined;
 
 /**
  * Deps for the two jobs, or `null` when jobs are off: under vitest they stay off until
  * `setScheduleDeps` (a test's `setJobDeps` for the money jobs doesn't switch them on, so no test
  * reaches `defaultCrawlDeps()` and the environment's `DATABASE_URL`). Outside tests:
- * `defaultCrawlDeps()`, the crawl pool and config the crawl tasks already use.
+ * `defaultCrawlDeps()`, the crawl pool and config the crawl tasks already use, plus SP-041a's
+ * `handOff`, so with `WORKFLOWS_MODE=workflows` a scheduled run starts on Render Workflows like
+ * "Crawl now" (falling back to in-process if Render can't be reached).
  */
 export function scheduleJobDeps(
   env: Record<string, string | undefined> = process.env,
 ): CrawlDeps | null {
   if (override) return override;
   if (env.VITEST) return null;
-  return defaultCrawlDeps(env);
+  if (!cached) {
+    const base = defaultCrawlDeps(env);
+    cached = {
+      ...base,
+      handOff: (args) => handOffToWorkflows('crawlSite', args, { db: base.db, env }),
+    };
+  }
+  return cached;
 }
 
 /** Tests: run the schedule jobs against `deps` (`undefined` turns them off again). */
