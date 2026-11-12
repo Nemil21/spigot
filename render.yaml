@@ -97,6 +97,9 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Used when ANTHROPIC_API_KEY is empty (OPENAI_MODEL defaults to gpt-5).
+      - key: OPENAI_API_KEY
+        sync: false
       - key: AG_GRID_LICENSE_KEY
         sync: false
       # Browser-visible at build time (Vite); public by design, prompted so it stays out of git.
@@ -199,6 +202,9 @@ services:
       - key: APP_BASE_URL
         sync: false
       - key: ANTHROPIC_API_KEY
+        sync: false
+      # Used when ANTHROPIC_API_KEY is empty (OPENAI_MODEL defaults to gpt-5).
+      - key: OPENAI_API_KEY
         sync: false
       - key: DEMO_PUBLISHER_PAYOUT_EMAIL
         sync: false

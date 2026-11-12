@@ -14,10 +14,21 @@
 // prompt + DSL, one tool). Every live request is tried 3 times with backoff on overload / rate
 // limit / 5xx / connection errors (the SDK's own retries are off, so 3 means 3); after that it
 // throws `ModelUnavailableError` and the proposal falls back to the JSON-LD-only auto-schema.
+//
+// With only `OPENAI_API_KEY` set (`aiProviderFor`), `live` runs the same seam on OpenAI Chat
+// Completions instead (`createOpenAiLiveModel`, adapter in ai/openai.ts): same tools, prompts,
+// retry policy and fallback; the audit rows record whichever model answered.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import Anthropic from '@anthropic-ai/sdk';
-import { requireKeys, type Config } from '../config.js';
+import {
+  createOpenAiClient,
+  DEFAULT_OPENAI_MODEL,
+  OpenAiConnectionError,
+  OpenAiHttpError,
+  type OpenAiMessage,
+} from '../ai/openai.js';
+import { aiProviderFor, requireKeys, type Config } from '../config.js';
 import { REPAIR_FIELDS_TOOL, REPAIR_FIELDS_TOOL_NAME } from './repair.js';
 import { PROPOSE_SCHEMA_TOOL, PROPOSE_SCHEMA_TOOL_NAME } from './tool.js';
 
@@ -120,6 +131,11 @@ export class ModelUnavailableError extends Error {
 
 /** Worth retrying: timeout, conflict, rate limit, 5xx (incl. 529 overloaded), connection error. */
 export function isTransientModelError(err: unknown): boolean {
+  if (err instanceof OpenAiConnectionError) return true;
+  if (err instanceof OpenAiHttpError) {
+    const s = err.status;
+    return s === 408 || s === 409 || s === 429 || s >= 500;
+  }
   if (err instanceof Anthropic.APIUserAbortError) return false;
   if (err instanceof Anthropic.APIConnectionError) return true;
   if (!(err instanceof Anthropic.APIError)) return false;
@@ -138,6 +154,7 @@ export interface RetryOptions {
 }
 
 function retryAfterMs(err: unknown): number {
+  if (err instanceof OpenAiHttpError) return err.retryAfterMs;
   if (!(err instanceof Anthropic.APIError)) return 0;
   const raw = err.headers?.get?.('retry-after');
   const secs = raw ? Number(raw) : NaN;
@@ -157,7 +174,12 @@ export async function withModelRetry<T>(fn: () => Promise<T>, opts: RetryOptions
     } catch (err) {
       if (!isTransientModelError(err)) throw err;
       if (attempt >= MODEL_ATTEMPTS) {
-        const status = err instanceof Anthropic.APIError ? (err.status ?? null) : null;
+        const status =
+          err instanceof Anthropic.APIError
+            ? (err.status ?? null)
+            : err instanceof OpenAiHttpError
+              ? err.status
+              : null;
         throw new ModelUnavailableError(
           `model unavailable after ${attempt} tries (${status ?? 'connection error'})`,
           attempt,
@@ -308,6 +330,92 @@ export function createLiveModel(opts: LiveModelOptions): SchemaModel {
   };
 }
 
+// --- live (OpenAI) -----------------------------------------------------------------------------
+
+export interface OpenAiLiveModelOptions {
+  apiKey: string;
+  model?: string;
+  /** Tests inject a fetch. */
+  fetch?: typeof fetch;
+  retry?: RetryOptions;
+}
+
+/** The `live` seam on OpenAI Chat Completions: one forced tool call per request. */
+export function createOpenAiLiveModel(opts: OpenAiLiveModelOptions): SchemaModel {
+  const modelId = opts.model ?? DEFAULT_OPENAI_MODEL;
+  const client = createOpenAiClient({ apiKey: opts.apiKey, fetch: opts.fetch });
+  const { system, dsl, repair } = loadPrompts();
+  const systemText = `${system}\n\n${dsl}`;
+  const repairSystemText = `${systemText}\n\n${repair}`;
+  const toTurn = (r: Awaited<ReturnType<typeof client.callTool>>): ModelTurn => ({
+    input: r.input,
+    usage: r.usage,
+    model: r.model,
+    replayed: false,
+    stopReason: r.stopReason,
+  });
+
+  return {
+    mode: 'live',
+    modelId,
+    open(req) {
+      const messages: OpenAiMessage[] = [{ role: 'user', content: req.userPrompt }];
+      let last: Awaited<ReturnType<typeof client.callTool>> | undefined;
+      const call = async (): Promise<ModelTurn> => {
+        const res = await withModelRetry(
+          () =>
+            client.callTool({
+              model: modelId,
+              system: systemText,
+              messages,
+              tool: PROPOSE_SCHEMA_TOOL,
+              maxCompletionTokens: MAX_TOKENS,
+            }),
+          opts.retry,
+        );
+        last = res;
+        return toTurn(res);
+      };
+      return {
+        first: call,
+        async retry(errors) {
+          const feedback =
+            'Your propose_schema input was rejected. Fix these problems and call propose_schema ' +
+            'again with the complete corrected proposal:\n- ' +
+            errors.join('\n- ');
+          if (last) {
+            messages.push(last.assistant);
+            // Every tool call needs a tool answer before the next user turn.
+            for (const tc of last.assistant.tool_calls ?? []) {
+              messages.push({
+                role: 'tool',
+                tool_call_id: tc.id,
+                content: tc.id === last.toolCallId ? feedback : 'Ignored.',
+              });
+            }
+          }
+          if (!last?.toolCallId) messages.push({ role: 'user', content: feedback });
+          return call();
+        },
+      };
+    },
+    async repair(req) {
+      const res = await withModelRetry(
+        () =>
+          client.callTool({
+            model: modelId,
+            system: repairSystemText,
+            messages: [{ role: 'user', content: req.userPrompt }],
+            tool: REPAIR_FIELDS_TOOL,
+            maxCompletionTokens: MAX_TOKENS,
+          }),
+        opts.retry,
+      );
+      return toTurn(res);
+    },
+  };
+}
+
 // --- recorded ----------------------------------------------------------------------------------
 
 export interface RecordedProposal {
@@ -387,9 +495,19 @@ export function createRecordedModel(
   };
 }
 
-/** The model for this config: recorded replay, or live (needs `ANTHROPIC_API_KEY`). */
+/**
+ * The model for this config: recorded replay, or live on Anthropic (`ANTHROPIC_API_KEY`) or, when
+ * only `OPENAI_API_KEY` is set (or `AI_PROVIDER=openai`), on OpenAI.
+ */
 export function schemaModelFor(config: Config): SchemaModel {
   if (config.SCHEMA_AGENT_MODE === 'recorded') return createRecordedModel();
+  if (aiProviderFor(config) === 'openai') {
+    const { OPENAI_API_KEY } = requireKeys(config, 'Schema agent (live mode)', 'OPENAI_API_KEY');
+    return createOpenAiLiveModel({
+      apiKey: OPENAI_API_KEY,
+      model: config.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL,
+    });
+  }
   const { ANTHROPIC_API_KEY } = requireKeys(
     config,
     'Schema agent (live mode)',

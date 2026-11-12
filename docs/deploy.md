@@ -53,6 +53,7 @@ first applied, and never reads them from git. Set them by hand afterwards under 
 | `PAYPAL_WEBHOOK_ID` | yes | After the first deploy: add a webhook on the sandbox app for `https://<spigot-api>/webhooks/paypal`, then paste its id (S11) |
 | `APP_BASE_URL` | no (prompted) | `https://<spigot-api host>`, e.g. `https://spigot-api.onrender.com`, no trailing slash |
 | `ANTHROPIC_API_KEY` | yes | Schema agent (SP-012a) |
+| `OPENAI_API_KEY` | yes | Used for the schema agent and claims triage when `ANTHROPIC_API_KEY` is empty. Optional `OPENAI_MODEL` (default `gpt-5`) and `AI_PROVIDER` (`anthropic` / `openai`) override the model and the choice |
 | `AG_GRID_LICENSE_KEY` | yes | AG Grid Enterprise licence |
 | `VITE_AG_GRID_LICENSE_KEY`, `VITE_PAYPAL_CLIENT_ID` | no (prompted) | Baked into the web build, so they're public. Same values as `AG_GRID_LICENSE_KEY` / `PAYPAL_CLIENT_ID`. **Changing them needs a redeploy** |
 | `ADMIN_EMAILS` | no (prompted) | Comma-separated admin logins |
@@ -78,7 +79,8 @@ first applied, and never reads them from git. Set them by hand afterwards under 
 
 `spigot-config` plus `DATABASE_URL` (from the DB), `SESSION_SECRET` (generated; `loadConfig`
 requires it), and prompted `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `APP_BASE_URL`,
-`ANTHROPIC_API_KEY`, `DEMO_PUBLISHER_PAYOUT_EMAIL` (same values as `spigot-api`).
+`ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`), `DEMO_PUBLISHER_PAYOUT_EMAIL` (same values as
+`spigot-api`).
 
 ## Sandbox accounts
 
