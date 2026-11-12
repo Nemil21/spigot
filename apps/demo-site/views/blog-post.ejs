@@ -1,0 +1,7 @@
+<%- include('partials/head') %>
+<article class="post">
+  <h1><%= post.title %></h1>
+  <p class="muted"><%= date(post.published_on) %></p>
+  <% post.paragraphs.forEach(function (para) { %><p><%= para %></p><% }) %>
+</article>
+<%- include('partials/foot') %>

@@ -1,0 +1,45 @@
+<%- include('partials/head') %>
+<script type="application/ld+json">
+<%- jsonLd %>
+</script>
+<article class="listing">
+  <div class="photo" role="img" aria-label="Photo coming soon">Photo coming soon</div>
+  <div class="layout-2">
+    <div>
+      <span class="status-badge status-<%= listing.status %>"><%= listing.status === 'leased' ? 'Leased' : 'Available' %></span>
+      <h1 class="listing-title"><%= listing.title %></h1>
+      <p class="price"><span class="listing-price"><%= money(listing.price_usd) %></span> <span class="muted">/ month</span></p>
+      <p class="listing-address"><%= listing.street_address %>, <%= listing.city %>, <%= listing.state %> <%= listing.postal_code %></p>
+      <dl class="facts">
+        <dt>Rent</dt><dd data-k="price"><%= money(listing.price_usd) %></dd>
+        <dt>Bedrooms</dt><dd data-k="bedrooms"><%= listing.bedrooms %></dd>
+        <dt>Bathrooms</dt><dd data-k="bathrooms"><%= listing.bathrooms %></dd>
+        <dt>Size</dt><dd data-k="sqft"><%= num(listing.sqft) %> sq ft</dd>
+        <dt>Neighbourhood</dt><dd data-k="neighbourhood"><%= listing.neighbourhood %></dd>
+        <dt>Available from</dt><dd data-k="available"><%= listing.available_from %></dd>
+        <dt>Pets allowed</dt><dd data-k="pets"><%= listing.pets_allowed %></dd>
+        <dt>Status</dt><dd data-k="status"><%= listing.status === 'leased' ? 'Leased' : 'Available' %></dd>
+      </dl>
+      <h2>About this place</h2>
+      <p class="listing-description"><%= listing.description %></p>
+      <p class="muted">Last updated <time datetime="<%= listing.updated_at %>"><%= date(listing.updated_at) %></time></p>
+    </div>
+    <aside>
+      <% if (agent) { %>
+      <div class="card agent-card">
+        <h2 style="font-size:1rem;margin-top:0">Listing agent</h2>
+        <a class="agent-name" href="/agents/<%= agent.slug %>"><%= agent.name %></a>
+        <div class="agent-brokerage muted"><%= agent.brokerage %></div>
+        <a class="agent-phone" href="tel:<%= agent.phone.replace(/[^0-9]/g, '') %>"><%= agent.phone %></a>
+      </div>
+      <% } %>
+      <% openHouses.forEach(function (oh) { %>
+      <div class="card open-house-box" style="margin-top:1rem">
+        <h2 style="font-size:1rem;margin-top:0">Open house</h2>
+        <a href="/open-houses/<%= oh.id %>"><time datetime="<%= oh.starts_at %>"><%= day(oh.starts_at) %>, <%= time(oh.starts_at) %></time></a>
+      </div>
+      <% }) %>
+    </aside>
+  </div>
+</article>
+<%- include('partials/foot') %>

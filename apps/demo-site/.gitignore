@@ -1,0 +1,6 @@
+# Runtime state (seed snapshot, later the mutation log). Lives on a Render disk in prod.
+/data/
+/dist/
+node_modules/
+# The workspace lockfile is the root package-lock.json (SP-001a).
+package-lock.json

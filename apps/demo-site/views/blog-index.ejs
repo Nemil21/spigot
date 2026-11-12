@@ -1,0 +1,6 @@
+<%- include('partials/head') %>
+<h1>Renter notes</h1>
+<ul>
+  <% posts.forEach(function (p) { %><li><a href="/blog/<%= p.slug %>"><%= p.title %></a> <span class="muted">· <%= date(p.published_on) %></span></li><% }) %>
+</ul>
+<%- include('partials/foot') %>

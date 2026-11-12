@@ -1,0 +1,19 @@
+<%- include('partials/head') %>
+<h1>Search rentals</h1>
+<%- include('partials/search-form') %>
+<p class="result-count"><%= num(total) %> <%= total === 1 ? 'listing' : 'listings' %> found</p>
+<% if (results.length === 0) { %>
+  <p>No listings match. Try a higher max rent or fewer beds.</p>
+<% } else { %>
+  <ul class="grid results">
+    <% results.forEach(function (l) { %><%- include('partials/listing-card', { l: l }) %><% }) %>
+  </ul>
+<% } %>
+<% if (pages > 1) { %>
+<nav class="pagination">
+  <% if (q.page > 1) { %><a rel="prev" href="/search?<%= baseQuery ? baseQuery + '&' : '' %>page=<%= q.page - 1 %>">Previous</a><% } %>
+  <span>Page <%= q.page %> of <%= pages %></span>
+  <% if (q.page < pages) { %><a rel="next" href="/search?<%= baseQuery ? baseQuery + '&' : '' %>page=<%= q.page + 1 %>">Next</a><% } %>
+</nav>
+<% } %>
+<%- include('partials/foot') %>
