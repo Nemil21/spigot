@@ -26,7 +26,7 @@ import { MAX_STREAMS_PER_PUBLISHER } from '../routes/publisher-events.js';
 import { cases } from '../security/tenancy/publisher-events.cases.js';
 import { buildServer } from '../server.js';
 import { REQUIRED_ENV } from '../test/env.js';
-import { LISTEN_APPLICATION_NAME } from './bus.js';
+import { LISTEN_APPLICATION_NAME, PublisherEventBus } from './bus.js';
 
 const SECRET = REQUIRED_ENV.SESSION_SECRET!;
 const DEADLINE_MS = 2_000;
@@ -455,5 +455,37 @@ describe.skipIf(!testDatabaseUrl)('SP-025 publisher SSE event bus (Postgres)', (
     await publish(pub.id, 'crawl.progress', ['run']);
     await client.until(() => client.ofType('crawl.progress').length === 1);
     client.close();
+  }, 15_000);
+
+  it('an id handed out while LISTEN is down resyncs after the reconnect (events in the outage are lost)', async () => {
+    const pub = await newPublisher();
+    // A bus of its own with a slow reconnect, so the outage is long enough to act in.
+    const bus = new PublisherEventBus({ connectionString: tdb.url, backoffMs: [1_500] });
+    try {
+      await bus.start();
+      expect(bus.connected).toBe(true);
+      const [{ pid }] = (await q<{ pid: number }>(
+        `SELECT pid FROM pg_stat_activity
+          WHERE datname = current_database() AND application_name = $1
+          ORDER BY backend_start DESC LIMIT 1`,
+        [LISTEN_APPLICATION_NAME],
+      )) as [{ pid: number }];
+      await q(`SELECT pg_terminate_backend($1)`, [pid]);
+      const deadline = Date.now() + 5_000;
+      while (bus.connected && Date.now() < deadline) await sleep(20);
+      expect(bus.connected).toBe(false);
+
+      // A stream opening now would get this id; the event below is never delivered to us.
+      const duringOutage = bus.currentId();
+      await publish(pub.id, 'call.charged', ['lost']);
+
+      while (!bus.connected && Date.now() < deadline) await sleep(20);
+      expect(bus.connected).toBe(true);
+      expect(bus.since(pub.id, duringOutage)).toBeNull();
+      // The post-reconnect id (what the resync frame carries) is a complete resume point.
+      expect(bus.since(pub.id, bus.currentId())).toEqual([]);
+    } finally {
+      await bus.close();
+    }
   }, 15_000);
 });

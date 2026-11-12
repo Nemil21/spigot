@@ -248,6 +248,9 @@ export class PublisherEventBus {
     this.client = client;
     this.connectionsOpened += 1;
     this.attempt = 0;
+    // Events committed while we weren't listening are lost and never got a seq: close the gap now,
+    // so any id handed out during the outage resyncs and the resync frame carries a post-gap id.
+    this.ring.gap();
     // Anyone already subscribed was waiting through a gap (a drop, or a failed first attempt).
     this.resyncAll();
   }
