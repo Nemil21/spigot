@@ -207,10 +207,10 @@ describe('filterSql', () => {
       fields,
     );
     expect(filterSql(clauses, fields, params)).toEqual([
-      `((data->>'price_usd')::numeric) < $2::numeric`,
+      `(CASE WHEN jsonb_typeof(data->'price_usd') = 'number' THEN (data->>'price_usd')::numeric END) < $2::numeric`,
       `(data->>'city') = ANY($3::text[])`,
       'records.updated_at >= $4::timestamptz',
-      `((data->>'pets')::boolean) = $5::boolean`,
+      `(CASE WHEN jsonb_typeof(data->'pets') = 'boolean' THEN (data->>'pets')::boolean END) = $5::boolean`,
     ]);
     expect(params).toEqual(['ds', 2000, ['Austin', 'Dallas'], '2026-11-11T00:00:00.000Z', false]);
   });
@@ -230,11 +230,23 @@ describe('filterSql', () => {
 
 describe('fieldExpr', () => {
   test.each([
-    ['price_usd', 'integer', `((data->>'price_usd')::numeric)`],
-    ['rating', 'number', `((data->>'rating')::numeric)`],
+    [
+      'price_usd',
+      'integer',
+      `(CASE WHEN jsonb_typeof(data->'price_usd') = 'number' THEN (data->>'price_usd')::numeric END)`,
+    ],
+    [
+      'rating',
+      'number',
+      `(CASE WHEN jsonb_typeof(data->'rating') = 'number' THEN (data->>'rating')::numeric END)`,
+    ],
     ['city', 'string', `(data->>'city')`],
     ['available_from', 'date', `(data->>'available_from')`],
-    ['pets', 'boolean', `((data->>'pets')::boolean)`],
+    [
+      'pets',
+      'boolean',
+      `(CASE WHEN jsonb_typeof(data->'pets') = 'boolean' THEN (data->>'pets')::boolean END)`,
+    ],
   ] as const)('%s %s', (name, type, expr) => {
     expect(fieldExpr(name, type)).toBe(expr);
   });

@@ -4,7 +4,7 @@ import { testDatabaseUrl, twoPools, type TwoPools } from '../db/test-db.js';
 import { ApiError } from '../http/errors.js';
 import { CHANGES_RETENTION_DAYS, readChanges } from './changes.js';
 import { encodeChangesCursor } from './cursor.js';
-import { fieldExpr, parseQueryFilters, parseSort } from './filters.js';
+import { fieldExpr, filterSql, parseQueryFilters, parseSort } from './filters.js';
 import {
   countRecords,
   getRecord,
@@ -267,6 +267,90 @@ describe.skipIf(!testDatabaseUrl)('records query + changes reader', { timeout: 1
         const name = `records_test_${f.name}_${randomUUID().slice(0, 6)}`;
         await q(`CREATE INDEX ${name} ON records ((${fieldExpr(f.name, f.type)}))`);
         await q(`DROP INDEX ${name}`);
+      }
+    });
+
+    test('values that do not match the schema type never raise: same dataset, other dataset, index build', async () => {
+      // Another dataset stores the same field names with other types ("$1,200", "yes").
+      const other = await dataset(3);
+      await q(
+        `UPDATE records SET data = data || '{"price_usd": "$1,200", "pets": "yes", "bedrooms": null}'
+          WHERE dataset_id = $1`,
+        [other.id],
+      );
+      // And in this dataset, one row from an "older schema" with a string price and boolean.
+      const mixed = await dataset(5);
+      await q(
+        `UPDATE records SET data = data || '{"price_usd": "1,200", "pets": "maybe"}'
+          WHERE dataset_id = $1 AND record_key = 'l-1'`,
+        [mixed.id],
+      );
+
+      // Indexes over the whole table still build, and later mismatched upserts still succeed.
+      const names: string[] = [];
+      for (const f of mixed.fields.filter((x) => x.filterable.length > 0)) {
+        const name = `records_test_${f.name}_${randomUUID().slice(0, 6)}`;
+        await q(`CREATE INDEX ${name} ON records ((${fieldExpr(f.name, f.type)}))`);
+        names.push(name);
+      }
+      try {
+        await q(
+          `UPDATE records SET data = data || '{"price_usd": "n/a", "pets": 1}'
+            WHERE dataset_id = $1 AND record_key = 'l-2'`,
+          [other.id],
+        );
+
+        const keys = async (query: Record<string, unknown>) =>
+          (
+            await queryRecords(pools.a, mixed, {
+              filters: parseQueryFilters(query, mixed.fields),
+              limit: 100,
+            })
+          ).records
+            .map((r) => r.key)
+            .sort();
+        // The bad row just doesn't match; the others do (prices 1037..1185 < 5000).
+        expect(await keys({ 'price_usd[lt]': '5000' })).toEqual(
+          ['listings/l-2', 'listings/l-3', 'listings/l-4', 'listings/l-5'].sort(),
+        );
+        expect(await keys({ pets: 'true' })).toEqual(['listings/l-2', 'listings/l-4']);
+        expect(await keys({ pets: 'false' })).toEqual(['listings/l-3', 'listings/l-5']);
+        expect(
+          await countRecords(
+            pools.a,
+            other,
+            parseQueryFilters({ 'price_usd[gte]': '0' }, other.fields),
+            100,
+          ),
+        ).toBe(0);
+        // The bad value is still served as stored (it's a visible field), just not filterable.
+        expect((await getRecord(pools.a, mixed, 'listings/l-1'))?.record.data.price_usd).toBe(
+          '1,200',
+        );
+
+        // The planner uses an index built from exactly `fieldExpr`.
+        const client = await pools.a.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('SET LOCAL enable_seqscan = off');
+          await client.query('SET LOCAL enable_bitmapscan = on');
+          const params: unknown[] = [];
+          const where = filterSql(
+            parseQueryFilters({ 'price_usd[lt]': '1500' }, mixed.fields),
+            mixed.fields,
+            params,
+          );
+          const plan = await client.query<{ 'QUERY PLAN': string }>(
+            `EXPLAIN SELECT id FROM records WHERE ${where.join(' AND ')}`,
+            params,
+          );
+          expect(plan.rows.map((r) => r['QUERY PLAN']).join('\n')).toContain(names[0]!);
+          await client.query('ROLLBACK');
+        } finally {
+          client.release();
+        }
+      } finally {
+        for (const name of names) await q(`DROP INDEX ${name}`);
       }
     });
   });

@@ -52,20 +52,31 @@ function quoteLiteral(s: string): string {
 
 /**
  * The SQL expression for a schema field over `records.data`, e.g.
- * `((data->>'price_usd')::numeric)`. Numbers cast to `numeric` (no int4 overflow, IMMUTABLE so it
- * can back an index); dates and datetimes stay text, because SP-011 canonicalizes them to
- * `YYYY-MM-DD` / `toISOString()` (fixed width, so text order is time order) and a text →
- * timestamptz cast isn't IMMUTABLE and couldn't be indexed.
+ * `(CASE WHEN jsonb_typeof(data->'price_usd') = 'number' THEN (data->>'price_usd')::numeric END)`.
+ *
+ * Total and IMMUTABLE: it never raises, whatever is stored. Numbers and booleans are cast only
+ * when the jsonb value already has that type; anything else (a row from an older schema version,
+ * an owner's type change, the same field name typed differently in another dataset) is NULL and
+ * simply doesn't match. That keeps a bad row from turning a paid query into a 500, and keeps an
+ * index over the whole `records` table buildable. Numbers cast to `numeric` (no int4 overflow).
+ * Dates and datetimes stay text: SP-011 canonicalizes them to `YYYY-MM-DD` / `toISOString()`
+ * (fixed width, so text order is time order), and text → timestamptz isn't IMMUTABLE.
+ *
+ * SP-014a: build expression indexes with exactly this string (`CREATE INDEX … ON records
+ * ((<fieldExpr>))`); any other spelling, even an equivalent one, won't be used by these queries.
  */
 export function fieldExpr(field: string, type: FieldType): string {
   if (!SAFE_FIELD_NAME.test(field)) throw new Error(`unsafe field name ${JSON.stringify(field)}`);
-  const text = `(data->>${quoteLiteral(field)})`;
+  const key = quoteLiteral(field);
+  const text = `(data->>${key})`;
+  const typed = (jsonType: string, cast: string) =>
+    `(CASE WHEN jsonb_typeof(data->${key}) = '${jsonType}' THEN ${text}::${cast} END)`;
   switch (type) {
     case 'integer':
     case 'number':
-      return `(${text}::numeric)`;
+      return typed('number', 'numeric');
     case 'boolean':
-      return `(${text}::boolean)`;
+      return typed('boolean', 'boolean');
     case 'string':
     case 'url':
     case 'date':
