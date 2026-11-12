@@ -29,7 +29,7 @@
     "dev:db": "bash scripts/dev-db.sh",
     "seed:demo": "npm run seed:demo -w @spigot/api --",
     "sim:bots": "tsx scripts/sim-bots.ts",
-    "sim:buyers": "node scripts/not-yet.mjs sim:buyers SP-036",
+    "sim:buyers": "tsx --conditions=source scripts/sim-buyers.ts",
     "demo:mutate": "npm run demo:mutate -w @spigot/demo-site --",
     "demo:reset": "node scripts/not-yet.mjs demo:reset SP-038",
     "demo:payout": "node scripts/not-yet.mjs demo:payout SP-038",
