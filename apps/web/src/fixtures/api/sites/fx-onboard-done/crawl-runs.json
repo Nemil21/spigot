@@ -1,0 +1,22 @@
+{
+  "runs": [
+    {
+      "id": "run-fx-onboard-done",
+      "siteId": "fx-onboard-done",
+      "trigger": "CONNECT",
+      "status": "SUCCEEDED",
+      "workflowRunId": "inproc:run-fx-onboard-done",
+      "pagesTotal": 2469,
+      "pagesFetched": 2469,
+      "pagesNotModified": 0,
+      "pagesFailed": 0,
+      "recordsAdded": 0,
+      "recordsUpdated": 0,
+      "recordsRemoved": 0,
+      "error": null,
+      "startedAt": "2026-11-12T10:05:00.000Z",
+      "finishedAt": "2026-11-12T10:09:00.000Z",
+      "createdAt": "2026-11-12T10:05:00.000Z"
+    }
+  ]
+}

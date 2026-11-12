@@ -9,9 +9,6 @@ import { buyerNav, href, paths, publisherNav } from './routes';
 /** Every screen in SP-024a's list: path → the stub's `data-screen` and heading. */
 const SCREENS: [path: string, screen: string, title: string][] = [
   ['/', 'W01', 'Spigot'],
-  ['/app/signup', 'W02', 'Sign up'],
-  ['/app/connect', 'W02', 'Connect your site'],
-  ['/app/install', 'W03', 'Install the gate'],
   ['/app', 'W04', 'Overview'],
   ['/app/record-types', 'W05', 'Record types'],
   ['/app/datasets/ds_123', 'W06', 'Dataset editor'],
@@ -35,6 +32,12 @@ const BUYER_PAGES: [path: string, title: string][] = [
 const LOGINS: [path: string, title: string][] = [
   ['/app/login', 'Log in'],
   ['/buyers/login', 'Log in for agents'],
+];
+
+/** W02 / W03 (SP-026), no longer stubs; their states are tested in pages/onboarding. */
+const ONBOARDING: [path: string, title: string][] = [
+  ['/app/signup', 'Create your account'],
+  ['/app/connect', 'Connect your site'],
 ];
 
 // The shells check the session first (SP-024b): answer as a signed-in publisher and buyer.
@@ -72,8 +75,30 @@ describe('router', () => {
     expect(screen.queryByText('Coming soon')).not.toBeInTheDocument();
   });
 
+  it.each(ONBOARDING)('%s renders its onboarding step', async (path, title) => {
+    expect(await renderAt(path)).toHaveTextContent(title);
+  });
+
+  it('/app/install with no site points back to W02', async () => {
+    SESSIONS['/api/sites'] = { sites: [] };
+    try {
+      const router = createMemoryRouter(routes, { initialEntries: ['/app/install'] });
+      render(<RouterProvider router={router} />);
+      expect(await screen.findByRole('link', { name: 'Connect your site' })).toHaveAttribute(
+        'href',
+        '/app/connect',
+      );
+    } finally {
+      delete SESSIONS['/api/sites'];
+    }
+  });
+
   it('covers every path in the paths table', () => {
-    const tested = new Set([...SCREENS, ...LOGINS, ...BUYER_PAGES].map(([p]) => p.split('?')[0]));
+    const tested = new Set(
+      [...SCREENS, ...LOGINS, ...BUYER_PAGES, ...ONBOARDING, ['/app/install']].map(
+        ([p]) => p!.split('?')[0],
+      ),
+    );
     for (const [name, p] of Object.entries(paths)) {
       const concrete = p.replace(':datasetId', 'ds_123').replace(':topupId', 'tp_1');
       expect(tested, name).toContain(concrete);

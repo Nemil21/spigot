@@ -1,0 +1,22 @@
+{
+  "runs": [
+    {
+      "id": "run-fx-onboard-failed",
+      "siteId": "fx-onboard-failed",
+      "trigger": "CONNECT",
+      "status": "PAUSED",
+      "workflowRunId": "inproc:run-fx-onboard-failed",
+      "pagesTotal": 2469,
+      "pagesFetched": 640,
+      "pagesNotModified": 0,
+      "pagesFailed": 12,
+      "recordsAdded": 0,
+      "recordsUpdated": 0,
+      "recordsRemoved": 0,
+      "error": "Your site returned 429. We paused and will retry after 10 min.",
+      "startedAt": "2026-11-12T10:05:00.000Z",
+      "finishedAt": "2026-11-12T10:09:00.000Z",
+      "createdAt": "2026-11-12T10:05:00.000Z"
+    }
+  ]
+}
