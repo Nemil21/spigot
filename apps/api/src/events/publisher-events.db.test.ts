@@ -11,7 +11,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '@spigot/db/testing.mjs';
 import { PUBLISHER_EVENTS_CHANNEL, publisherEvent, type PublisherEventType } from '@spigot/shared';
 import { SESSION_COOKIE, signSession } from '../auth/sessions.js';
@@ -29,7 +29,10 @@ import { REQUIRED_ENV } from '../test/env.js';
 import { LISTEN_APPLICATION_NAME, PublisherEventBus } from './bus.js';
 
 const SECRET = REQUIRED_ENV.SESSION_SECRET!;
+/** The cross-process delivery budget (api.md). */
 const DEADLINE_MS = 2_000;
+/** How long `until` waits for a condition before failing the test; not a latency claim. */
+const WAIT_MS = 20_000;
 const PATH = '/api/publishers/me/events';
 
 interface Frame {
@@ -99,7 +102,7 @@ class SseClient {
   }
 
   /** Resolve once `pred` holds, or reject after `ms`. */
-  async until(pred: () => boolean, ms = DEADLINE_MS): Promise<void> {
+  async until(pred: () => boolean, ms = WAIT_MS): Promise<void> {
     const deadline = Date.now() + ms;
     while (!pred()) {
       const left = deadline - Date.now();
@@ -358,11 +361,14 @@ describe.skipIf(!testDatabaseUrl)('SP-025 publisher SSE event bus (Postgres)', (
     await first.until(() => first.events.length === 1);
     const seen = first.lastId!;
     first.close();
-    await sleep(50);
+    await expect.poll(() => app.publisherEvents.subscribersOf(pub.id)).toBe(0);
 
     await publish(pub.id, 'hits', ['2']);
     await publish(pub.id, 'proposal.ready', ['3']);
-    await sleep(200);
+    // Both are in the replay ring before the stream reconnects.
+    await expect
+      .poll(() => app.publisherEvents.since(pub.id, seen)?.length, { timeout: WAIT_MS })
+      .toBe(2);
 
     const resumed = await SseClient.open(port, { cookie: pub.cookie, lastEventId: seen });
     await resumed.until(() => resumed.events.length === 2);
@@ -384,11 +390,30 @@ describe.skipIf(!testDatabaseUrl)('SP-025 publisher SSE event bus (Postgres)', (
     }
   });
 
-  it('sends heartbeat comments on idle streams', async () => {
-    const pub = await newPublisher();
-    const client = await SseClient.open(port, { cookie: pub.cookie });
-    await client.until(() => client.comments.filter((c) => c === 'ping').length >= 2, 1_000);
-    client.close();
+  it('sends a heartbeat comment on idle streams every heartbeatMs (100 ms here)', async () => {
+    // Only the heartbeat's interval is fake; HTTP and LISTEN stay real.
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    try {
+      const pub = await newPublisher();
+      // The stream's first bytes are written in the same step that arms its heartbeat.
+      const client = await SseClient.open(port, { cookie: pub.cookie });
+      const pings = () => client.comments.filter((c) => c === 'ping').length;
+      // An event written after the clock moves is a barrier: pings due by then precede it.
+      let marks = 0;
+      const pingsAfter = async (ms: number) => {
+        vi.advanceTimersByTime(ms);
+        await publish(pub.id, 'hits', [`mark-${++marks}`]);
+        await client.until(() => client.events.length === marks);
+        return pings();
+      };
+      expect(await pingsAfter(99)).toBe(0);
+      expect(await pingsAfter(1)).toBe(1);
+      expect(await pingsAfter(99)).toBe(1);
+      expect(await pingsAfter(1)).toBe(2);
+      client.close();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('many streams share one LISTEN connection and all receive the event', async () => {
@@ -428,12 +453,13 @@ describe.skipIf(!testDatabaseUrl)('SP-025 publisher SSE event bus (Postgres)', (
     theirs.close();
 
     clients.pop()!.close();
-    await sleep(100);
+    await expect
+      .poll(() => app.publisherEvents.subscribersOf(pub.id))
+      .toBe(MAX_STREAMS_PER_PUBLISHER - 1);
     const again = await SseClient.open(port, { cookie: pub.cookie });
     expect(again.status).toBe(200);
     for (const c of [...clients, again]) c.close();
-    await sleep(100);
-    expect(app.publisherEvents.subscribersOf(pub.id)).toBe(0);
+    await expect.poll(() => app.publisherEvents.subscribersOf(pub.id)).toBe(0);
   });
 
   it('reconnects a dropped LISTEN connection, tells streams to resync, then delivers again', async () => {

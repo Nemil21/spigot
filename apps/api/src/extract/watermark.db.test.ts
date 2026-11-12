@@ -140,11 +140,15 @@ describe.skipIf(!testDatabaseUrl)(
         { db: dbB },
       );
       // Naive publish: max(seq) with no lock, while A's lower seqs are still uncommitted.
-      await pools.b.query(
-        `UPDATE datasets SET published_seq = (SELECT max(seq) FROM record_versions WHERE dataset_id = $1) WHERE id = $1`,
+      const naive = await pools.b.query<{ published_seq: number }>(
+        `UPDATE datasets SET published_seq = (SELECT max(seq) FROM record_versions WHERE dataset_id = $1) WHERE id = $1
+         RETURNING published_seq`,
         [ds.datasetId],
       );
-      await sleep(100); // let the reader advance past A's seqs
+      // The reader advances past A's seqs before A commits.
+      await expect
+        .poll(() => Number(reader.seen.at(-1)), { timeout: 10_000 })
+        .toBe(Number(naive.rows[0]!.published_seq));
       releaseA.open();
       await batchA;
       await publishWatermark({ datasetId: ds.datasetId }, { db: dbB });

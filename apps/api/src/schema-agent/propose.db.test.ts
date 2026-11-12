@@ -11,7 +11,7 @@ import { crawlSite } from '../crawl/crawlSite.js';
 import { clearCrawlHooks } from '../crawl/hooks.js';
 import { resetHostQueues } from '../crawl/queue.js';
 import { createDb, type Db } from '../db/index.js';
-import { testDatabaseUrl, twoPools, type TwoPools } from '../db/test-db.js';
+import { drainNotifications, testDatabaseUrl, twoPools, type TwoPools } from '../db/test-db.js';
 import { re2Engine } from '../extract/adapters.js';
 import { buildServer } from '../server.js';
 import { REQUIRED_ENV } from '../test/env.js';
@@ -186,7 +186,9 @@ describe.skipIf(!testDatabaseUrl)('schema agent: propose / persist / resume', ()
     const listener = await pools.b.connect();
     const events: { type: string; publisherId: string; ids: string[] }[] = [];
     await listener.query('LISTEN publisher_events');
-    listener.on('notification', (n) => events.push(JSON.parse(n.payload!)));
+    listener.on('notification', (n) => {
+      if (n.channel === 'publisher_events') events.push(JSON.parse(n.payload!));
+    });
 
     const t0 = Date.now();
     const result = await proposeForSite({ db, model: createRecordedModel() }, siteId, {
@@ -194,7 +196,7 @@ describe.skipIf(!testDatabaseUrl)('schema agent: propose / persist / resume', ()
       runId,
     });
     const elapsed = Date.now() - t0;
-    await new Promise((r) => setTimeout(r, 50));
+    await drainNotifications(listener, pools.a);
     listener.release();
 
     expect(elapsed).toBeLessThan(90_000);

@@ -77,6 +77,8 @@ interface State {
   payouts: PublisherPayouts;
   statements: PayoutStatements;
   run: () => Response;
+  /** While set, POST /run stays open until it resolves. */
+  runHeld?: Promise<void>;
 }
 
 /** A fake API: answers W09's endpoints from `state` and records every call. */
@@ -115,7 +117,7 @@ function fakeApi(over: Partial<State> = {}) {
     if (method === 'GET' && url === '/api/publishers/me/payouts/statements')
       return json(200, state.statements);
     if (method === 'POST' && url === '/api/publishers/me/payouts/run') {
-      await new Promise((r) => setTimeout(r, 20)); // a click lands while the request is open
+      await state.runHeld;
       return state.run();
     }
     return json(404, { error: { code: 'NOT_FOUND', message: `no route ${method} ${url}` } });
@@ -248,9 +250,13 @@ describe('W09 Payouts', () => {
     expect(within(dialog).getByText('Net via PayPal').nextSibling).toHaveTextContent('$412.75');
     expect(within(dialog).getByText('Threshold').nextSibling).toHaveTextContent('$1 demo');
 
-    // A double click sends one request with an Idempotency-Key.
+    // A double click sends one request with an Idempotency-Key. The request stays open until
+    // both clicks have landed.
     const confirm = within(dialog).getByRole('button', { name: 'Pay out $412.75 via PayPal' });
+    let release!: () => void;
+    api.state.runHeld = new Promise((r) => (release = r));
     await userEvent.dblClick(confirm);
+    release();
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     const posts = api.fetch.mock.calls.filter(([, init]) => init.method === 'POST');
     expect(posts).toHaveLength(1);

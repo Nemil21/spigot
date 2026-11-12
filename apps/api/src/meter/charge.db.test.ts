@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { parsePublisherEvent, PUBLISHER_EVENTS_CHANNEL } from '@spigot/shared';
-import { testDatabaseUrl, twoPools, type TwoPools } from '../db/test-db.js';
+import { drainNotifications, testDatabaseUrl, twoPools, type TwoPools } from '../db/test-db.js';
 import { createDb, type Db } from '../db/tx.js';
 import { getOrCreateAccount, platformAccounts } from '../ledger/accounts.js';
 import { ledgerCheck } from '../ledger/check.js';
@@ -533,7 +533,7 @@ describe.skipIf(!testDatabaseUrl)('chargeAndRecord', { timeout: 60_000 }, () => 
     try {
       const res = await chargeAndRecord(ctx(w), input(w));
       await chargeAndRecord(ctx(w), input(w, { count: 0 }));
-      await new Promise((r) => setTimeout(r, 200));
+      await drainNotifications(listener, pools.a);
       expect(events).toEqual([
         expect.objectContaining({
           type: 'call.charged',

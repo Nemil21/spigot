@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { createTestDatabase, type TestDatabase } from '@spigot/db/testing.mjs';
 import { createPool } from './pool.js';
@@ -28,4 +29,29 @@ export async function twoPools(): Promise<TwoPools> {
       await db.drop();
     },
   };
+}
+
+const DRAIN_CHANNEL = 'spigot_test_drain';
+
+/**
+ * Wait until `listener` has received every notification committed before this call, instead of
+ * sleeping and hoping. Postgres keeps one notification queue per database and delivers it to
+ * each listener in commit order, so once a sentinel sent now arrives, everything before it has.
+ */
+export async function drainNotifications(
+  listener: pg.ClientBase,
+  sender: pg.Pool | pg.ClientBase,
+): Promise<void> {
+  await listener.query(`LISTEN ${DRAIN_CHANNEL}`);
+  const token = randomUUID();
+  const arrived = new Promise<void>((resolve) => {
+    const on = (n: pg.Notification) => {
+      if (n.channel !== DRAIN_CHANNEL || n.payload !== token) return;
+      listener.off('notification', on);
+      resolve();
+    };
+    listener.on('notification', on);
+  });
+  await sender.query('SELECT pg_notify($1, $2)', [DRAIN_CHANNEL, token]);
+  await arrived;
 }

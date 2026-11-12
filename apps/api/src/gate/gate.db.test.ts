@@ -12,7 +12,7 @@ import {
 } from '@spigot/shared';
 import { loadConfig } from '../config.js';
 import { createDb } from '../db/index.js';
-import { testDatabaseUrl, twoPools, type TwoPools } from '../db/test-db.js';
+import { drainNotifications, testDatabaseUrl, twoPools, type TwoPools } from '../db/test-db.js';
 import { cases } from '../security/tenancy/gate.cases.js';
 import { buildServer } from '../server.js';
 import { generateSiteSecrets } from '../sites/keys.js';
@@ -430,7 +430,7 @@ describe.skipIf(!testDatabaseUrl)('SP-008b gate endpoints (Postgres)', () => {
       await listener.query(`LISTEN ${PUBLISHER_EVENTS_CHANNEL}`);
       try {
         expect((await postHits(site.gateKey, hitsBody([bucket()]))).status).toBe(204);
-        await new Promise((r) => setTimeout(r, 200));
+        await drainNotifications(listener, pool);
         expect(events).toEqual([
           expect.objectContaining({ type: 'hits', publisherId: site.publisherId, ids: [site.id] }),
         ]);

@@ -325,8 +325,7 @@ async function demoSite(demo: boolean) {
     logger: { info: () => {}, warn: () => {} },
   });
   cleanups.push(() => gate.stop());
-  for (let i = 0; i < 100 && !gate.refresher.current; i++)
-    await new Promise((r) => setTimeout(r, 20));
+  await gate.refresher.refresh(); // joins the boot fetch
   expect(gate.refresher.current).not.toBeNull();
   const app = createApp({
     store: createStore(0.05),

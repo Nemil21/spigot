@@ -10,7 +10,7 @@ import { createAccessLog, type AccessLog } from '../../../demo-site/src/accessLo
 import { createApp } from '../../../demo-site/src/app.js';
 import { openStore } from '../../../demo-site/src/data/store.js';
 import { createDb, type Db } from '../db/index.js';
-import { twoPools, testDatabaseUrl, type TwoPools } from '../db/test-db.js';
+import { drainNotifications, twoPools, testDatabaseUrl, type TwoPools } from '../db/test-db.js';
 import { crawlKeyHash, deriveCrawlKey } from './crawlKey.js';
 import { crawlSite, startCrawl } from './crawlSite.js';
 import type { CrawlDeps } from './deps.js';
@@ -147,9 +147,11 @@ describe.skipIf(!testDatabaseUrl)('crawlSite / fetchPage', () => {
       let result;
       try {
         await listener.query('LISTEN crawl_progress');
-        listener.on('notification', (n) => notes.push(JSON.parse(n.payload!)));
+        listener.on('notification', (n) => {
+          if (n.channel === 'crawl_progress') notes.push(JSON.parse(n.payload!));
+        });
         result = await crawlSite({ siteId, trigger: 'CONNECT' }, { ...deps, minGapMs: 2 });
-        await new Promise((r) => setTimeout(r, 50));
+        await drainNotifications(listener, pools.a);
       } finally {
         listener.release();
       }
@@ -228,7 +230,7 @@ describe.skipIf(!testDatabaseUrl)('crawlSite / fetchPage', () => {
       expect(seen.slice(2).every((s) => s.inm)).toBe(true);
       expect(await snapshotCounts(siteId)).toEqual(Array(total).fill(1));
       expect(await siteStatus(siteId)).toBe('PROPOSING'); // not a discovery run any more
-    });
+    }, 30_000); // a real crawl over HTTP: ~2 s alone, past the 5 s default under parallel load
 
     it('two crawlSite calls at once → one run; the second returns its id', async () => {
       const siteId = await newSite(origin);

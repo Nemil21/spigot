@@ -17,6 +17,7 @@ import {
   buildAgents,
   buildBackfill,
   fetchDecisions,
+  MIN_POST_GAP_MS,
   mulberry32,
   packBatches,
   parseDuration,
@@ -94,9 +95,11 @@ describe.skipIf(!testDatabaseUrl)(
         assertValidBatches(batches);
         expect(batches.length).toBeGreaterThan(1); // exercises the 5-s spacing for real
 
-        const t0 = Date.now();
+        // Posts start MIN_POST_GAP_MS apart, so the run takes (posts − 1) gaps plus one local
+        // post: the minute is set by the batch count, not by how fast this machine is. No 429
+        // (and maxRetries: 0) shows the real limiter accepted that spacing.
+        expect((batches.length - 1) * MIN_POST_GAP_MS).toBeLessThan(60_000);
         const r = await postBatches(batches, { apiBase, gateKey, maxRetries: 0 });
-        expect(Date.now() - t0).toBeLessThan(60_000);
         expect(r).toMatchObject({ posts: batches.length, buckets: buckets.length, rateLimited: 0 });
 
         const { rows } = await pools.a.query<{ sim: boolean; n: number; hits: number }>(

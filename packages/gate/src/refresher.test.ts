@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { demoPolicyWire } from './fixtures.test-helpers.js';
 import { startPolicyRefresher, type FetchLike, type PolicyRefresher } from './refresher.js';
 
@@ -77,20 +77,40 @@ describe('startPolicyRefresher', () => {
     expect(lines.join('\n')).not.toContain('gk_secret_value');
   });
 
-  it('times out a slow API after timeoutMs', async () => {
-    refresher = startPolicyRefresher({
-      apiBase: 'https://spigot.test',
-      gateKey: 'gk',
-      timeoutMs: 50,
-      logger: logs().logger,
-      fetch: (_url, init) =>
-        new Promise((_resolve, reject) => {
-          init.signal!.addEventListener('abort', () => reject(init.signal!.reason));
-        }),
+  it('times out a slow API after exactly timeoutMs', async () => {
+    vi.useFakeTimers();
+    // AbortSignal.timeout runs on Node's internal timers, which fake timers don't reach.
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms) => {
+      const c = new AbortController();
+      setTimeout(
+        () => c.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError')),
+        ms,
+      );
+      return c.signal;
     });
-    const t = Date.now();
-    expect(await refresher.refresh()).toBe(false);
-    expect(Date.now() - t).toBeLessThan(1000);
+    try {
+      refresher = startPolicyRefresher({
+        apiBase: 'https://spigot.test',
+        gateKey: 'gk',
+        timeoutMs: 50,
+        logger: logs().logger,
+        fetch: (_url, init) =>
+          new Promise((_resolve, reject) => {
+            init.signal!.addEventListener('abort', () => reject(init.signal!.reason));
+          }),
+      });
+      let result: boolean | undefined;
+      const done = refresher.refresh().then((r) => (result = r));
+      expect(timeout).toHaveBeenCalledWith(50);
+      await vi.advanceTimersByTimeAsync(49);
+      expect(result).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(1);
+      await done;
+      expect(result).toBe(false);
+    } finally {
+      vi.useRealTimers();
+      timeout.mockRestore();
+    }
   });
 
   it('picks up a policy change on the next interval', async () => {
