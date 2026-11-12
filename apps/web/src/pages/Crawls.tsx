@@ -20,6 +20,7 @@ import {
 } from './crawls/model';
 import { cardClass, primaryButton } from './onboarding/kit';
 import { KPI_STRIP, PAGE, PageHeader } from './Panel';
+import { LABEL } from '../theme/label';
 
 export const EVENTS_URL = '/api/publishers/me/events';
 const RUNS_LIMIT = 20;
@@ -375,10 +376,10 @@ function SiteCrawls({
       ) : (
         <section
           aria-label="Crawl runs"
-          className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-card"
+          className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface"
         >
           <div className="border-b border-line px-5 py-3.5">
-            <h2 className="text-sm font-semibold text-ink">Crawl runs</h2>
+            <h2 className={`${LABEL} text-ink`}>Crawl runs</h2>
             <p className="mt-0.5 text-xs text-muted">Open a run for its pages and changes.</p>
           </div>
           <RunsGrid bare runs={list} now={clock} onOpen={(r) => setOpenId(r.id)} />

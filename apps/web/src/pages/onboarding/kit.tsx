@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import type { PillTone } from '../../components';
+import { LABEL } from '../../theme/label';
 
 /**
  * Building blocks shared by the onboarding screens (W02 sign up + connect, W03 install + verify;
@@ -53,11 +54,9 @@ export function OnboardingLayout({
   );
 }
 
-export const cardClass = 'rounded-xl border border-line bg-surface p-6 shadow-card sm:p-7';
-export const primaryButton =
-  'h-10 rounded-md bg-accent px-4 text-sm font-semibold text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-60';
-export const secondaryButton =
-  'h-8 rounded-md border border-border bg-surface px-3 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-surface-2 disabled:opacity-60';
+export const cardClass = 'rounded-lg border border-line bg-surface p-6 sm:p-7';
+export const primaryButton = `h-10 rounded-md bg-accent px-4 ${LABEL} text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-60`;
+export const secondaryButton = `h-8 rounded-md border border-border bg-surface px-3 ${LABEL} text-ink transition-colors hover:bg-surface-2 disabled:opacity-60`;
 
 export function TextField({
   id,
@@ -162,7 +161,7 @@ export function CopyButton({
       aria-label={label}
       className={
         onDark
-          ? 'h-7 shrink-0 rounded-md border border-white/15 bg-white/5 px-2.5 text-xs font-medium text-white/85 transition-colors hover:bg-white/15'
+          ? `h-7 shrink-0 rounded-sm border border-white/15 bg-white/5 px-2.5 ${LABEL} text-white/85 transition-colors hover:bg-white/15`
           : secondaryButton
       }
     >
