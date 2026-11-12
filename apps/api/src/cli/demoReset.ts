@@ -15,7 +15,9 @@
 //  4. Acme's keys are revoked and one new key is issued (printed once), so the next take starts
 //     with no idempotency collisions and a replay with the old key is a 401, never a charge.
 //  5. After COMMIT: `POST {DEMO_SITE_URL}/admin/reset` (SP-004b, `DEMO_ADMIN_TOKEN`; works against
-//     the Render service too), then a MANUAL crawl so Spigot sees the reverted pages.
+//     the Render service too), then a MANUAL crawl so Spigot sees the reverted pages. The crawl
+//     doesn't extract into a PROPOSED dataset, so `retireRemovedRecords` then removes the records
+//     of pages the reset deleted (`demo:mutate --new` listings): W05 shows 2,341, not 2,344.
 // SIM buyers, SIM calls, top-ups, payouts and every PayPal id are untouched.
 //
 // Steps 1–4 are one transaction under an advisory lock: two resets at once run one after the
@@ -27,10 +29,12 @@ import type { Config } from '../config.js';
 import { requestCrawl } from '../crawl/api.js';
 import type { CrawlDeps } from '../crawl/deps.js';
 import { transition, withAdvisoryXactLock, type Db, type Queryable } from '../db/index.js';
+import { extractPages } from '../extract/extractPage.js';
+import { publishWatermark } from '../extract/publishWatermark.js';
 import { bumpPolicyVersion } from '../gate/policy.js';
 import { getOrCreateAccount } from '../ledger/accounts.js';
 import { post } from '../ledger/ledger.js';
-import { DEMO_BUYER, DEMO_PUBLISHER } from './seedDemo.js';
+import { DEMO_BUYER, DEMO_KEY_NAME, DEMO_PUBLISHER } from './seedDemo.js';
 
 /** Dataset statuses the `DEMO_RESET` transition leaves (data-model §Dataset state machine). */
 export const DEMO_RESETTABLE = ['LIVE', 'LIVE_STALE', 'UNPUBLISHED'] as const;
@@ -38,8 +42,9 @@ export const DEMO_RESETTABLE = ['LIVE', 'LIVE_STALE', 'UNPUBLISHED'] as const;
 /** The ledger memo W14 / the README show for the reset txn. */
 export const DEMO_RESET_MEMO = 'demo reset';
 
-/** The name and scopes of the key issued to Acme (what seed:demo gives it). */
-export const DEMO_KEY_NAME = 'Claude Desktop (demo)';
+/** The name of the key issued to Acme (what seed:demo gives it); defined in seedDemo. */
+export { DEMO_KEY_NAME };
+/** The scopes of the key issued to Acme (what seed:demo gives it). */
 const DEMO_KEY_SCOPES: ApiKeyScope[] = ['read', 'topup'];
 
 const LOCK = 'demo-reset';
@@ -379,4 +384,36 @@ export async function crawlDemoSite(
     [started.crawlRunId],
   );
   return { crawlRunId: started.crawlRunId, status: rows[0]?.status ?? 'UNKNOWN' };
+}
+
+/**
+ * After the reset crawl: remove the records whose source page is gone (the listings
+ * `demo:mutate --new` added and the demo site's reset deleted), in the datasets the reset moved
+ * to PROPOSED. A crawl only extracts into sold datasets, so without this the removed listings
+ * would stay counted on W05 until the re-approve. Only removed pages are touched (their
+ * records get a REMOVED version under `runId`, as a crawl would write); prices etc. still revert
+ * at the re-approve's extraction. Returns the number of records removed.
+ */
+export async function retireRemovedRecords(
+  db: Db,
+  datasetIds: readonly string[],
+  runId: string,
+): Promise<number> {
+  let removed = 0;
+  for (const datasetId of datasetIds) {
+    const { rows } = await db.pool.query<{ page_id: string }>(
+      `SELECT DISTINCT r.page_id FROM records r JOIN pages p ON p.id = r.page_id
+        WHERE r.dataset_id = $1 AND r.removed_at IS NULL AND p.removed_at IS NOT NULL
+        ORDER BY r.page_id`,
+      [datasetId],
+    );
+    if (rows.length === 0) continue;
+    const res = await extractPages(
+      { datasetId, runId, pageIds: rows.map((r) => r.page_id) },
+      { db },
+    );
+    removed += res.removed;
+    await publishWatermark({ datasetId }, { db });
+  }
+  return removed;
 }

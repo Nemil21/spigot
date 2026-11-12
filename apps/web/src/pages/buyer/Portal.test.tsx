@@ -4,7 +4,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { createApiClient, type FetchLike } from '../../api/client';
 import type { LoadCardFieldsSdk } from '../../components/buyer/cardFieldsSdk';
-import { claudeDesktopConfig } from '../../components/buyer/ClaudeConfig';
+import { claudeCodeCommand, claudeDesktopConfig } from '../../components/buyer/ClaudeConfig';
 import type {
   LoadPayPalSdk,
   OneTimeSessionOptions,
@@ -83,7 +83,7 @@ function fakeApi(over: Partial<ApiState> = {}) {
     if (method === 'POST' && url === '/api/buyer/keys') {
       const k = {
         id: 'k-new',
-        name: 'Claude Desktop',
+        name: 'Claude Code',
         prefix: 'AbCd1234',
         scopes: ['read', 'topup'],
         lastUsedAt: null,
@@ -331,8 +331,11 @@ describe('W11 buyer portal', () => {
     expect(screen.getByTestId('claude-config')).toHaveTextContent(
       `Authorization: Bearer ${secret}`,
     );
+    expect(screen.getByTestId('claude-code-command')).toHaveTextContent(
+      `Authorization: Bearer ${secret}`,
+    );
     expect(JSON.parse(postsTo(api.fetch, '/api/buyer/keys')[0]![1].body as string)).toEqual({
-      name: 'Claude Desktop',
+      name: 'Claude Code',
       scopes: ['read', 'topup'],
     });
 
@@ -341,9 +344,12 @@ describe('W11 buyer portal', () => {
     expect(screen.getByTestId('claude-config')).toHaveTextContent(
       'Authorization: Bearer sk_spg_AbCd1234…',
     );
+    expect(screen.getByTestId('claude-code-command')).toHaveTextContent(
+      'Authorization: Bearer sk_spg_AbCd1234…',
+    );
     expect(document.body.textContent).not.toContain(secret);
 
-    await userEvent.click(screen.getByRole('button', { name: /^Revoke Claude Desktop/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Revoke Claude Code/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Yes, revoke' }));
     expect(await screen.findByText(/^Revoked/)).toBeInTheDocument();
     expect(
@@ -440,5 +446,14 @@ describe('buyer sign up', () => {
     expect(
       await screen.findByText('That email already has an account. Log in instead.'),
     ).toBeInTheDocument();
+  });
+});
+
+describe('claudeCodeCommand', () => {
+  it('adds Spigot as an HTTP MCP server with the key as a Bearer header', () => {
+    expect(claudeCodeCommand('https://spigot.onrender.com/mcp', 'sk_spg_x')).toBe(
+      'claude mcp add --transport http spigot https://spigot.onrender.com/mcp \\\n' +
+        "  --header 'Authorization: Bearer sk_spg_x'",
+    );
   });
 });

@@ -34,7 +34,7 @@ import type { PayPalOrdersClient } from '../paypal/index.js';
 import { createRecordedModel } from '../schema-agent/claude.js';
 import { proposeForSite, type ProposeResult } from '../schema-agent/propose.js';
 import { sha256Hex, VERIFY_PATH } from '../sites/keys.js';
-import { baseSlug, normalizeOrigin, pickSlug } from '../sites/sites.js';
+import { normalizeOrigin, pickSlug } from '../sites/sites.js';
 import {
   serverCardTopup,
   topupById,
@@ -58,6 +58,15 @@ export const DEMO_BUYER = {
   name: 'Acme Agents (demo)',
   email: 'acme@acme-agents.example.com',
 } as const;
+
+/** The name of Acme's API key (W11's keys table shows it on camera; the demo agent is Claude Code). */
+export const DEMO_KEY_NAME = 'Claude Code (demo)';
+
+/**
+ * The demo site's slug in API paths (`/v1/bluebonnet/…`), whatever host it runs on (locally
+ * `localhost`, on Render `bluebonnet-rentals`), so the 402, prompt card and scraper text match.
+ */
+export const DEMO_SITE_SLUG = 'bluebonnet';
 
 /** The demo site when DEMO_SITE_URL is unset (apps/demo-site's default port). */
 export const DEFAULT_DEMO_SITE_URL = 'http://localhost:4100';
@@ -284,7 +293,7 @@ export async function seedDemo(deps: SeedDeps, opts: SeedOptions = {}): Promise<
   });
   const acmeKey = seedApiKey(secret, DEMO_BUYER.email);
   await ensureKey(db, acmeLogin.id, acmeKey, {
-    name: 'Claude Desktop (demo)',
+    name: DEMO_KEY_NAME,
     scopes: ['read', 'topup'],
   });
   log(`buyer ${acmeLogin.created ? 'created' : 'found'}: ${DEMO_BUYER.name} (no balance)`);
@@ -378,12 +387,13 @@ async function upsertSite(
   const verifyToken = config.SPIGOT_VERIFY_TOKEN ?? seedVerifyToken(secret, origin);
 
   const created = await db.tx(async (tx) => {
+    // A fixed slug, not the host's (`localhost` locally, `bluebonnet-rentals` on Render).
     const { rows: taken } = await tx.query<{ slug: string }>(
       `SELECT slug FROM sites WHERE slug = $1 OR slug LIKE $2`,
-      [baseSlug(origin), `${baseSlug(origin).replace(/[\\%_]/g, '\\$&')}-%`],
+      [DEMO_SITE_SLUG, `${DEMO_SITE_SLUG}-%`],
     );
     const slug = pickSlug(
-      baseSlug(origin),
+      DEMO_SITE_SLUG,
       taken.map((r) => r.slug),
     );
     // No conflict target: a twin seed inserting the same id / origin / slug just finds it.

@@ -11,7 +11,7 @@ Spigot is our second, separate entry for the [PayPal AI Hackathon 2026](https://
 
 - **Live API and dashboard:** [[fill]] deployed Render URL of `spigot-api` (expected `https://spigot-api.onrender.com`)
 - **Demo site (Bluebonnet Rentals, fictional):** [[fill]] deployed Render URL of `bluebonnet-rentals`
-- **Public catalog page:** [[fill]] `https://<api-host>/c/<site slug>`. The slug is the first label of the demo site's host, so `bluebonnet-rentals` if Render kept the service name (`seed:demo` prints it)
+- **Public catalog page:** [[fill]] `https://<api-host>/c/bluebonnet` (`seed:demo` always connects the demo site as `bluebonnet`, whatever its host)
 - **Video (under 3 minutes):** [[fill]] public YouTube link
 - **Licence:** [MIT](LICENSE)
 
@@ -197,7 +197,7 @@ SPIGOT_API_BASE=http://localhost:3000 SPIGOT_GATE_KEY=gk_… SPIGOT_VERIFY_TOKEN
 
 - `http://localhost:3000/app`: the publisher dashboard; log in with the publisher email and password `seed:demo` printed.
 - `http://localhost:3000/buyers`: the buyer portal; log in as "Acme Agents (demo)".
-- `http://localhost:3000/c/localhost`: the catalog page. The site slug comes from the demo site's host name, so locally it is `localhost` (`seed:demo` prints it as `slug …`); on Render it is the first label of the demo site's host.
+- `http://localhost:3000/c/bluebonnet`: the catalog page. `seed:demo` connects the demo site as `bluebonnet` on any host (it prints it as `slug …`); a site connected through W02 gets the first label of its host.
 - `http://localhost:4100`: the demo site. Until a dataset is published, the gate passes every request, bots included: `seed:demo` connects and verifies the site but leaves the crawl for the live demo. Start it from the dashboard (W03), approve a record type, and declared bots then get the 402.
 
 ### Environment
@@ -248,9 +248,9 @@ Start `claude` in that folder and ask: *"Using Spigot, find 3-bedroom rentals un
 |---|---|---|
 | `npm run seed:demo` | Publisher, site, real demo buyer "Acme Agents (demo)", 20 SIM buyers with SIM sandbox top-ups | SP-035 |
 | `npm run sim:bots -- --target <demo-site> [--minutes 10] [--backfill 7d]` | Real HTTP requests to the demo site with bot UAs (2–5 req/s each) and human UAs (`--human-rps`, default 60), header `X-Spigot-Sim: 1`, live tally by bot; counted SIM only when the gate runs with `SPIGOT_GATE_DEMO=1` (it warns otherwise). `--backfill 7d` first posts a week of SIM buckets to `/api/gate/hits` with `SPIGOT_GATE_KEY` (a few posts, ≥ 5 s apart; run it once per reset, re-posting sums) | SP-037 |
-| `npm run sim:buyers [-- --live]` | Real `/v1` calls from SIM buyers over a simulated week | SP-036 |
+| `npm run sim:buyers [-- --live \| --retake]` | Real `/v1` calls from SIM buyers over a simulated week. `--retake` (after `demo:reset`): if the week is already at its target, re-funds the drained SIM buyers ($30 SIM card top-ups) and adds ~$300 more, so "Run payout now" has something to pay | SP-036 |
 | `npm run demo:mutate -- --prices 30 --leased 5 --new 3 [--focus …] [--target <url>]` | A labelled **demo mutation**: changes listings on the demo site (rents, leased, new) so the next crawl has exactly those changes; `POST /admin/reset` on the demo site puts them back | SP-004b |
-| `DEMO_MODE=true npm run demo:reset -- --yes` | Clean take, nothing deleted: demo datasets back to PROPOSED (records kept, gate policy bumped, `/v1` answers 410 until the re-approve), Acme to $0 with a `DEMO_RESET` ledger txn, Acme's calls hidden and its API key rotated (prints the new key), `POST {DEMO_SITE_URL}/admin/reset`, then a MANUAL crawl. SIM history and PayPal history untouched. `--skip-site` for the database steps only | SP-038 |
+| `DEMO_MODE=true npm run demo:reset -- --yes` | Clean take, nothing deleted: demo datasets back to PROPOSED (records kept, gate policy bumped, `/v1` answers 410 until the re-approve), Acme to $0 with a `DEMO_RESET` ledger txn, Acme's calls hidden and its API key rotated (prints the new key), `POST {DEMO_SITE_URL}/admin/reset`, then a MANUAL crawl that also retires the records of listings the site reset removed. SIM history and PayPal history untouched. `--skip-site` for the database steps only | SP-038 |
 | `DEMO_MODE=true npm run demo:payout -- --yes` | "Run payout now" with the labelled $1 demo threshold (`payoutRun('MANUAL_DEMO')`); prints the batch, PayPal batch and item ids | SP-038 |
 | `python scripts/scraper-demo.py <demo-site>` | A plain scraper gets three 402s with the price and API link | SP-039a |
 

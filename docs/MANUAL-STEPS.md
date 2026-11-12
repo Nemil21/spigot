@@ -40,15 +40,13 @@ The automation checks the API behind each screen, not the pixels. Before recordi
 - Use the interactive `claude` session on camera; `--allowedTools` keeps permission prompts out of the shot.
 - Narrate the run's real numbers, not the spec's placeholders ([demo/prompt-card.md](demo/prompt-card.md)).
 
-## 5. Follow-ups for other tickets (not changed in SP-039b)
+## 5. Follow-ups from SP-039b (fixed in PR #95)
 
-- **Re-takes have nothing to pay out** (SP-038 / SP-036): `demo:reset` leaves the 20 SIM buyers drained, so `sim:buyers` adds $0 and W09 "Run payout now" returns `NO_ITEMS`. `demo:dry-run` re-funds them itself; for the camera, record the payout beat on the first take or run the dry run first.
-- **Listing count drifts after `demo:reset`** (SP-038): 2,341 → 2,344, because records of listings `demo:mutate --new` added aren't marked removed when the site reset deletes them.
-- **Site slug is the host** (SP-035 / SP-008a): locally `localhost`, so the 402 and endpoint read `/v1/localhost/…`; the prompt card and scraper text assume `bluebonnet`.
-
-- ~~README (SP-044) and Devpost draft (SP-045) still call the buyer agent "Claude Desktop".~~ Done in SP-046: README, architecture diagram, Devpost text and Built With now say Claude Code.
-- W11 "Connect Claude Desktop" snippet (SP-032) can stay as an option; consider adding the `claude mcp add` line next to it. Until then keep that card out of frame.
-- Seed / reset name Acme's key "Claude Desktop (demo)" (`DEMO_KEY_NAME`); harmless, but it shows in W11's keys table on camera. Keep the keys table out of frame.
+- **Re-takes have nothing to pay out**: after `demo:reset`, run `npm run sim:buyers -- --retake`. If the week is already at its target, it re-funds each drained SIM buyer with a $30 SIM card top-up and adds ~$300 SIM gross, so W09 "Run payout now" has an item.
+- **Listing count after `demo:reset`**: the reset now retires the records of listings `demo:mutate --new` added, so W05 shows 2,341 again (it prints "N record(s) of removed listings retired").
+- **Site slug**: `seed:demo` connects the demo site as `bluebonnet` on any host, so the 402 and endpoint read `/v1/bluebonnet/…` like the prompt card and scraper. A database seeded before this change keeps its old slug: re-seed into a fresh database.
+- ~~README / Devpost say "Claude Desktop"~~: done in SP-046.
+- **W11 card**: now "Connect your agent", with the `claude mcp add` command first and the Claude Desktop config second. Acme's key is named "Claude Code (demo)". Keep the keys and the command out of frame anyway: they show the key prefix.
 
 ## 6. Recording runbook (SP-046)
 
@@ -63,7 +61,7 @@ Human-led, on the deployed Render services. Nothing here is automated, uploaded 
 3. From the laptop: `npm run sim:bots -- --target https://<bluebonnet-rentals> --backfill 7d` once, then `npm run sim:bots -- --target https://<bluebonnet-rentals>` left running for B2. `render.yaml` sets `SPIGOT_GATE_DEMO=1` on the demo site, so this traffic is counted as SIM.
 4. Claude Code on the laptop: [demo/claude-code-cli.md](demo/claude-code-cli.md) §1 with `https://<spigot-api>/mcp` and the key from step 1; `/mcp` lists 7 tools.
 
-**C. Two dry runs before recording** (the ticket's test plan). Either run `SPIGOT_API_BASE=https://<spigot-api> DEMO_SITE_URL=https://<bluebonnet-rentals> npm run demo:dry-run -- --runs 2 --topup wallet --agent sdk --out /tmp/dry-run.md` from the `spigot-api` Shell (export the two passwords with `read -rs` as in §2; `--agent sdk` because the Shell has no Claude Code), or walk [demo/dry-run-checklist.md](demo/dry-run-checklist.md) by hand with "Stack: Render" ticked. Either way, approve the $20 wallet top-up yourself in W11, and check in the sandbox web UI that the capture and the payout ids exist (checklist 5.3, 8.3). Paste the ids into the checklist. Fix or file every failure before recording. If the runs leave the SIM buyers drained, re-run `sim:buyers -- --live` (see §5, re-takes have nothing to pay out).
+**C. Two dry runs before recording** (the ticket's test plan). Either run `SPIGOT_API_BASE=https://<spigot-api> DEMO_SITE_URL=https://<bluebonnet-rentals> npm run demo:dry-run -- --runs 2 --topup wallet --agent sdk --out /tmp/dry-run.md` from the `spigot-api` Shell (export the two passwords with `read -rs` as in §2; `--agent sdk` because the Shell has no Claude Code), or walk [demo/dry-run-checklist.md](demo/dry-run-checklist.md) by hand with "Stack: Render" ticked. Either way, approve the $20 wallet top-up yourself in W11, and check in the sandbox web UI that the capture and the payout ids exist (checklist 5.3, 8.3). Paste the ids into the checklist. Fix or file every failure before recording. If the runs leave the SIM buyers drained, run `sim:buyers -- --retake` (§5).
 
 **D. Record (≤ 3:00).**
 
@@ -71,7 +69,7 @@ Human-led, on the deployed Render services. Nothing here is automated, uploaded 
 - Order of shots: record **B6 (Claude Code) and B7 (payout) first**, while there is something to pay out; then B2–B5; B1 and B8 are slides and site footage.
 - Hold the **PayPal sandbox approval page for 2 s** in B5.
 - Say which numbers are simulated: bot traffic, the other buyers, and the SIM part of the payout. Use the voiceover in [demo/video-script.md](demo/video-script.md#voiceover-final) and the take's real numbers ({N} records, {$X}, the batch id), never the spec's placeholders.
-- Off screen: API keys (W11 keys table, the Shell, `claude mcp add`), passwords, `.env`, W11's "Connect Claude Desktop" card, any browser tab or bookmark with a real brand. No copyrighted music.
+- Off screen: API keys (W11 keys table, the Shell, `claude mcp add`), passwords, `.env`, W11's "Connect your agent" card, any browser tab or bookmark with a real brand. No copyrighted music.
 - Write down every PayPal id shown on screen (order, capture, payout batch, payout item) and confirm each exists in the sandbox web UI after the take.
 
 **E. Publish and submit (by 23:30 IST; hard deadline 01:30 IST Nov 13).**

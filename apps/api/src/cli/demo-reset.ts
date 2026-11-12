@@ -31,6 +31,7 @@ import {
   DemoResetRefused,
   demoSiteOf,
   resetDemoSite,
+  retireRemovedRecords,
 } from './demoReset.js';
 import { DEFAULT_DEMO_SITE_URL } from './seedDemo.js';
 
@@ -134,6 +135,12 @@ try {
           const crawl = await crawlDemoSite(crawlDeps, r.publisher.id, row.id);
           console.log(`  crawl ${crawl.crawlRunId}: ${crawl.status}`);
           if (crawl.status !== 'SUCCEEDED' && crawl.status !== 'PARTIAL') exitCode = 1;
+          const retired = await retireRemovedRecords(
+            db,
+            r.datasets.map((d) => d.id),
+            crawl.crawlRunId,
+          );
+          console.log(`  ${retired} record(s) of removed listings retired`);
         } finally {
           for (const f of off) f();
         }
