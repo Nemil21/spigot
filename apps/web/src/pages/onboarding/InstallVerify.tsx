@@ -380,9 +380,9 @@ function Steps({
             <p className="mt-2 text-sm text-body">
               Serve this text at <span className="font-mono">{site.verify.path}</span> on your site.
             </p>
-            <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">File path</p>
+            <p className="mt-3 text-xs font-medium text-muted">File path</p>
             <CodeBlock code={site.verify.path} copyLabel="Copy file path" />
-            <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">Content</p>
+            <p className="mt-3 text-xs font-medium text-muted">Content</p>
             <CodeBlock code={site.verify.content} copyLabel="Copy file content" />
             {verifyError && (
               <p
@@ -411,15 +411,11 @@ function Steps({
           </h2>
           <GatePill gate={gate} failed={gateError} now={now} />
         </div>
-        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">Install</p>
+        <p className="mt-3 text-xs font-medium text-muted">Install</p>
         <CodeBlock code="npm i @spigot/gate" copyLabel="Copy install command" />
-        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">
-          Add it to your Express app
-        </p>
+        <p className="mt-3 text-xs font-medium text-muted">Add it to your Express app</p>
         <CodeBlock code={expressSnippet(apiBase)} copyLabel="Copy Express snippet" />
-        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">
-          Environment variables
-        </p>
+        <p className="mt-3 text-xs font-medium text-muted">Environment variables</p>
         {keys ? (
           <>
             <p className="mt-1 text-sm text-warning">
@@ -461,7 +457,7 @@ const STEPS = ['Verify', 'Install gate', 'First crawl'] as const;
 
 function Stepper({ current }: { current: number }) {
   return (
-    <ol className="mt-4 flex gap-2" aria-label="Setup steps">
+    <ol className="mt-6 grid grid-cols-3 gap-3" aria-label="Setup steps">
       {STEPS.map((label, i) => {
         const n = i + 1;
         const state = n < current ? 'done' : n === current ? 'current' : 'todo';
@@ -470,16 +466,41 @@ function Stepper({ current }: { current: number }) {
             key={label}
             data-state={state}
             aria-current={state === 'current' ? 'step' : undefined}
-            className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-              state === 'current'
-                ? 'border-accent bg-accent-tint font-medium text-ink'
-                : state === 'done'
-                  ? 'border-line bg-surface text-positive'
-                  : 'border-line bg-surface text-muted'
-            }`}
+            className="min-w-0 text-sm"
           >
-            {state === 'done' ? '✓ ' : `${n}. `}
-            {label}
+            <span
+              aria-hidden="true"
+              className={`block h-1 rounded-full ${state === 'todo' ? 'bg-line' : 'bg-accent'}`}
+            />
+            <span
+              className={`mt-2.5 flex items-center gap-1.5 ${
+                state === 'current'
+                  ? 'font-semibold text-ink'
+                  : state === 'done'
+                    ? 'font-medium text-body'
+                    : 'text-muted'
+              }`}
+            >
+              {state === 'done' ? (
+                <svg
+                  viewBox="0 0 16 16"
+                  className="size-3.5 shrink-0 text-accent"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3.5 8.5l3 3 6-7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <span className="tabular-nums">{n}.</span>
+              )}
+              <span className="truncate">{label}</span>
+            </span>
           </li>
         );
       })}
