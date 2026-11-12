@@ -1,7 +1,9 @@
 // SP-037 `sim:bots` building blocks (features/15 §Live simulators; features/02 §Hit counting).
 // The CLI is scripts/sim-bots.ts; everything here takes its clock, RNG and fetch as arguments so
 // tests can drive it. Relative imports (not `@spigot/*`) so `tsx` runs it without a build.
-import { matchBot } from '../packages/gate/src/index.js';
+// Only the UA table: the gate barrel would also load the middleware, flusher and DNS verifier.
+// Nothing here imports `@spigot/*` by package name (that resolves to an unbuilt `dist/`).
+import { matchBot } from '../packages/gate/src/bots.js';
 import {
   MAX_HIT_BUCKETS,
   gateHitsSchema,
