@@ -187,6 +187,8 @@ export interface CrawlRunView {
   recordsAdded: number;
   recordsUpdated: number;
   recordsRemoved: number;
+  /** Claude calls made for this run: the discovery run's schema proposals; 0 after approval (W10). */
+  aiCalls: number;
   error: string | null;
   startedAt: Date | null;
   finishedAt: Date | null;
@@ -197,7 +199,7 @@ export const RUN_VIEW_COLUMNS = `t.id, t.site_id AS "siteId", t.trigger, t.statu
   t.workflow_run_id AS "workflowRunId", t.pages_total AS "pagesTotal",
   t.pages_fetched AS "pagesFetched", t.pages_not_modified AS "pagesNotModified",
   t.pages_failed AS "pagesFailed", t.records_added AS "recordsAdded",
-  t.records_updated AS "recordsUpdated", t.records_removed AS "recordsRemoved", t.error,
+  t.records_updated AS "recordsUpdated", t.records_removed AS "recordsRemoved", t.ai_calls AS "aiCalls", t.error,
   t.started_at AS "startedAt", t.finished_at AS "finishedAt", t.created_at AS "createdAt"`;
 
 export const runsQuery = z.object({
@@ -219,6 +221,32 @@ export async function listCrawlRuns(
     [site.id, limit],
   );
   return rows;
+}
+
+/**
+ * Site-wide AI calls for W10's KPIs (SP-054), over every run, not just the listed page:
+ * `discovery` sums the CONNECT runs (the schema agent's proposal calls; null before the first
+ * one), `routine` every other run (must stay 0, features/04 §6).
+ */
+export interface CrawlAiCalls {
+  discovery: number | null;
+  routine: number;
+}
+
+export async function crawlAiCalls(
+  q: Queryable,
+  publisherId: string,
+  siteId: string,
+): Promise<CrawlAiCalls> {
+  const scope = forPublisher(publisherId);
+  const site = await scope.get<{ id: string }>(q, 'sites', siteId, { columns: 't.id' });
+  const { rows } = await q.query<{ discovery: number | null; routine: number }>(
+    `SELECT (SUM(ai_calls) FILTER (WHERE trigger = 'CONNECT'))::int AS discovery,
+            COALESCE(SUM(ai_calls) FILTER (WHERE trigger <> 'CONNECT'), 0)::int AS routine
+       FROM crawl_runs WHERE site_id = $1`,
+    [site.id],
+  );
+  return rows[0]!;
 }
 
 /** One run of this publisher's, or 404. */
