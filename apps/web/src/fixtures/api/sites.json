@@ -1,0 +1,27 @@
+{
+  "sites": [
+    {
+      "id": "00000000-0000-4000-8000-0000000000a1",
+      "slug": "bluebonnet",
+      "origin": "https://bluebonnet.example",
+      "sitemapUrl": "https://bluebonnet.example/sitemap.xml",
+      "status": "READY",
+      "verify": {
+        "path": "/.well-known/spigot.txt",
+        "content": "spigot-verify=4f0c2a9d1e7b3c5a8f6d2e1b0a9c8d7e"
+      },
+      "policy": {
+        "SEARCH": "PASS",
+        "AI_TRAINING": "QUOTE",
+        "AI_AGENT": "QUOTE",
+        "SCRAPER_TOOL": "QUOTE",
+        "UNKNOWN": "PASS",
+        "gated_paths": ["^/listings/"]
+      },
+      "policyVersion": 3,
+      "lastGateSeenAt": "2026-11-12T08:58:04.000Z",
+      "rightsAttestedAt": "2026-11-11T10:02:00.000Z",
+      "createdAt": "2026-11-11T09:55:00.000Z"
+    }
+  ]
+}

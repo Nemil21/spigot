@@ -16,7 +16,6 @@ const SCREENS: [path: string, screen: string, title: string][] = [
   ['/app/earnings', 'W08', 'Earnings'],
   ['/app/payouts', 'W09', 'Payouts'],
   ['/app/crawls', 'W10', 'Crawls'],
-  ['/app/settings', 'W16', 'Settings'],
   ['/app/admin/audit', 'W14', 'Audit'],
   ['/buyers/usage', 'W12', 'Usage and claims'],
 ];
@@ -26,6 +25,11 @@ const BUYER_PAGES: [path: string, title: string][] = [
   ['/buyers', 'Balance and keys'],
   ['/buyers/topup/tp_1?ok=1', 'Balance and keys'],
   ['/buyers/signup', 'Create a buyer account'],
+];
+
+/** Screens that replaced their stub: path → `data-screen`, heading and a landmark of the real page. */
+const BUILT: [path: string, screen: string, title: string, landmark: string][] = [
+  ['/app/settings', 'W16', 'Settings', 'tablist'], // SP-034
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
@@ -65,6 +69,14 @@ describe('router', () => {
     expect(screen.getByText('Coming soon')).toBeInTheDocument();
   });
 
+  it.each(BUILT)('%s renders its real screen (%s)', async (path, screenId, title, landmark) => {
+    const h1 = await renderAt(path);
+    expect(h1).toHaveTextContent(title);
+    expect(h1.closest('[data-screen]')).toHaveAttribute('data-screen', screenId);
+    expect(screen.getByRole(landmark)).toBeInTheDocument();
+    expect(screen.queryByText('Coming soon')).toBeNull();
+  });
+
   it.each(LOGINS)('%s renders the login form', async (path, title) => {
     expect(await renderAt(path)).toHaveTextContent(title);
     expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument();
@@ -95,7 +107,7 @@ describe('router', () => {
 
   it('covers every path in the paths table', () => {
     const tested = new Set(
-      [...SCREENS, ...LOGINS, ...BUYER_PAGES, ...ONBOARDING, ['/app/install']].map(
+      [...SCREENS, ...BUILT, ...LOGINS, ...BUYER_PAGES, ...ONBOARDING, ['/app/install']].map(
         ([p]) => p!.split('?')[0],
       ),
     );
