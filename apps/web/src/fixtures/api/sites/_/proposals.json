@@ -1,0 +1,304 @@
+{
+  "proposals": [
+    {
+      "datasetId": "00000000-0000-4000-8000-0000000000d1",
+      "schemaVersionId": "00000000-0000-4000-8000-0000000000e1",
+      "typeName": "Listing",
+      "slug": "listings",
+      "records": 2341,
+      "templatePattern": "^/listings/[a-z0-9-]+$",
+      "source": "JSON-LD (Apartment, Offer) + 2 CSS fields",
+      "sourceBadge": "JSON-LD",
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "description": "Listing headline",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0,
+          "example": "Sunny 3BR near Zilker Park"
+        },
+        {
+          "name": "price_usd",
+          "type": "integer",
+          "description": "Monthly rent in USD",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": ["eq", "lt", "lte", "gt", "gte"],
+          "nullRate": 0,
+          "example": 1850
+        },
+        {
+          "name": "bedrooms",
+          "type": "integer",
+          "description": "Number of bedrooms",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": ["eq", "gte", "lte"],
+          "nullRate": 0,
+          "example": 3
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "description": "City",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": ["eq", "in"],
+          "nullRate": 0,
+          "example": "Austin"
+        },
+        {
+          "name": "bathrooms",
+          "type": "number",
+          "description": "Bathrooms",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0.04,
+          "example": 2
+        },
+        {
+          "name": "sqft",
+          "type": "integer",
+          "description": "Floor area",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0.12,
+          "example": 1240
+        },
+        {
+          "name": "agent_phone",
+          "type": "string",
+          "description": "Listing agent's phone",
+          "visible": false,
+          "pii": true,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0.02,
+          "example": "(512) 555-0142"
+        }
+      ],
+      "sampleRows": [
+        {
+          "title": "Sunny 3BR near Zilker Park",
+          "price_usd": 1850,
+          "bedrooms": 3,
+          "city": "Austin",
+          "bathrooms": 2,
+          "sqft": 1240,
+          "agent_phone": "(512) 555-0142"
+        },
+        {
+          "title": "Downtown loft with skyline views",
+          "price_usd": 2400,
+          "bedrooms": 1,
+          "city": "Austin",
+          "bathrooms": 1,
+          "sqft": 860,
+          "agent_phone": "(512) 555-0177"
+        },
+        {
+          "title": "Quiet 2BR in Round Rock",
+          "price_usd": 1450,
+          "bedrooms": 2,
+          "city": "Round Rock",
+          "bathrooms": 2,
+          "sqft": 1010,
+          "agent_phone": "(512) 555-0110"
+        },
+        {
+          "title": "Family home with yard",
+          "price_usd": 2750,
+          "bedrooms": 4,
+          "city": "Cedar Park",
+          "bathrooms": 2.5,
+          "sqft": 2100,
+          "agent_phone": "(512) 555-0123"
+        },
+        {
+          "title": "Studio near UT campus",
+          "price_usd": 1100,
+          "bedrooms": 0,
+          "city": "Austin",
+          "bathrooms": 1,
+          "sqft": null,
+          "agent_phone": "(512) 555-0199"
+        }
+      ],
+      "suggestedPerRecordMicros": 1500,
+      "aiRationale": "Listing pages carry schema.org Apartment JSON-LD with price, rooms and address, so every core field reads from JSON-LD. The agent's phone number is personal data: found, hidden by default."
+    },
+    {
+      "datasetId": "00000000-0000-4000-8000-0000000000d2",
+      "schemaVersionId": "00000000-0000-4000-8000-0000000000e2",
+      "typeName": "Agent",
+      "slug": "agents",
+      "records": 88,
+      "templatePattern": "^/agents/[a-z0-9-]+$",
+      "source": "CSS (6 fields)",
+      "sourceBadge": "CSS",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0,
+          "example": "Maria Delgado"
+        },
+        {
+          "name": "brokerage",
+          "type": "string",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": ["eq", "in"],
+          "nullRate": 0,
+          "example": "Hill Country Realty"
+        },
+        {
+          "name": "years_experience",
+          "type": "integer",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": ["gte", "lte"],
+          "nullRate": 0.05,
+          "example": 12
+        },
+        {
+          "name": "languages",
+          "type": "string[]",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0.1,
+          "example": ["English", "Spanish"]
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "visible": false,
+          "pii": true,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0,
+          "example": "maria@hillcountry.example"
+        }
+      ],
+      "sampleRows": [
+        {
+          "name": "Maria Delgado",
+          "brokerage": "Hill Country Realty",
+          "years_experience": 12,
+          "languages": ["English", "Spanish"]
+        },
+        {
+          "name": "Tom Reyes",
+          "brokerage": "Lone Star Homes",
+          "years_experience": 4,
+          "languages": ["English"]
+        },
+        {
+          "name": "Priya Natarajan",
+          "brokerage": "Hill Country Realty",
+          "years_experience": 9,
+          "languages": ["English", "Tamil"]
+        }
+      ],
+      "suggestedPerRecordMicros": 1500,
+      "aiRationale": "Agent pages have no JSON-LD; the facts list has stable data-k attributes, so CSS selectors are used."
+    },
+    {
+      "datasetId": "00000000-0000-4000-8000-0000000000d3",
+      "schemaVersionId": "00000000-0000-4000-8000-0000000000e3",
+      "typeName": "Open House",
+      "slug": "open-houses",
+      "records": 40,
+      "templatePattern": "^/open-houses/[0-9]+$",
+      "source": "CSS (5 fields)",
+      "sourceBadge": "CSS",
+      "fields": [
+        {
+          "name": "starts_at",
+          "type": "datetime",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": ["gte", "lte"],
+          "nullRate": 0,
+          "example": "2026-11-15T13:00:00-06:00"
+        },
+        {
+          "name": "listing_address",
+          "type": "string",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0,
+          "example": "1402 Barton Hills Dr, Austin"
+        },
+        {
+          "name": "rent_usd",
+          "type": "integer",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": ["lte", "gte"],
+          "nullRate": 0.3,
+          "example": 1850
+        },
+        {
+          "name": "host_name",
+          "type": "string",
+          "visible": true,
+          "pii": false,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0,
+          "example": "Maria Delgado"
+        },
+        {
+          "name": "host_phone",
+          "type": "string",
+          "visible": false,
+          "pii": true,
+          "rightsFlag": false,
+          "filterable": [],
+          "nullRate": 0,
+          "example": "(512) 555-0142"
+        }
+      ],
+      "sampleRows": [
+        {
+          "starts_at": "2026-11-15T13:00:00-06:00",
+          "listing_address": "1402 Barton Hills Dr, Austin",
+          "rent_usd": 1850,
+          "host_name": "Maria Delgado"
+        },
+        {
+          "starts_at": "2026-11-16T10:00:00-06:00",
+          "listing_address": "88 Main St, Round Rock",
+          "rent_usd": null,
+          "host_name": "Tom Reyes"
+        }
+      ],
+      "suggestedPerRecordMicros": 1500,
+      "aiRationale": null
+    }
+  ]
+}

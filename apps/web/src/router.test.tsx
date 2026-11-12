@@ -10,7 +10,6 @@ import { buyerNav, href, paths, publisherNav } from './routes';
 const SCREENS: [path: string, screen: string, title: string][] = [
   ['/', 'W01', 'Spigot'],
   ['/app', 'W04', 'Overview'],
-  ['/app/record-types', 'W05', 'Record types'],
   ['/app/datasets/ds_123', 'W06', 'Dataset editor'],
   ['/app/records', 'W07', 'Records'],
   ['/app/earnings', 'W08', 'Earnings'],
@@ -31,6 +30,7 @@ const BUILT: [path: string, screen: string, title: string, landmark: string][] =
   ['/app/settings', 'W16', 'Settings', 'tablist'], // SP-034
   // SP-031; this test has no payouts API, so W09 shows its inline error banner.
   ['/app/payouts', 'W09', 'Payouts', 'alert'],
+  ['/app/record-types', 'W05', 'Record types', 'alert'], // SP-028 (no API here: its error banner)
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */

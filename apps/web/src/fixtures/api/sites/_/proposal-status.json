@@ -1,0 +1,7 @@
+{
+  "siteStatus": "READY",
+  "crawling": false,
+  "running": false,
+  "templates": [{ "pattern": "/blog/:slug", "pageCount": 24, "state": "skipped" }],
+  "message": null
+}
