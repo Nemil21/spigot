@@ -1,0 +1,200 @@
+# Spigot on Render (SP-040). Setup, env vars and manual steps: docs/deploy.md.
+# Schema: https://render.com/schema/render.yaml.json
+#
+# Rules this file encodes:
+# - Paid instances only. Free web services sleep (the demo site must answer a judge's first
+#   request); free Postgres expires ~30 days after creation, before judging ends Dec 21.
+# - One API instance: in-process jobs (`jobs/*.job.ts`) and rate limits assume a single process
+#   (jobs also hold advisory locks, so a second instance would be safe, just idle).
+# - Migrations run on every start (`npm run migrate && npm start`): the runner is idempotent and
+#   holds an advisory lock (SP-002). Never seed on deploy: `seed:demo` is manual (SP-035).
+# - Auto-deploy is off on every service: deploys during the recording window would change the
+#   build under the camera, and the judged build must not change after submission. Deploy by
+#   hand (Manual Deploy → Deploy latest commit). docs/deploy.md §Auto-deploy.
+# - Secrets are `sync: false`: Render prompts for them when the Blueprint is first applied and
+#   never reads them from this file. Env groups cannot hold prompted values, so `spigot-config`
+#   carries non-secret flags only. No secret value ever goes in this file
+#   (scripts/render-blueprint.test.ts checks).
+
+envVarGroups:
+  - name: spigot-config
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # Sandbox only. config.ts refuses a non-sandbox base unless PAYPAL_ENV=live.
+      - key: PAYPAL_API_BASE
+        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_MODE
+        value: sandbox
+      # In-process crawl / extract / payout until SP-041b's Render check is green; then `workflows`.
+      - key: WORKFLOWS_MODE
+        value: inproc
+      # `recorded` replays hand-authored proposals if the Claude API is down (SP-012a).
+      - key: SCHEMA_AGENT_MODE
+        value: live
+      - key: CLAUDE_MODEL
+        value: claude-opus-5-5
+      # demo:reset / demo:payout refuse to run without it (SP-038).
+      - key: DEMO_MODE
+        value: 'true'
+      # Set to true on spigot-api only for the declined-auto-top-up beat (SP-047b).
+      - key: ALLOW_MOCK_DECLINE
+        value: 'false'
+      # Wallet vault on top-ups stays off until SP-003's S8b passes.
+      - key: PAYPAL_WALLET_VAULT
+        value: 'off'
+
+databases:
+  - name: spigot-db
+    databaseName: spigot
+    user: spigot
+    region: oregon
+    # Paid: the free instance expires ~30 days after creation, before judging ends Dec 21.
+    plan: basic-256mb
+    diskSizeGB: 1
+    postgresMajorVersion: '16'
+    # Private network only. Add an IP in the dashboard for psql access when needed.
+    ipAllowList: []
+
+services:
+  # API + same-origin web app (apps/api serves apps/web/dist, SP-024a): publisher REST, buyer /v1,
+  # /mcp, gate endpoints, webhooks, in-process jobs.
+  - type: web
+    name: spigot-api
+    runtime: node
+    region: oregon
+    plan: starter
+    numInstances: 1
+    # NODE_ENV=production is set at build time too, so ask npm for devDependencies (tsc, vite).
+    # `npm run build` builds every workspace, including the web app (VITE_* are read at build time).
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run migrate && npm start
+    # Liveness only, no DB call (apps/api/src/routes/healthz.ts).
+    healthCheckPath: /api/healthz
+    autoDeployTrigger: 'off'
+    envVars:
+      - fromGroup: spigot-config
+      - key: DATABASE_URL
+        fromDatabase:
+          name: spigot-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      # This service's public URL, e.g. https://spigot-api.onrender.com (no trailing slash).
+      - key: APP_BASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AG_GRID_LICENSE_KEY
+        sync: false
+      # Browser-visible at build time (Vite); public by design, prompted so it stays out of git.
+      - key: VITE_AG_GRID_LICENSE_KEY
+        sync: false
+      - key: VITE_PAYPAL_CLIENT_ID
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      # The separate sandbox business account that receives the demo publisher's payouts.
+      - key: DEMO_PUBLISHER_PAYOUT_EMAIL
+        sync: false
+      # Render Workflows dispatch (WORKFLOWS_MODE=workflows, SP-041a/b). Leave empty until then.
+      - key: RENDER_API_KEY
+        sync: false
+      - key: RENDER_WORKFLOWS_SERVICE_ID
+        sync: false
+      # demo:reset calls the demo site's admin endpoints over HTTP (SP-038). Public URL, e.g.
+      # https://bluebonnet-rentals.onrender.com: the crawler's SSRF guard refuses private hosts.
+      - key: DEMO_SITE_URL
+        sync: false
+      - key: DEMO_ADMIN_TOKEN
+        fromService:
+          type: web
+          name: bluebonnet-rentals
+          envVarKey: DEMO_ADMIN_TOKEN
+
+  # Bluebonnet Rentals, the fictional demo site (SP-004a/b) with spigot-gate installed (SP-006b).
+  # Paid starter so it never sleeps between a judge's visits.
+  - type: web
+    name: bluebonnet-rentals
+    runtime: node
+    region: oregon
+    plan: starter
+    numInstances: 1
+    buildCommand: npm ci --include=dev && npm run build -w @spigot/shared -w @spigot/gate -w @spigot/demo-site
+    startCommand: npm start -w @spigot/demo-site
+    healthCheckPath: /healthz
+    autoDeployTrigger: 'off'
+    # The mutation log (DEMO_DATA_DIR/mutations.jsonl) survives restarts and redeploys (SP-004b).
+    # A service with a disk can't do zero-downtime deploys: expect a few seconds of 502 per deploy.
+    disk:
+      name: bluebonnet-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_DATA_DIR
+        value: /var/data/bluebonnet
+      - key: DEMO_SEED_SCALE
+        value: '1'
+      # SIM traffic (X-Spigot-Sim: 1) is counted as simulated, never as real bots (SP-006b).
+      - key: SPIGOT_GATE_DEMO
+        value: '1'
+      # Shared with spigot-api (fromService above), so demo:reset can call /admin/* over HTTP.
+      - key: DEMO_ADMIN_TOKEN
+        generateValue: true
+      # spigot-api's public URL (same value as its APP_BASE_URL).
+      - key: SPIGOT_API_BASE
+        sync: false
+      # Both come from connecting the site in Spigot (W02/W03), so they're filled in after the
+      # first deploy; the gate passes everything (fail-open) and spigot.txt 404s until then.
+      - key: SPIGOT_GATE_KEY
+        sync: false
+      - key: SPIGOT_VERIFY_TOKEN
+        sync: false
+
+  # Render Workflows (stub, SP-040). SP-041a registers crawlSite / fetchBatch / extractTemplate /
+  # extractPage / publishWatermark from @spigot/api/tasks; SP-041b adds payoutRun and verifies it
+  # on Render. Until then WORKFLOWS_MODE=inproc and nothing dispatches here. Compute plan, retries
+  # and timeouts are set per task in code. The tasks load the same config as spigot-api.
+  - type: workflow
+    name: spigot-workflows
+    runtime: node
+    region: oregon
+    buildCommand: npm ci --include=dev && npm run build -w @spigot/shared -w @spigot/api -w @spigot/workflows
+    startCommand: npm start -w @spigot/workflows
+    autoDeployTrigger: 'off'
+    envVars:
+      - fromGroup: spigot-config
+      - key: DATABASE_URL
+        fromDatabase:
+          name: spigot-db
+          property: connectionString
+      # loadConfig requires it; the workflow service never signs sessions.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      # Same value as spigot-api's (loadConfig requires it; links in payout notes use it).
+      - key: APP_BASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DEMO_PUBLISHER_PAYOUT_EMAIL
+        sync: false
