@@ -35,6 +35,10 @@ export interface DatasetDetail {
   typeName: string;
   status: DatasetStatus;
   staleSince: string | null;
+  /** SP-052b: newest records `crawled_at` (LIVE_STALE only): "Last good extract 6 h ago". */
+  lastGoodExtractAt?: string | null;
+  /** SP-052b: where re-inference stands (LIVE_STALE only). */
+  reinference?: Reinference | null;
   activeSchemaVersion: { id: string; version: number } | null;
   latestSchemaVersion: {
     id: string;
@@ -48,6 +52,28 @@ export interface DatasetDetail {
   endpoint: string | null;
   sampleRows: SampleRow[];
 }
+
+/** One field of the diff of sources: the live extractor vs the re-proposal (SP-052b). */
+export interface SourceDiffRow {
+  name: string;
+  before: string;
+  /** null: the self-check dropped the field (it no longer extracts). */
+  after: string | null;
+  changed: boolean;
+}
+
+/** `GET /api/datasets/:id` `reinference` (SP-052b `reinferenceView`). */
+export interface Reinference {
+  state: 'QUEUED' | 'RUNNING' | 'PROPOSED' | 'FAILED';
+  schemaVersionId: string | null;
+  version: number | null;
+  reason: string | null;
+  sources: SourceDiffRow[];
+}
+
+/** `POST /api/datasets/:id/reinfer` (202). */
+export type ReinferResult =
+  { status: 'REINFERRING' } | { status: 'PROPOSED'; schemaVersionId: string; version: number };
 
 /** `PATCH /api/datasets/:id` body (SP-014a `patchBody`). */
 export interface PatchBody {

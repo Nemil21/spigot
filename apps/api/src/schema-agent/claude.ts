@@ -52,7 +52,16 @@ export interface ProposeRequest {
   pathPattern: string;
   /** The per-template user message (`buildUserPrompt`). */
   userPrompt: string;
+  /** SP-052b: `reinfer` = re-proposal after drift (recorded mode keys on `reinfer:<pattern>`). */
+  variant?: ProposalVariant;
 }
+
+/** `reinfer`: the re-proposal for a changed layout, seeded with the old schema (SP-052b). */
+export type ProposalVariant = 'reinfer';
+
+/** Recorded-mode key: the path pattern, prefixed with the variant when there is one. */
+export const recordedKey = (pathPattern: string, variant?: ProposalVariant) =>
+  variant ? `${variant}:${pathPattern}` : pathPattern;
 
 /** One model call: the `propose_schema` input (unvalidated), or `undefined` if it wasn't called. */
 export interface ModelTurn {
@@ -71,6 +80,7 @@ export interface RepairRequest {
   round: number;
   /** The repair user message (`buildRepairPrompt`). */
   userPrompt: string;
+  variant?: ProposalVariant;
 }
 
 export interface ProposalConversation {
@@ -303,6 +313,8 @@ export function createLiveModel(opts: LiveModelOptions): SchemaModel {
 export interface RecordedProposal {
   /** Template display pattern this response answers, e.g. `/listings/:slug`. */
   pathPattern: string;
+  /** SP-052b: `reinfer` answers the re-proposal after drift (same pattern, new layout). */
+  variant?: ProposalVariant;
   model: string;
   /** `hand-authored` until a live run replaces it (copy `input` from its SCHEMA_PROPOSED audit row, `data.proposal`). */
   source: 'hand-authored' | 'live-capture';
@@ -329,8 +341,9 @@ export function loadRecorded(dir: string = assetPath(RECORDED_DIR)): Map<string,
     ) as RecordedProposal;
     if (typeof rec.pathPattern !== 'string')
       throw new Error(`recorded/${file}: missing pathPattern`);
-    if (out.has(rec.pathPattern)) throw new Error(`recorded/${file}: duplicate ${rec.pathPattern}`);
-    out.set(rec.pathPattern, rec);
+    const key = recordedKey(rec.pathPattern, rec.variant);
+    if (out.has(key)) throw new Error(`recorded/${file}: duplicate ${key}`);
+    out.set(key, rec);
   }
   return out;
 }
@@ -349,10 +362,11 @@ export function createRecordedModel(
     mode: 'recorded',
     modelId: 'recorded',
     open(req) {
-      const rec = recorded.get(req.pathPattern);
+      const key = recordedKey(req.pathPattern, req.variant);
+      const rec = recorded.get(key);
       const need = () => {
         if (!rec) {
-          throw new RecordedProposalMissingError(`no recorded proposal for ${req.pathPattern}`);
+          throw new RecordedProposalMissingError(`no recorded proposal for ${key}`);
         }
         return rec;
       };
@@ -362,12 +376,11 @@ export function createRecordedModel(
       };
     },
     async repair(req) {
-      const rec = recorded.get(req.pathPattern);
+      const key = recordedKey(req.pathPattern, req.variant);
+      const rec = recorded.get(key);
       const input = rec?.repairs?.[req.round - 1];
       if (!rec || input === undefined) {
-        throw new RecordedProposalMissingError(
-          `no recorded repair round ${req.round} for ${req.pathPattern}`,
-        );
+        throw new RecordedProposalMissingError(`no recorded repair round ${req.round} for ${key}`);
       }
       return turn(rec, input);
     },

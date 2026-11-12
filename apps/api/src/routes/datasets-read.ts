@@ -9,6 +9,7 @@ import {
   recentRecordRows,
   sourceOf,
 } from '../datasets/samples.js';
+import { lastGoodExtractAt, reinferenceView } from '../datasets/reinferView.js';
 import type { Queryable } from '../db/index.js';
 import { links402 } from '../services/payment402.js';
 import { forPublisher } from '../tenancy.js';
@@ -22,7 +23,7 @@ import { forPublisher } from '../tenancy.js';
  *   records, templatePattern, source, sourceBadge, fields, sampleRows[5],
  *   suggestedPerRecordMicros, aiRationale }] }` for the site's PROPOSED datasets.
  * - `GET /api/datasets/:id` → `{ id, siteSlug, slug, typeName, status, staleSince,
- *   activeSchemaVersion, latestSchemaVersion, fields, prices, recordCount, endpoint,
+ *   lastGoodExtractAt, reinference (SP-052b, LIVE_STALE only), activeSchemaVersion, latestSchemaVersion, fields, prices, recordCount, endpoint,
  *   sampleRows[20] }`. PROPOSED (and REJECTED): extractor dry run on 20 template snapshots.
  *   LIVE / LIVE_STALE / UNPUBLISHED: the 20 most recent records. Hidden fields are in the rows
  *   and flagged `visible: false` in `fields`.
@@ -172,6 +173,14 @@ const datasetsReadRoutes: FastifyPluginAsync = async (app) => {
 
     // The editor edits the newest version in play (an OWNER draft on top of a LIVE schema).
     const shown = latest ?? active;
+    // SP-052b: the W06 stale banner and the diff of sources (null unless LIVE_STALE).
+    const stale = ds.status === 'LIVE_STALE';
+    const reinference = await reinferenceView(q, {
+      id: ds.id,
+      status: ds.status,
+      staleSince: ds.stale_since,
+      activeExtractor: active?.extractor ?? null,
+    });
     const base = apiBase(ds.site_slug);
     return {
       id: ds.id,
@@ -180,6 +189,8 @@ const datasetsReadRoutes: FastifyPluginAsync = async (app) => {
       typeName: ds.type_name,
       status: ds.status,
       staleSince: ds.stale_since,
+      lastGoodExtractAt: stale ? await lastGoodExtractAt(q, ds.id) : null,
+      reinference,
       activeSchemaVersion: active ? { id: active.id, version: active.version } : null,
       latestSchemaVersion: latest
         ? {

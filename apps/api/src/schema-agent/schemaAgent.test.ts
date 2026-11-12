@@ -92,6 +92,8 @@ describe('recorded proposals on real SP-004a pages', () => {
       '/agents/:slug',
       '/listings/:slug',
       '/open-houses/:id',
+      // SP-052b: the Listing re-proposal for the DEMO_LAYOUT=v2 redesign.
+      'reinfer:/listings/:slug',
     ]);
     for (const rec of recorded.values())
       expect(proposalSchema.safeParse(rec.input).success).toBe(true);
