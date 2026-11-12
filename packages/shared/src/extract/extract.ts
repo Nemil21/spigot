@@ -52,7 +52,11 @@ interface CompiledField {
 
 export interface CompiledExtractor {
   spec: ExtractorSpec;
-  extract(html: string, pageUrl: string, opts?: { updatedAt?: string | null }): ExtractedRecord | null;
+  extract(
+    html: string,
+    pageUrl: string,
+    opts?: { updatedAt?: string | null },
+  ): ExtractedRecord | null;
 }
 
 /** JSON-LD scalars as-is, value objects (`{"@value": …}`) unwrapped, other objects → null. */
@@ -138,7 +142,9 @@ export function compileExtractor(rawSpec: unknown, opts: CompileOptions = {}): C
       required: f.required,
       source: f.source,
       // Already validated by the schema, so parseTransform returns a ParsedTransform here.
-      transforms: f.transforms.map((t) => compileTransform(parseTransform(t) as ParsedTransform, regex)),
+      transforms: f.transforms.map((t) =>
+        compileTransform(parseTransform(t) as ParsedTransform, regex),
+      ),
     };
   });
   const gate = fields.some((f) => f.required) ? fields.filter((f) => f.required) : fields;

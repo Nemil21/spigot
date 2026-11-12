@@ -17,16 +17,56 @@ const listingHtml = fixture('listing.html');
 const LISTING_SPEC: ExtractorSpecInput = {
   recordKey: { from: 'url' },
   fields: [
-    { name: 'price_usd', type: 'integer', required: true, source: { jsonld: '$.offers.price' }, transforms: ['toInt'] },
-    { name: 'bedrooms', type: 'integer', source: { jsonld: '$.numberOfRooms' }, transforms: ['toInt'] },
+    {
+      name: 'price_usd',
+      type: 'integer',
+      required: true,
+      source: { jsonld: '$.offers.price' },
+      transforms: ['toInt'],
+    },
+    {
+      name: 'bedrooms',
+      type: 'integer',
+      source: { jsonld: '$.numberOfRooms' },
+      transforms: ['toInt'],
+    },
     { name: 'sqft', type: 'integer', source: { jsonld: '$.floorSize.value' } },
     { name: 'city', type: 'string', source: { jsonld: '$.address.addressLocality' } },
-    { name: 'available_from', type: 'date', source: { css: 'dl.facts dd[data-k=available]', attr: 'text' }, transforms: ['trim', 'date'] },
-    { name: 'pets_allowed', type: 'boolean', source: { css: 'dl.facts dd[data-k=pets]', attr: 'text' }, transforms: ['bool:ok'] },
-    { name: 'photos', type: 'string[]', source: { css: '.gallery img', attr: 'src', all: true }, transforms: ['absoluteUrl'] },
-    { name: 'amenities', type: 'string[]', source: { css: 'ul.amenities li', attr: 'text', all: true } },
-    { name: 'agent_url', type: 'url', source: { css: '.agent-card a.agent-link', attr: 'href' }, transforms: ['absoluteUrl'] },
-    { name: 'price_text', type: 'number', source: { css: '.listing-price .price' }, transforms: ['money'] },
+    {
+      name: 'available_from',
+      type: 'date',
+      source: { css: 'dl.facts dd[data-k=available]', attr: 'text' },
+      transforms: ['trim', 'date'],
+    },
+    {
+      name: 'pets_allowed',
+      type: 'boolean',
+      source: { css: 'dl.facts dd[data-k=pets]', attr: 'text' },
+      transforms: ['bool:ok'],
+    },
+    {
+      name: 'photos',
+      type: 'string[]',
+      source: { css: '.gallery img', attr: 'src', all: true },
+      transforms: ['absoluteUrl'],
+    },
+    {
+      name: 'amenities',
+      type: 'string[]',
+      source: { css: 'ul.amenities li', attr: 'text', all: true },
+    },
+    {
+      name: 'agent_url',
+      type: 'url',
+      source: { css: '.agent-card a.agent-link', attr: 'href' },
+      transforms: ['absoluteUrl'],
+    },
+    {
+      name: 'price_text',
+      type: 'number',
+      source: { css: '.listing-price .price' },
+      transforms: ['money'],
+    },
   ],
 };
 
@@ -67,8 +107,12 @@ describe('extract: Listing on the demo fixture', () => {
   });
 
   it('re-extracting the same HTML with a different crawl time gives the same hash', () => {
-    const a = extract(listingHtml, LISTING_SPEC, LISTING_URL, { updatedAt: '2026-12-01T00:00:00.000Z' })!;
-    const b = extract(listingHtml, LISTING_SPEC, LISTING_URL, { updatedAt: '2026-12-09T08:30:00.000Z' })!;
+    const a = extract(listingHtml, LISTING_SPEC, LISTING_URL, {
+      updatedAt: '2026-12-01T00:00:00.000Z',
+    })!;
+    const b = extract(listingHtml, LISTING_SPEC, LISTING_URL, {
+      updatedAt: '2026-12-09T08:30:00.000Z',
+    })!;
     expect(a.updatedAt).not.toBe(b.updatedAt);
     expect(recordHash(a.data, sha256)).toBe(recordHash(b.data, sha256));
   });
@@ -77,7 +121,10 @@ describe('extract: Listing on the demo fixture', () => {
     const reformatted = listingHtml
       .replace(/\n\s*/g, '\n')
       .replace('"price": "2150",\n"priceCurrency": "USD",', '"priceCurrency":"USD","price":"2150",')
-      .replace('<dd data-k="pets">Cats and dogs OK</dd>', '<dd data-k="pets">\n  Cats   and dogs\tOK\n</dd>');
+      .replace(
+        '<dd data-k="pets">Cats and dogs OK</dd>',
+        '<dd data-k="pets">\n  Cats   and dogs\tOK\n</dd>',
+      );
     expect(reformatted).not.toBe(listingHtml);
     const r = extract(reformatted, LISTING_SPEC, LISTING_URL)!;
     expect(recordHash(r.data, sha256)).toBe(recordHash(rec!.data, sha256));
@@ -91,7 +138,9 @@ describe('extract: Listing on the demo fixture', () => {
   });
 
   it('failed coercions become null, other fields survive', () => {
-    const broken = listingHtml.replace('2026-12-15', 'Call us').replace('"numberOfRooms": 2', '"numberOfRooms": "studio"');
+    const broken = listingHtml
+      .replace('2026-12-15', 'Call us')
+      .replace('"numberOfRooms": 2', '"numberOfRooms": "studio"');
     const r = extract(broken, LISTING_SPEC, LISTING_URL)!;
     expect(r.data.available_from).toBeNull();
     expect(r.data.bedrooms).toBeNull();
@@ -112,10 +161,30 @@ describe('extract: CSS-only templates (no JSON-LD)', () => {
       fields: [
         { name: 'name', type: 'string', required: true, source: { css: '.agent-name' } },
         { name: 'agent_phone', type: 'string', source: { css: '.agent-phone' } },
-        { name: 'active_listings', type: 'integer', source: { css: 'dd[data-k=listings]' }, transforms: ['firstInt'] },
-        { name: 'languages', type: 'string[]', source: { css: 'dd[data-k=languages]' }, transforms: ['split:,'] },
-        { name: 'licensed_since', type: 'date', source: { css: 'dd[data-k=licensed]' }, transforms: ['date'] },
-        { name: 'licensed_year', type: 'integer', source: { css: 'dd[data-k=licensed]' }, transforms: ['regex:(\\d{4})'] },
+        {
+          name: 'active_listings',
+          type: 'integer',
+          source: { css: 'dd[data-k=listings]' },
+          transforms: ['firstInt'],
+        },
+        {
+          name: 'languages',
+          type: 'string[]',
+          source: { css: 'dd[data-k=languages]' },
+          transforms: ['split:,'],
+        },
+        {
+          name: 'licensed_since',
+          type: 'date',
+          source: { css: 'dd[data-k=licensed]' },
+          transforms: ['date'],
+        },
+        {
+          name: 'licensed_year',
+          type: 'integer',
+          source: { css: 'dd[data-k=licensed]' },
+          transforms: ['regex:(\\d{4})'],
+        },
       ],
     };
     const r = extract(fixture('agent.html'), spec, `${ORIGIN}/agents/maya-okafor`);
@@ -138,8 +207,19 @@ describe('extract: CSS-only templates (no JSON-LD)', () => {
     const spec: ExtractorSpecInput = {
       recordKey: { from: 'url' },
       fields: [
-        { name: 'starts_at', type: 'datetime', required: true, source: { css: '.when time', attr: 'datetime' }, transforms: ['datetime'] },
-        { name: 'listing_url', type: 'url', source: { css: 'a.listing-link', attr: 'href' }, transforms: ['absoluteUrl'] },
+        {
+          name: 'starts_at',
+          type: 'datetime',
+          required: true,
+          source: { css: '.when time', attr: 'datetime' },
+          transforms: ['datetime'],
+        },
+        {
+          name: 'listing_url',
+          type: 'url',
+          source: { css: 'a.listing-link', attr: 'href' },
+          transforms: ['absoluteUrl'],
+        },
       ],
     };
     const r = extract(fixture('open-house.html'), spec, `${ORIGIN}/open-houses/oh-12`);
@@ -169,28 +249,58 @@ describe('extract: JSON-LD handling', () => {
     blocks.map((b) => `<script type="application/ld+json">${b}</script>`).join('');
 
   it('first match across all blocks, skipping invalid ones', () => {
-    const html = ld('{not json', '{"@type":"Organization"}', '{"name":"second"}', '{"name":"third"}');
+    const html = ld(
+      '{not json',
+      '{"@type":"Organization"}',
+      '{"name":"second"}',
+      '{"name":"third"}',
+    );
     expect(extract(html, spec('$.name'), LISTING_URL)?.data.v).toBe('second');
   });
 
   it('searches top-level arrays and @graph nodes', () => {
-    expect(extract(ld('[{"@type":"A"},{"name":"in array"}]'), spec('$.name'), LISTING_URL)?.data.v).toBe('in array');
-    expect(extract(ld('{"@graph":[{"@type":"A"},{"name":"in graph"}]}'), spec('$.name'), LISTING_URL)?.data.v).toBe('in graph');
+    expect(
+      extract(ld('[{"@type":"A"},{"name":"in array"}]'), spec('$.name'), LISTING_URL)?.data.v,
+    ).toBe('in array');
+    expect(
+      extract(ld('{"@graph":[{"@type":"A"},{"name":"in graph"}]}'), spec('$.name'), LISTING_URL)
+        ?.data.v,
+    ).toBe('in graph');
   });
 
   it('matches type attributes case-insensitively and with parameters', () => {
-    const html = '<script type="Application/LD+JSON; charset=utf-8">{"name":"x"}</script><script>{"name":"js"}</script>';
+    const html =
+      '<script type="Application/LD+JSON; charset=utf-8">{"name":"x"}</script><script>{"name":"js"}</script>';
     expect(extract(html, spec('$.name'), LISTING_URL)?.data.v).toBe('x');
   });
 
   it('unwraps @value objects; other objects coerce to null', () => {
-    expect(extract(ld('{"n":{"@value":"7"},"o":{"a":1}}'), spec('$.n', 'integer'), LISTING_URL)?.data.v).toBe(7);
-    expect(extract(ld('{"n":1,"o":{"a":1}}'), { recordKey: { from: 'url' }, fields: [{ name: 'n', type: 'integer', source: { jsonld: '$.n' } }, { name: 'o', type: 'string', source: { jsonld: '$.o' } }] }, LISTING_URL)?.data.o).toBeNull();
+    expect(
+      extract(ld('{"n":{"@value":"7"},"o":{"a":1}}'), spec('$.n', 'integer'), LISTING_URL)?.data.v,
+    ).toBe(7);
+    expect(
+      extract(
+        ld('{"n":1,"o":{"a":1}}'),
+        {
+          recordKey: { from: 'url' },
+          fields: [
+            { name: 'n', type: 'integer', source: { jsonld: '$.n' } },
+            { name: 'o', type: 'string', source: { jsonld: '$.o' } },
+          ],
+        },
+        LISTING_URL,
+      )?.data.o,
+    ).toBeNull();
   });
 
   it('recordKey from a JSON-LD path', () => {
-    const s: ExtractorSpecInput = { recordKey: { jsonld: "$['@id']" }, fields: [{ name: 'n', type: 'string', source: { jsonld: '$.name' } }] };
-    expect(extract(listingHtml, s, LISTING_URL)?.recordKey).toBe(`${ORIGIN}/listings/2br-east-cesar-chavez-4471`);
+    const s: ExtractorSpecInput = {
+      recordKey: { jsonld: "$['@id']" },
+      fields: [{ name: 'n', type: 'string', source: { jsonld: '$.name' } }],
+    };
+    expect(extract(listingHtml, s, LISTING_URL)?.recordKey).toBe(
+      `${ORIGIN}/listings/2br-east-cesar-chavez-4471`,
+    );
     // No key → not a record.
     expect(extract(ld('{"name":"no id"}'), s, LISTING_URL)).toBeNull();
   });
@@ -203,12 +313,17 @@ describe('extract: JSON-LD handling', () => {
 describe('compileExtractor', () => {
   it('compiles once and is reused', () => {
     const c = compileExtractor(LISTING_SPEC);
-    expect(c.extract(listingHtml, LISTING_URL)).toEqual(extract(listingHtml, LISTING_SPEC, LISTING_URL));
+    expect(c.extract(listingHtml, LISTING_URL)).toEqual(
+      extract(listingHtml, LISTING_SPEC, LISTING_URL),
+    );
   });
 
   it('uses an injected regex engine', () => {
     const calls: string[] = [];
-    const spec: ExtractorSpecInput = { recordKey: { from: 'url' }, fields: [{ name: 'n', type: 'string', source: { css: 'h1' }, transforms: ['regex:(\\w+)'] }] };
+    const spec: ExtractorSpecInput = {
+      recordKey: { from: 'url' },
+      fields: [{ name: 'n', type: 'string', source: { css: 'h1' }, transforms: ['regex:(\\w+)'] }],
+    };
     const r = extract('<h1>Hello world</h1>', spec, LISTING_URL, {
       regex: { compile: (p) => (calls.push(p), { firstGroup: () => 'stub' }) },
     });

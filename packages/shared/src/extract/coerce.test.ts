@@ -15,7 +15,7 @@ const table: Array<[type: FieldType, input: Value, expected: FieldValue]> = [
   ['integer', '2.0', 2],
   ['integer', 2.5, null],
   ['integer', '2 beds', null],
-  ['integer', 9007199254740993, null],
+  ['integer', Number.MAX_SAFE_INTEGER + 2, null],
   ['integer', true, null],
   ['number', 2.5, 2.5],
   ['number', '2.5', 2.5],

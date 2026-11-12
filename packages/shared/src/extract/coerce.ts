@@ -9,16 +9,6 @@ export type Value = Scalar | null | Value[];
 /** A coerced field value as stored in `records.data`. */
 export type FieldValue = Scalar | string[] | null;
 
-// `URL` is in browsers and Node but not in the ES2022 lib this package builds against, so it is
-// looked up on globalThis instead of declared (a global declaration would clash with lib.dom).
-interface UrlLike {
-  href: string;
-  protocol: string;
-  pathname: string;
-}
-type UrlCtor = new (input: string, base?: string) => UrlLike;
-const URLCtor = (globalThis as unknown as { URL: UrlCtor }).URL;
-
 const NUMBER_RE = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 
 /** Strict decimal: `"1875"`, `" 2.5 "`, `"-3"`; not `"1,875"`, `"0x10"`, `""` or `"12 sq ft"`. */
@@ -37,7 +27,7 @@ export function parseHttpUrl(v: unknown, base?: string): string | null {
   const s = v.trim();
   if (!s) return null;
   try {
-    const u = base === undefined ? new URLCtor(s) : new URLCtor(s, base);
+    const u = base === undefined ? new URL(s) : new URL(s, base);
     return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null;
   } catch {
     return null;
@@ -47,7 +37,7 @@ export function parseHttpUrl(v: unknown, base?: string): string | null {
 /** Last non-empty path segment of an absolute URL (`/listings/2br-x-4471/` → `2br-x-4471`). */
 export function lastPathSegment(url: string): string | null {
   try {
-    const segments = new URLCtor(url).pathname.split('/').filter(Boolean);
+    const segments = new URL(url).pathname.split('/').filter(Boolean);
     return segments[segments.length - 1] ?? null;
   } catch {
     return null;
@@ -55,9 +45,30 @@ export function lastPathSegment(url: string): string | null {
 }
 
 const MONTHS: Record<string, number> = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10,
-  nov: 11, dec: 12, january: 1, february: 2, march: 3, april: 4, june: 6, july: 7, august: 8,
-  september: 9, october: 10, november: 11, december: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  sept: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12,
 };
 
 const pad = (n: number, w = 2) => String(n).padStart(w, '0');
@@ -128,8 +139,14 @@ export function parseDateTime(v: unknown): string | null {
 }
 
 const BOOL_WORDS: Record<string, boolean> = {
-  true: true, yes: true, y: true, '1': true,
-  false: false, no: false, n: false, '0': false,
+  true: true,
+  yes: true,
+  y: true,
+  '1': true,
+  false: false,
+  no: false,
+  n: false,
+  '0': false,
 };
 
 function first(v: Value): Value {
