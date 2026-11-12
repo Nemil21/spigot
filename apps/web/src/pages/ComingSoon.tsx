@@ -4,10 +4,15 @@
  */
 export function ComingSoon({ title, screen }: { title: string; screen: string }) {
   return (
-    <section className="mx-auto max-w-3xl px-6 py-16" data-screen={screen}>
-      <p className="text-xs font-semibold tracking-wide text-muted uppercase">{screen}</p>
-      <h1 className="mt-1 text-2xl font-semibold text-ink">{title}</h1>
-      <p className="mt-4 text-body">Coming soon</p>
+    <section
+      className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+      data-screen={screen}
+    >
+      <h1 className="text-2xl font-semibold text-ink">{title}</h1>
+      <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-surface px-6 py-16 text-center">
+        <p className="text-md font-semibold text-ink">Coming soon</p>
+        <p className="mt-1 text-sm text-muted">Screen {screen} is on its way.</p>
+      </div>
     </section>
   );
 }

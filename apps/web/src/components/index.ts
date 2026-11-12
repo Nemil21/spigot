@@ -11,6 +11,7 @@ export {
 } from './Button';
 export { EmptyState } from './EmptyState';
 export { ErrorBanner, errorMessage } from './ErrorBanner';
+export { Field, inputClass } from './Field';
 export { Kpi } from './Kpi';
 export { LoginForm, safeNext } from './LoginForm';
 export { Money, type MoneyProps, type MoneyWord } from './Money';
