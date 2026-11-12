@@ -351,6 +351,30 @@ describe.skipIf(!testDatabaseUrl)('SP-019 jobs (Postgres + FakePayPal)', () => {
     expect(await topupTxns(topupId)).toBe(0);
   });
 
+  it('a PENDING row already flagged needs_reconcile → no getOrder, no new ALERT on any sweep', async () => {
+    const buyer = await newBuyer();
+    const { topupId, orderId } = await openTopup(buyer.cookie);
+    await app.db.pool.query(
+      `UPDATE topups SET pending_reason = 'ECHECK', needs_reconcile = true WHERE id = $1`,
+      [topupId],
+    );
+    await backdate(topupId, 120);
+    const alerts = async () =>
+      (
+        await app.db.pool.query(
+          `SELECT id FROM audit_events WHERE entity_id = $1 AND action = 'ALERT'`,
+          [topupId],
+        )
+      ).rows.length;
+    const alertsBefore = await alerts();
+
+    for (let i = 0; i < 4; i++) await abandonStaleTopups(deps);
+
+    expect(getOrders(orderId)).toBe(0);
+    expect(await alerts()).toBe(alertsBefore);
+    expect((await topupById(app.db, topupId))?.status).toBe('AWAITING_APPROVAL');
+  });
+
   it('a row with paypal_capture_id or needs_reconcile is skipped by the sweep (no PayPal call)', async () => {
     const buyer = await newBuyer();
     const withCapture = await openTopup(buyer.cookie);
