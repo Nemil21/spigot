@@ -17,6 +17,9 @@ import { readSitemap } from './sitemap.js';
  * 2. QUEUED → RUNNING; `readSitemap` + `upsertPages`; pick pages that are new, have
  *    `sitemap_lastmod > fetched_at`, last answered 404/410, or (MANUAL) weren't fetched since
  *    the run started; fan out `fetchPage` (≤ 2 in flight per host, min gap; queue.ts).
+ *    A sitemap lastmod has whole-second precision but `fetched_at` has microseconds, so the
+ *    comparison is against `fetched_at` truncated to the second: a page edited later in the
+ *    same second as our fetch still has a lastmod "after" it (at worst a spare conditional GET).
  * 3. Run end, in one place and in this order: the run → SUCCEEDED / PARTIAL / FAILED with its
  *    counters; on the site's discovery run (site still VERIFIED) that SUCCEEDED, or is PARTIAL
  *    with ≥ 90% of pages fetched, `VERIFIED → PROPOSING` in the same transaction; after commit
@@ -298,7 +301,7 @@ async function runCrawl(runId: string, siteId: string, deps: CrawlDeps): Promise
     `SELECT id FROM pages
       WHERE site_id = $1 AND removed_at IS NULL
         AND (fetched_at IS NULL
-             OR sitemap_lastmod > fetched_at
+             OR sitemap_lastmod >= date_trunc('second', fetched_at)
              OR last_status IN (404, 410)
              OR ($2 AND fetched_at < $3))
       ORDER BY url`,
