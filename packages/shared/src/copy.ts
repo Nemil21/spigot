@@ -221,3 +221,118 @@ export function crawlBlockedMessage(args: { httpStatus: number; retryAfterMs: nu
     `We paused and will retry after ${formatAge(args.retryAfterMs, { round: 'ceil' })}.`
   );
 }
+
+// ---------------------------------------------------------------------------------------------
+// W04 bot report and activity feed (SP-027a). Importers: SP-027a (API), SP-027b (W04).
+
+/**
+ * W04 KPI "1 bot per N human visits" (api.md `totals.ratio`): N is rounded, so 571,000 human and
+ * 18,420 bot hits read "1 bot per 31 human visits". When bots outnumber people it flips
+ * ("3 bots per human visit") rather than showing "1 bot per 0 human visits".
+ */
+export function botRatioLine(botHits: number, humanHits: number): string {
+  if (botHits <= 0) return 'No bot visits yet';
+  if (humanHits <= 0) return 'Only bots, no human visits';
+  if (humanHits >= botHits) {
+    const n = Math.round(humanHits / botHits);
+    return n === 1 ? '1 bot per human visit' : `1 bot per ${formatCount(n)} human visits`;
+  }
+  const m = Math.round(botHits / humanHits);
+  return m === 1 ? '1 bot per human visit' : `${formatCount(m)} bots per human visit`;
+}
+
+/** The `audit_events.action`s the publisher activity feed shows (`GET /api/publishers/me/activity`). */
+export const ACTIVITY_ACTIONS = [
+  'SCHEMA_PROPOSED',
+  'DATASET_PUBLISHED',
+  'CALL_CHARGED',
+  'TOPUP_COMPLETED',
+  'PAYOUT_SENT',
+  'PAYOUT_SETTLED',
+  'CRAWL_RUN_DONE',
+] as const;
+export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
+
+/** What a feed line may say; every field is optional, so a sparse audit row still reads well. */
+export interface ActivityFacts {
+  /** Record type, e.g. "Listing". */
+  typeName?: string | null;
+  /** Records in the dataset (proposed / published) or returned by the call (charged). */
+  records?: number | null;
+  buyerName?: string | null;
+  /** CALL_CHARGED: what the buyer was charged. */
+  priceMicros?: number | null;
+  /** TOPUP_COMPLETED: the PayPal amount; PAYOUT_*: the net payout. */
+  amountCents?: number | null;
+  /** PAYOUT_SETTLED: the item's final status (`SUCCESS` or `UNCLAIMED`). */
+  payoutStatus?: PayoutItemStatus | null;
+  /** CRAWL_RUN_DONE. */
+  crawlStatus?: string | null;
+  pagesFetched?: number | null;
+  recordsChanged?: number | null;
+}
+
+const has = (n: number | null | undefined): n is number =>
+  typeof n === 'number' && Number.isFinite(n);
+const recordsWord = (n: number) => (n === 1 ? 'record' : 'records');
+
+/**
+ * One activity-feed line (W04), following the money copy rule: "charged" for a call, "added via
+ * PayPal" for a buyer's top-up, "sent" / "paid out" for payouts (`payoutLine`).
+ * - SCHEMA_PROPOSED → "Proposal ready: Listing · 2,341 records"
+ * - DATASET_PUBLISHED → "Listing published · 2,341 records live"
+ * - CALL_CHARGED → "Acme Agents: $0.0555 charged for 37 Listing records"
+ * - TOPUP_COMPLETED → "Acme Agents added $20 via PayPal"
+ * - PAYOUT_SENT → "$412.75 sent via PayPal"; PAYOUT_SETTLED → "$412.75 paid out via PayPal"
+ * - CRAWL_RUN_DONE → "Crawl finished · 2,341 pages, 12 records changed"
+ */
+export function activityLine(action: ActivityAction, f: ActivityFacts = {}): string {
+  const type = f.typeName?.trim() || 'Record type';
+  const buyer = f.buyerName?.trim() || 'A buyer';
+  switch (action) {
+    case 'SCHEMA_PROPOSED':
+      return has(f.records)
+        ? `Proposal ready: ${type} · ${formatCount(f.records)} ${recordsWord(f.records)}`
+        : `Proposal ready: ${type}`;
+    case 'DATASET_PUBLISHED':
+      return has(f.records)
+        ? `${type} published · ${formatCount(f.records)} ${recordsWord(f.records)} live`
+        : `${type} published`;
+    case 'CALL_CHARGED': {
+      if (!has(f.priceMicros)) return `${buyer}: call ${MONEY_WORDS.charged}`;
+      const what = has(f.records)
+        ? ` for ${formatCount(f.records)} ${f.typeName?.trim() ? `${f.typeName.trim()} ` : ''}${recordsWord(f.records)}`
+        : '';
+      return `${buyer}: ${chargedLine(f.priceMicros)}${what}`;
+    }
+    case 'TOPUP_COMPLETED':
+      return has(f.amountCents)
+        ? `${buyer} added ${formatCents(f.amountCents)} via PayPal`
+        : `${buyer} topped up via PayPal`;
+    case 'PAYOUT_SENT':
+      return has(f.amountCents) ? payoutLine('PENDING', f.amountCents) : 'Payout sent via PayPal';
+    case 'PAYOUT_SETTLED': {
+      const status = f.payoutStatus === 'UNCLAIMED' ? 'UNCLAIMED' : 'SUCCESS';
+      if (has(f.amountCents)) return payoutLine(status, f.amountCents);
+      return status === 'UNCLAIMED'
+        ? 'Payout waiting for you to claim in PayPal'
+        : PAID_OUT_VIA_PAYPAL;
+    }
+    case 'CRAWL_RUN_DONE': {
+      const head =
+        f.crawlStatus === 'FAILED'
+          ? 'Crawl failed'
+          : f.crawlStatus === 'PARTIAL'
+            ? 'Crawl partly finished'
+            : f.crawlStatus === 'PAUSED'
+              ? 'Crawl paused'
+              : 'Crawl finished';
+      const parts: string[] = [];
+      if (has(f.pagesFetched)) parts.push(`${formatCount(f.pagesFetched)} pages`);
+      if (has(f.recordsChanged) && f.recordsChanged > 0) {
+        parts.push(`${formatCount(f.recordsChanged)} ${recordsWord(f.recordsChanged)} changed`);
+      }
+      return parts.length ? `${head} · ${parts.join(', ')}` : head;
+    }
+  }
+}
