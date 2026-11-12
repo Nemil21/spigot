@@ -29,7 +29,6 @@ type Cell = ICellRendererParams<UsageRow>;
 
 /** Calls grid rows fit a two-line Charged cell ("$0.0555" over "$0.0015 credited"). */
 const GRID_ROW_PX = 52;
-const AUTO_HEIGHT_ROWS = 15;
 /** Cells centre vertically so one-line cells line up with the two-line Charged cell. */
 const CELL = { display: 'flex', alignItems: 'center' } as const;
 const CELL_END = { ...CELL, justifyContent: 'flex-end' } as const;
@@ -238,8 +237,8 @@ export function UsageScreen({
           <>
             <SpigotGrid<UsageRow>
               // Short pages size to their rows (no empty band); long ones scroll inside the grid.
-              height={rows.length <= AUTO_HEIGHT_ROWS ? 'auto' : 600}
-              domLayout={rows.length <= AUTO_HEIGHT_ROWS ? 'autoHeight' : 'normal'}
+              height={rows.length <= ui.GRID_AUTO_HEIGHT_ROWS ? 'auto' : 600}
+              domLayout={rows.length <= ui.GRID_AUTO_HEIGHT_ROWS ? 'autoHeight' : 'normal'}
               rowHeight={GRID_ROW_PX}
               rowData={rows}
               columnDefs={columns}
