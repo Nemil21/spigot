@@ -39,8 +39,14 @@ export interface SiteGate {
 export interface AdminHealth {
   status: 'ok' | 'degraded';
   checkedAt: string;
-  checks: { paypal: CheckResult; db: CheckResult; workflows: WorkflowsCheck };
-  /** The tiles below are `null` when the DB check failed. */
+  checks: {
+    paypal: CheckResult;
+    db: CheckResult;
+    workflows: WorkflowsCheck;
+    /** The tile queries below (`DB_UNAVAILABLE` when the DB check already failed). */
+    facts: CheckResult;
+  };
+  /** The tiles below are `null` when the `facts` check failed. */
   gate: SiteGate[] | null;
   openTopups: { count: number; oldestAt: string | null; needsReconcile: number } | null;
   pendingPayouts: {
@@ -62,19 +68,23 @@ export interface HealthDeps {
 
 class CheckTimeout extends Error {}
 
-async function timed(fn: () => Promise<unknown>, timeoutMs: number): Promise<CheckResult> {
+async function timed<T>(
+  fn: () => Promise<T>,
+  timeoutMs: number,
+): Promise<{ check: CheckResult; value?: T }> {
   const started = performance.now();
   let timer: NodeJS.Timeout | undefined;
   try {
-    await Promise.race([
+    const value = await Promise.race([
       fn(),
-      new Promise((_, reject) => {
+      new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new CheckTimeout()), timeoutMs);
       }),
     ]);
-    return { ok: true, ms: Math.round(performance.now() - started) };
+    return { check: { ok: true, ms: Math.round(performance.now() - started) }, value };
   } catch (err) {
-    return { ok: false, ms: Math.round(performance.now() - started), error: errorCode(err) };
+    const ms = Math.round(performance.now() - started);
+    return { check: { ok: false, ms, error: errorCode(err) } };
   } finally {
     clearTimeout(timer);
   }
@@ -105,20 +115,23 @@ export async function adminHealth(deps: HealthDeps): Promise<AdminHealth> {
   const timeoutMs = deps.timeoutMs ?? 5000;
   const { pool } = deps;
 
-  const [paypal, db] = await Promise.all([
+  const [{ check: paypal }, { check: db }] = await Promise.all([
     timed(deps.paypalToken, timeoutMs),
     timed(() => pool.query('SELECT 1'), timeoutMs),
   ]);
   const workflows = workflowsCheck(deps.config);
-  const facts = db.ok
-    ? await opsFacts(pool)
-    : { gate: null, openTopups: null, pendingPayouts: null };
+  // The tiles get the same timeout and error handling: the DB can drop, or the pool can be
+  // saturated, after `SELECT 1` succeeded.
+  const tiles = db.ok
+    ? await timed(() => opsFacts(pool), timeoutMs)
+    : { check: { ok: false, ms: 0, error: 'DB_UNAVAILABLE' } };
+  const facts = tiles.check;
 
   return {
-    status: paypal.ok && db.ok && workflows.ok ? 'ok' : 'degraded',
+    status: paypal.ok && db.ok && workflows.ok && facts.ok ? 'ok' : 'degraded',
     checkedAt: new Date().toISOString(),
-    checks: { paypal, db, workflows },
-    ...facts,
+    checks: { paypal, db, workflows, facts },
+    ...(tiles.value ?? { gate: null, openTopups: null, pendingPayouts: null }),
   };
 }
 

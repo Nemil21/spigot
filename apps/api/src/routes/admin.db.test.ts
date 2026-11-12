@@ -455,7 +455,45 @@ describe.skipIf(!testDatabaseUrl)(
         });
         expect(h).toMatchObject({
           status: 'degraded',
-          checks: { db: { ok: false, error: 'ECONNREFUSED' } },
+          checks: {
+            db: { ok: false, error: 'ECONNREFUSED' },
+            facts: { ok: false, error: 'DB_UNAVAILABLE' },
+          },
+          gate: null,
+          openTopups: null,
+          pendingPayouts: null,
+        });
+      });
+
+      /** `SELECT 1` answers; every later query gets `later()`. */
+      const flakyPool = (later: () => Promise<never>) =>
+        ({
+          query: (sql: string) => (sql === 'SELECT 1' ? app.db.pool.query(sql) : later()),
+        }) as never;
+
+      it('DB drops after SELECT 1 (a tile query rejects) → degraded, tiles null, no throw', async () => {
+        const h = await adminHealth({
+          ...base(),
+          pool: flakyPool(() => Promise.reject(Object.assign(new Error('x'), { code: '57P01' }))),
+        });
+        expect(h).toMatchObject({
+          status: 'degraded',
+          checks: { db: { ok: true }, facts: { ok: false, error: '57P01' } },
+          gate: null,
+          openTopups: null,
+          pendingPayouts: null,
+        });
+      });
+
+      it('saturated pool after SELECT 1 (a tile query hangs) → times out, tiles null', async () => {
+        const h = await adminHealth({
+          ...base(),
+          timeoutMs: 50,
+          pool: flakyPool(() => new Promise<never>(() => {})),
+        });
+        expect(h).toMatchObject({
+          status: 'degraded',
+          checks: { db: { ok: true }, facts: { ok: false, error: 'TIMEOUT' } },
           gate: null,
           openTopups: null,
           pendingPayouts: null,
