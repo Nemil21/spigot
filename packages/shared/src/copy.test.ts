@@ -12,6 +12,7 @@ import {
   creditedLine,
   formatAge,
   insufficientBalanceMessage,
+  mcpInsufficientBalanceMessage,
   payoutLine,
   payoutStatusLabel,
   topupStatusLabel,
@@ -86,6 +87,26 @@ describe('W15 copy (screens.md)', () => {
     expect(
       priceAboveMaxMessage({ records: 1, priceMicros: 1_500, maxPriceMicros: 1_000 }),
     ).toContain('return 1 record ($0.0015)');
+  });
+
+  it('names the MCP argument when asked, and words the MCP short-balance line', () => {
+    expect(
+      priceAboveMaxMessage({
+        records: 2,
+        priceMicros: 3_000,
+        maxPriceMicros: 1_000,
+        param: 'maxPriceMicros',
+      }),
+    ).toMatch(/raise `maxPriceMicros`\.$/);
+    expect(
+      mcpInsufficientBalanceMessage({
+        priceMicros: 55_500,
+        balanceMicros: 12_000,
+        topUpUrl: 'https://spigot.test/buyers/topup',
+      }),
+    ).toBe(
+      'This call costs $0.0555; balance $0.012. Ask me to top up, or open https://spigot.test/buyers/topup.',
+    );
   });
 
   it('rounds a retry delay up, never promising an earlier retry', () => {

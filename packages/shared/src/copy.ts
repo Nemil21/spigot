@@ -149,12 +149,29 @@ export function priceAboveMaxMessage(args: {
   records: number;
   priceMicros: number;
   maxPriceMicros: number;
+  /** The cap's name on this surface: `max_price_micros` (REST, default) or `maxPriceMicros` (MCP). */
+  param?: string;
 }): string {
   const noun = args.records === 1 ? 'record' : 'records';
   return (
     `This would return ${formatCount(args.records)} ${noun} (${formatMicros(args.priceMicros)}), ` +
     `above your ${formatMicros(args.maxPriceMicros)} per-call limit. ` +
-    'Narrow the filters or raise `max_price_micros`.'
+    `Narrow the filters or raise \`${args.param ?? 'max_price_micros'}\`.`
+  );
+}
+
+/**
+ * The MCP tool-error line for a short balance (features/11 §Logic 5), spoken by the agent to its
+ * user: "This call costs $0.0555; balance $0.012. Ask me to top up, or open <url>."
+ */
+export function mcpInsufficientBalanceMessage(args: {
+  priceMicros: number;
+  balanceMicros: number;
+  topUpUrl: string;
+}): string {
+  return (
+    `This call costs ${formatMicros(args.priceMicros)}; balance ${formatMicros(args.balanceMicros)}. ` +
+    `Ask me to top up, or open ${args.topUpUrl}.`
   );
 }
 
