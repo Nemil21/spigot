@@ -430,6 +430,7 @@ describe.skipIf(!testDatabaseUrl)('SP-027a bots + activity APIs (Postgres)', () 
         bytes: 30_000_000,
         wouldHavePaid: 0,
         isSimulated: false,
+        hits24h: new Array(24).fill(0),
       });
       const gpt = byBot.filter((r) => r.botName === 'GPTBot');
       expect(gpt).toEqual([
@@ -442,6 +443,26 @@ describe.skipIf(!testDatabaseUrl)('SP-027a bots + activity APIs (Postgres)', () 
         }),
       ]);
       expect(byBot.some((r) => r.category === 'HUMAN')).toBe(false);
+    });
+
+    it('gives each byBot row 24 hourly sparkline points ending at `to` (SP-027b)', async () => {
+      const res = await bots(siteA, a.cookie, { from: FROM, to: TO });
+      const byBot = res.body.byBot as {
+        botName: string;
+        isSimulated: boolean;
+        hits24h: number[];
+      }[];
+      expect(byBot.every((r) => r.hits24h.length === 24)).toBe(true);
+      // GPTBot's 23:59 bucket is the last hour before `to`; its older hits are outside the 24 h.
+      const real = byBot.find((r) => r.botName === 'GPTBot' && !r.isSimulated)!;
+      expect(real.hits24h).toEqual([...new Array(23).fill(0), 5]);
+
+      // A `to` one hour later shifts the point left by one slot.
+      const later = await bots(siteA, a.cookie, { from: FROM, to: '2026-11-12T01:00:00.000Z' });
+      const shifted = (later.body.byBot as typeof byBot).find(
+        (r) => r.botName === 'GPTBot' && !r.isSimulated,
+      )!;
+      expect(shifted.hits24h).toEqual([...new Array(22).fill(0), 5, 0]);
     });
 
     it('buckets the series by the range: minute for ≤ 3 h, hour for 7 d, day beyond', async () => {
