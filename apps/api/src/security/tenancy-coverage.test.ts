@@ -122,6 +122,24 @@ describe('SP-042 tenancy coverage (route table vs tenancy/*.cases.ts)', () => {
       const c = { ...base, url: '/api/payouts/:id', ids: (b: TenantB) => [b.publisherId] };
       expect(tenantUrls(c, B, RANDOM)).toEqual(['/api/payouts/b-publisher']);
       expect(() => tenantUrls({ ...c, ids: () => [] }, B, RANDOM)).toThrow(/no tenant-B id/);
+      // Params that merely start with a slug name (`:siteId`, `:keyId`) are ids, not slugs.
+      expect(
+        tenantUrls(
+          { ...base, url: '/api/sites/:siteId/things', ids: (b) => [b.siteId] },
+          B,
+          RANDOM,
+        ),
+      ).toEqual(['/api/sites/b-site/things']);
+      expect(
+        tenantUrls({ ...base, url: '/api/buyer/keys/:keyId', ids: (b) => [b.apiKeyId] }, B, RANDOM),
+      ).toEqual(['/api/buyer/keys/b-key']);
+      expect(
+        tenantUrls(
+          { ...base, url: '/api/datasets/:datasetId', ids: (b) => [b.liveDatasetId] },
+          B,
+          RANDOM,
+        ),
+      ).toEqual(['/api/datasets/b-live']);
     });
 
     it('public slugs take B’s slugs; admin params may fall back to a random id', () => {

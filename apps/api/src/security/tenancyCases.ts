@@ -82,9 +82,9 @@ const PARAM = /:[A-Za-z_]+/g;
 export function tenantUrls(c: TenancyCase, b: TenantB, randomId: () => string): string[] {
   const filled = (id: string) =>
     c.url
-      .replace(':site', b.siteSlug)
-      .replace(':dataset', 'listings')
-      .replace(':key', 'r-1')
+      .replace(/:site(?=\/|$)/, b.siteSlug)
+      .replace(/:dataset(?=\/|$)/, 'listings')
+      .replace(/:key(?=\/|$)/, 'r-1')
       .replace(PARAM, () => id);
   const idParams = (c.url.replace(/:(site|dataset|key)(?=\/|$)/g, '').match(PARAM) ?? []).length;
   if (idParams === 0) return [filled('')];
