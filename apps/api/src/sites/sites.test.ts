@@ -170,7 +170,9 @@ describe('probeOrigin', () => {
     ] as const) {
       const d = deps({ [`${ORIGIN}/sitemap.xml`]: gz(xml) });
       const probe = await codeOf(probeOrigin(ORIGIN, undefined, d));
-      expect(probe === null, `probe accepted=${accepted}`).toBe(accepted);
+      expect(probe, `probe accepted=${accepted}`).toEqual(
+        accepted ? null : ['VALIDATION_ERROR', MESSAGES.noSitemap],
+      );
       const crawl = await readSitemap({ origin: ORIGIN }, { fetch: d.fetch }).then(
         () => true,
         () => false,
