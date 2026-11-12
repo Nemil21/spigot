@@ -6,10 +6,8 @@ import buyerMe from './fixtures/api/buyer/me.json';
 import { routes } from './router';
 import { buyerNav, href, paths, publisherNav } from './routes';
 
-/** Every screen in SP-024a's list: path → the stub's `data-screen` and heading. */
-const SCREENS: [path: string, screen: string, title: string][] = [
-  ['/buyers/usage', 'W12', 'Usage and claims'],
-];
+/** Every screen in SP-024a's list still a stub: path → the stub's `data-screen` and heading. */
+const SCREENS: [path: string, screen: string, title: string][] = [];
 
 /** Real W11 pages (SP-032), no longer stubs. */
 const BUYER_PAGES: [path: string, title: string][] = [
@@ -38,6 +36,9 @@ const BUILT: [path: string, screen: string, title: string, landmark: string][] =
   // SP-054; no sites API here either, so W10 shows its inline error banner. Its states are tested
   // in pages/crawls.
   ['/app/crawls', 'W10', 'Crawls', 'alert'],
+  // SP-050; no usage API here either, so W12 shows its inline error banner. Its states are tested
+  // in pages/buyer/Usage.test.tsx.
+  ['/buyers/usage', 'W12', 'Usage and claims', 'alert'],
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
@@ -75,12 +76,15 @@ describe('router', { timeout: 30_000 }, () => {
   // W04 (SP-027b) imports AG Grid + AG Charts; load the chunk once so `findBy` covers render only.
   beforeAll(() => import('./pages/Overview'), 30_000);
 
-  it.each(SCREENS)('%s resolves to its stub (%s)', async (path, screenId, title) => {
-    const h1 = await renderAt(path);
-    expect(h1).toHaveTextContent(title);
-    expect(h1.closest('[data-screen]')).toHaveAttribute('data-screen', screenId);
-    expect(screen.getByText('Coming soon')).toBeInTheDocument();
-  });
+  it.skipIf(SCREENS.length === 0).each(SCREENS)(
+    '%s resolves to its stub (%s)',
+    async (path, screenId, title) => {
+      const h1 = await renderAt(path);
+      expect(h1).toHaveTextContent(title);
+      expect(h1.closest('[data-screen]')).toHaveAttribute('data-screen', screenId);
+      expect(screen.getByText('Coming soon')).toBeInTheDocument();
+    },
+  );
 
   it.each(BUILT)('%s renders its real screen (%s)', async (path, screenId, title, landmark) => {
     const h1 = await renderAt(path);

@@ -1,0 +1,26 @@
+{
+  "id": "00000000-0000-4000-8000-0000000c0003",
+  "time": "2026-11-12T14:05:12.000Z",
+  "dataset": {
+    "id": "00000000-0000-4000-8000-0000000d0001",
+    "site": "bluebonnet",
+    "slug": "listings"
+  },
+  "endpoint": "records.search",
+  "channel": "MCP",
+  "status": "PARTIALLY_CREDITED",
+  "records": 3,
+  "changes": null,
+  "chargedMicros": 4500,
+  "creditedMicros": 1500,
+  "replayable": true,
+  "isSimulated": false,
+  "unitPriceMicros": 1500,
+  "httpStatus": 200,
+  "idempotencyKey": "claude-desktop-7f3a",
+  "servedRecords": [
+    { "key": "listings/2br-east-cesar-chavez-4471", "hash": "a1" },
+    { "key": "listings/3br-mueller-2210", "hash": "b2" },
+    { "key": "listings/1br-zilker-0090", "hash": "c3" }
+  ]
+}

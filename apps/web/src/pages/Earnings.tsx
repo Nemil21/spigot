@@ -8,6 +8,7 @@ import { EarningsBars } from '../charts/EarningsBars';
 import { EarningsGrid, exportEarningsCsv, type FlashRequest } from '../grids/EarningsGrid';
 import { LedgerGrid } from '../grids/LedgerGrid';
 import { paths } from '../routes';
+import { ClaimsTab } from './ClaimsTab';
 import {
   changedRowIds,
   earningsPath,
@@ -45,7 +46,9 @@ export interface EarningsScreenProps {
   origin?: string;
 }
 
-type Tab = 'sales' | 'ledger';
+type Tab = 'sales' | 'ledger' | 'claims';
+
+const TAB_LABEL: Record<Tab, string> = { sales: 'Sales', ledger: 'Ledger', claims: 'Claims' };
 
 export function EarningsScreen({
   client = defaultApi,
@@ -200,7 +203,7 @@ export function EarningsScreen({
 
       <div className="flex flex-wrap items-center gap-4">
         <div role="tablist" aria-label="Earnings views" className="flex gap-1">
-          {(['sales', 'ledger'] as const).map((t) => (
+          {(['sales', 'ledger', 'claims'] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -211,7 +214,7 @@ export function EarningsScreen({
                 tab === t ? 'bg-surface-2 text-ink' : 'text-muted hover:text-ink'
               }`}
             >
-              {t === 'sales' ? 'Sales' : 'Ledger'}
+              {TAB_LABEL[t]}
             </button>
           ))}
         </div>
@@ -241,7 +244,16 @@ export function EarningsScreen({
         )}
       </div>
 
-      {tab === 'ledger' ? (
+      {tab === 'claims' ? (
+        // SP-050: open claims with the AI's read; a credit moves payable, so refresh KPIs + ledger.
+        <ClaimsTab
+          client={client}
+          onDecided={() => {
+            void refresh();
+            setLedgerVersion((v) => v + 1);
+          }}
+        />
+      ) : tab === 'ledger' ? (
         <LedgerGrid client={client} includeSim={includeSim} version={ledgerVersion} />
       ) : loading ? (
         <Skeleton className="block h-64 w-full" />
