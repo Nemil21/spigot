@@ -11,6 +11,7 @@ import {
 } from './buyer/cardFieldsSdk';
 import type { PayPalConfig } from './buyer/paypalSdk';
 import { errorMessage } from './ErrorBanner';
+import * as ui from './buyer/ui';
 
 export const PAY_BY_CARD = 'Top up with a card';
 
@@ -197,20 +198,17 @@ export function CardFieldsTopUp({
   const usable = phase !== 'loading' && phase !== 'unavailable';
 
   return (
-    <section
-      aria-labelledby="card-topup-title"
-      className="rounded-lg border border-line bg-surface p-5 shadow-card"
-    >
-      <h2 id="card-topup-title" className="text-lg font-semibold text-ink">
+    <section aria-labelledby="card-topup-title" className={ui.panelBody}>
+      <h2 id="card-topup-title" className={ui.panelTitle}>
         {PAY_BY_CARD}
       </h2>
-      <p className="mt-1 text-sm text-muted">
+      <p className={ui.panelDesc}>
         No PayPal account? Pay by card through PayPal. Your card details go to PayPal, not to us.
       </p>
 
       <fieldset className="mt-4" disabled={inFlight || !usable}>
         <legend className="sr-only">Card amount</legend>
-        <div className="flex flex-wrap gap-2">
+        <div className={ui.segmented}>
           {TOPUP_AMOUNTS_CENTS.map((cents) => (
             <button
               key={cents}
@@ -218,11 +216,7 @@ export function CardFieldsTopUp({
               aria-pressed={amountCents === cents}
               aria-label={`${formatCents(cents)} by card`}
               onClick={() => setAmountCents(cents)}
-              className={`rounded-full border px-4 py-1.5 text-sm font-medium tabular-nums ${
-                amountCents === cents
-                  ? 'border-accent bg-accent text-on-accent'
-                  : 'border-border bg-surface text-ink hover:bg-surface-2'
-              }`}
+              className={ui.segment(amountCents === cents)}
             >
               {formatCents(cents)}
             </button>
@@ -245,25 +239,22 @@ export function CardFieldsTopUp({
       </div>
 
       <fieldset disabled={inFlight || !usable}>
-        <label className="mt-1 flex items-center gap-2 text-sm text-body">
+        <label className={`mt-1 ${ui.checkboxLabel}`}>
           <input
+            className={ui.checkbox}
             type="checkbox"
             checked={saveCard}
             onChange={(e) => setSaveCard(e.target.checked)}
           />
           Save this card for auto top-up
         </label>
-        <button
-          type="button"
-          onClick={() => void pay()}
-          className="mt-3 rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60"
-        >
+        <button type="button" onClick={() => void pay()} className={`mt-4 ${ui.btnPrimary}`}>
           Pay {formatCents(amountCents)} by card
         </button>
       </fieldset>
 
       {savedMethod && (
-        <p className="mt-3 text-sm text-body" data-testid="saved-method">
+        <p className="mt-4 text-sm text-body" data-testid="saved-method">
           Saved for auto top-up: <span className="font-medium text-ink">{savedMethod.label}</span>
         </p>
       )}
@@ -289,54 +280,53 @@ function CardStatus({
   amountCents: number;
   completedCents: number | null;
 }) {
-  const box = 'mt-3 rounded-md px-3 py-2 text-sm';
   switch (phase) {
     case 'unavailable':
       return (
-        <p role="status" className={`${box} bg-surface-2 text-body`}>
+        <p role="status" className={`mt-4 ${ui.notice.neutral}`}>
           {problem ?? 'Card fields need the PayPal sandbox; this server runs PayPal as a stub.'}
         </p>
       );
     case 'submitting':
       return (
-        <p role="status" className={`${box} bg-info-tint text-info`}>
+        <p role="status" className={`mt-4 ${ui.notice.info}`}>
           Sending {formatCents(amountCents)} to PayPal…
         </p>
       );
     case 'capturing':
       return (
-        <p role="status" className={`${box} bg-info-tint text-info`}>
+        <p role="status" className={`mt-4 ${ui.notice.info}`}>
           Card accepted. Adding it to your balance…
         </p>
       );
     case 'completed':
       return (
-        <p role="status" className={`${box} bg-positive-tint text-positive`}>
+        <p role="status" className={`mt-4 ${ui.notice.positive}`}>
           {formatCents(completedCents ?? amountCents)} added by card via PayPal.
         </p>
       );
     case 'pending':
       return (
-        <p role="status" className={`${box} bg-warning-tint text-warning`}>
+        <p role="status" className={`mt-4 ${ui.notice.warning}`}>
           PayPal is still processing this payment. Your balance updates when it completes.
         </p>
       );
     case 'cancelled':
       return (
-        <p role="status" className={`${box} bg-surface-2 text-body`}>
+        <p role="status" className={`mt-4 ${ui.notice.neutral}`}>
           {topupStatusLabel('ABANDONED')}. Nothing was taken.
         </p>
       );
     case 'declined':
       return (
-        <p role="alert" className={`${box} bg-danger-tint text-danger`}>
+        <p role="alert" className={`mt-4 ${ui.notice.danger}`}>
           {topupStatusLabel('FAILED')}. Check the card details or try another card.
           {problem ? ` (${problem})` : ''}
         </p>
       );
     case 'error':
       return (
-        <p role="alert" className={`${box} bg-danger-tint text-danger`}>
+        <p role="alert" className={`mt-4 ${ui.notice.danger}`}>
           {problem ?? 'Something went wrong.'}
         </p>
       );
