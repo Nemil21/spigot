@@ -34,6 +34,7 @@ import {
   type ReinferResult,
 } from './dataset-editor/model';
 import { PAGE } from './Panel';
+import { LABEL } from '../theme/label';
 
 export const EVENTS_URL = '/api/publishers/me/events';
 /** While the APPROVE run extracts, the page re-reads its progress this often (SSE also nudges). */
@@ -496,7 +497,7 @@ export function DatasetEditorScreen({
           aria-label="Fields"
           className="min-w-0 rounded-lg border border-line bg-surface p-5"
         >
-          <h2 className="-mx-5 -mt-5 mb-2 border-b border-line px-5 py-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink">
+          <h2 className={`-mx-5 -mt-5 mb-2 border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
             Fields{' '}
             <span className="font-normal text-muted">
               · {visibleCount} of {shownFields.length} sold
@@ -525,7 +526,7 @@ export function DatasetEditorScreen({
             aria-label="Sample rows"
             className="min-w-0 rounded-lg border border-line bg-surface p-5"
           >
-            <h2 className="-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink">
+            <h2 className={`-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
               Sample rows{' '}
               <span className="font-normal text-muted">· {detail.sampleRows.length}</span>
             </h2>
@@ -536,7 +537,7 @@ export function DatasetEditorScreen({
             aria-label="Pricing"
             className="min-w-0 rounded-lg border border-line bg-surface p-5"
           >
-            <h2 className="-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink">
+            <h2 className={`-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
               Price
             </h2>
             <PriceInputs
@@ -557,7 +558,7 @@ export function DatasetEditorScreen({
                 type="button"
                 onClick={() => void savePrices()}
                 disabled={!dirtyPrices || !pricesValid || working}
-                className="mt-4 h-8 rounded-md bg-accent px-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-50"
+                className={`mt-4 h-8 rounded-md bg-accent px-3.5 ${LABEL} text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-50`}
               >
                 Save prices
               </button>
@@ -568,7 +569,7 @@ export function DatasetEditorScreen({
             aria-label="Endpoint preview"
             className="min-w-0 rounded-lg border border-line bg-surface p-5"
           >
-            <h2 className="-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink">
+            <h2 className={`-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
               What buyers get
             </h2>
             <EndpointPreview
@@ -603,7 +604,7 @@ export function DatasetEditorScreen({
                 type="button"
                 onClick={() => void publish()}
                 disabled={working || visibleCount === 0 || !pricesValid || !hasApprovable}
-                className="mt-4 h-10 w-full rounded-md bg-accent px-5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-50 sm:w-auto"
+                className={`mt-4 h-10 w-full rounded-md bg-accent px-5 ${LABEL} text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-50 sm:w-auto`}
               >
                 {phase.kind === 'saving'
                   ? 'Saving new version…'

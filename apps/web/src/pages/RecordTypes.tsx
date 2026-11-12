@@ -6,6 +6,7 @@ import { useEventStream, type EventSourceFactory } from '../api/sse';
 import { EmptyState, ErrorBanner, errorMessage, Skeleton, SkeletonText } from '../components';
 import { displayPattern, ProposalCard, type Proposal } from '../components/ProposalCard';
 import { paths } from '../routes';
+import { LABEL } from '../theme/label';
 
 /**
  * W05 Record types found (SP-028; screens.md §W05, features/04 §Purpose, features/13 §2).
@@ -401,7 +402,7 @@ function Steps({ current, retrying }: { current: number; retrying: boolean }) {
           <li key={label} className="flex items-center gap-2">
             {i > 0 && <span className={`h-px w-6 ${done || now ? 'bg-accent' : 'bg-border'}`} />}
             <span
-              className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.06em] ${
+              className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 ${LABEL} ${
                 now
                   ? retrying
                     ? 'border-warning-tint bg-warning-tint text-warning'

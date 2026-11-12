@@ -11,6 +11,7 @@ import {
   type ClaimReason,
   type ClaimStatus,
 } from './buyer/usageModel';
+import { LABEL } from '../theme/label';
 
 /**
  * W08 claims tab (screens.md §W08 claims tab; features/10 §Claims 3; SP-050). Open claims against
@@ -166,7 +167,7 @@ export function ClaimsTab({
                     disabled={busy !== null}
                     onClick={() => void decide(c, 'CREDIT')}
                     aria-label={`Credit ${c.recordKey}`}
-                    className="h-8 rounded-md bg-accent px-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-60"
+                    className={`h-8 rounded-md bg-accent px-3.5 ${LABEL} text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-60`}
                   >
                     {busy === c.id ? 'Saving…' : 'Credit'}
                   </button>
@@ -175,7 +176,7 @@ export function ClaimsTab({
                     disabled={busy !== null}
                     onClick={() => void decide(c, 'REJECT')}
                     aria-label={`Reject ${c.recordKey}`}
-                    className="h-8 rounded-md border border-border bg-surface px-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
+                    className={`h-8 rounded-md border border-border bg-surface px-3.5 ${LABEL} text-ink transition-colors hover:bg-surface-2 disabled:opacity-60`}
                   >
                     Reject
                   </button>

@@ -1,3 +1,4 @@
+import { LABEL } from '../theme/label';
 import { useId, type ReactNode } from 'react';
 
 /**
@@ -39,12 +40,6 @@ export function Panel({
     </section>
   );
 }
-
-/**
- * Mono UPPERCASE letter-spaced label (Holdfast v4 voice, in Spigot's colours) for panel titles,
- * tabs and buttons. Stands in for D1's `label` utility until it lands on main.
- */
-export const LABEL = 'font-mono text-[11px] font-medium uppercase tracking-[0.06em]';
 
 /** Joins KPI tiles into one ruled strip instead of a row of separate boxes. */
 export const KPI_STRIP =

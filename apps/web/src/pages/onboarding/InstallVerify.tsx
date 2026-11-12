@@ -17,6 +17,7 @@ import {
   secondaryButton,
   type SiteKeys,
 } from './kit';
+import { LABEL } from '../../theme/label';
 
 // ---------------------------------------------------------------------------------------------
 // API shapes (api.md §Publisher endpoints; SP-008a / SP-008b / SP-009b)
@@ -380,13 +381,9 @@ function Steps({
             <p className="mt-2 text-sm text-body">
               Serve this text at <span className="font-mono">{site.verify.path}</span> on your site.
             </p>
-            <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
-              File path
-            </p>
+            <p className={`mt-3 ${LABEL} text-muted`}>File path</p>
             <CodeBlock code={site.verify.path} copyLabel="Copy file path" />
-            <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
-              Content
-            </p>
+            <p className={`mt-3 ${LABEL} text-muted`}>Content</p>
             <CodeBlock code={site.verify.content} copyLabel="Copy file content" />
             {verifyError && (
               <p
@@ -415,17 +412,11 @@ function Steps({
           </h2>
           <GatePill gate={gate} failed={gateError} now={now} />
         </div>
-        <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
-          Install
-        </p>
+        <p className={`mt-3 ${LABEL} text-muted`}>Install</p>
         <CodeBlock code="npm i @spigot/gate" copyLabel="Copy install command" />
-        <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
-          Add it to your Express app
-        </p>
+        <p className={`mt-3 ${LABEL} text-muted`}>Add it to your Express app</p>
         <CodeBlock code={expressSnippet(apiBase)} copyLabel="Copy Express snippet" />
-        <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-muted">
-          Environment variables
-        </p>
+        <p className={`mt-3 ${LABEL} text-muted`}>Environment variables</p>
         {keys ? (
           <>
             <p className="mt-1 text-sm text-warning">

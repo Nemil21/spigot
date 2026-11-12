@@ -6,6 +6,7 @@ import type { AuthMe } from '../layout/session';
 import { PAYPAL_CONNECT, PayPalButton, PayPalNotice } from '../components/PayPalSignIn';
 import { paths } from '../routes';
 import { PAGE, PageHeader } from './Panel';
+import { LABEL } from '../theme/label';
 
 /**
  * W16 Settings (SP-034; screens.md §W16). Four tabs, `?tab=` in the URL:
@@ -262,7 +263,7 @@ export default function SettingsPage({ client = defaultApi }: { client?: ApiClie
               aria-selected={tab === t.id}
               aria-controls={`settings-panel-${t.id}`}
               onClick={() => setParams({ tab: t.id }, { replace: true })}
-              className={`-mb-px shrink-0 border-b-2 pb-3 pt-1 font-mono text-[11px] font-medium uppercase tracking-[0.06em] transition-colors ${
+              className={`-mb-px shrink-0 border-b-2 pb-3 pt-1 ${LABEL} transition-colors ${
                 tab === t.id
                   ? 'border-accent text-ink'
                   : 'border-transparent text-muted hover:text-ink'

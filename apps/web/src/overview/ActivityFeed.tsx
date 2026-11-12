@@ -1,6 +1,7 @@
 import { formatAge } from '@spigot/shared/copy';
 import { ErrorBanner, SimChip, SkeletonText } from '../components';
 import type { ActivityEvent } from './types';
+import { LABEL } from '../theme/label';
 
 /** Merge a fresh page of the feed into what's shown: new events go on top, newest first. */
 export function mergeActivity(
@@ -42,10 +43,7 @@ export function ActivityFeed({
       aria-labelledby="activity-heading"
       className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface"
     >
-      <h2
-        id="activity-heading"
-        className="border-b border-line px-5 py-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink"
-      >
+      <h2 id="activity-heading" className={`border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
         Activity
       </h2>
       {error ? (

@@ -20,6 +20,7 @@ import {
   type RunResult,
 } from './payouts/model';
 import { PAGE, PageHeader, Panel } from './Panel';
+import { LABEL } from '../theme/label';
 
 export const EVENTS_URL = '/api/publishers/me/events';
 /** While an item is Sent (PENDING) the page re-reads every 15 s, in case an SSE event is missed. */
@@ -213,13 +214,11 @@ export function PayoutsScreen({
         </div>
         {ready && data.isDemo && (
           <div className="flex flex-col items-start justify-center gap-2 rounded-lg border border-dashed border-warning/50 bg-warning-tint/40 px-4 py-3 sm:items-end">
-            <span className="font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-warning">
-              Demo control
-            </span>
+            <span className={`${LABEL} text-warning`}>Demo control</span>
             <button
               type="button"
               onClick={openRun}
-              className="h-8 rounded-md bg-accent px-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-on-accent transition-colors hover:bg-accent-strong"
+              className={`h-8 rounded-md bg-accent px-3.5 ${LABEL} text-on-accent transition-colors hover:bg-accent-strong`}
             >
               Run payout now
             </button>

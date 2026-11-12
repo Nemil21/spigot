@@ -19,6 +19,7 @@ import {
   type EarningsGridRow,
 } from './earningsData';
 import { KPI_STRIP, PAGE, Panel } from './Panel';
+import { LABEL } from '../theme/label';
 
 /**
  * W08 Earnings (screens.md §W08; features/13 §4; SP-030b). KPI tiles, stacked bars per day by
@@ -211,7 +212,7 @@ export function EarningsScreen({
               role="tab"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className={`border-b-2 pb-3 pt-1 font-mono text-[11px] font-medium uppercase tracking-[0.06em] transition-colors ${
+              className={`border-b-2 pb-3 pt-1 ${LABEL} transition-colors ${
                 tab === t
                   ? 'border-accent text-ink'
                   : 'border-transparent text-muted hover:text-ink'
@@ -246,7 +247,7 @@ export function EarningsScreen({
                 type="button"
                 onClick={() => gridApi.current && exportEarningsCsv(gridApi.current)}
                 disabled={loading}
-                className="h-8 rounded-md border border-border bg-surface px-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
+                className={`h-8 rounded-md border border-border bg-surface px-3 ${LABEL} text-ink transition-colors hover:bg-surface-2 disabled:opacity-60`}
               >
                 Export CSV
               </button>
