@@ -3,6 +3,7 @@ import { formatCents } from '@spigot/shared/money';
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError, type ApiClient } from '../../api/client';
 import { ErrorBanner, SkeletonText } from '../../components';
+import * as ui from '../../components/buyer/ui';
 
 /** `GET` / `PUT /api/buyer/auto-topup` (SP-047b). */
 export interface AutoTopupSettings {
@@ -79,8 +80,7 @@ function validate(f: Form): { errors: FieldErrors; body?: Record<string, unknown
   };
 }
 
-const inputCls =
-  'mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 tabular-nums text-ink focus:outline-2 focus:outline-focus aria-invalid:border-danger';
+const inputCls = `${ui.input} aria-invalid:border-danger`;
 
 export interface AutoTopupCardProps {
   client: ApiClient;
@@ -141,124 +141,142 @@ export function AutoTopupCard({ client, reloadToken = 0 }: AutoTopupCardProps) {
   }
 
   return (
-    <section
-      aria-labelledby="auto-topup-title"
-      className="rounded-lg border border-line bg-surface p-5 shadow-card"
-    >
-      <h2 id="auto-topup-title" className="text-lg font-semibold text-ink">
-        Auto top-up
-      </h2>
-      {loadError !== null ? (
-        <ErrorBanner error={loadError} onRetry={() => setAttempt((n) => n + 1)} />
-      ) : !settings || !form ? (
-        <div aria-busy="true" className="mt-3">
-          <SkeletonText lines={3} />
+    <section aria-labelledby="auto-topup-title" className={ui.panel}>
+      <div className={ui.panelHead}>
+        <div>
+          <h2 id="auto-topup-title" className={ui.panelTitle}>
+            Auto top-up
+          </h2>
+          {settings && form && loadError === null && (
+            <p className={ui.panelDesc}>
+              Your agent keeps working when its balance runs low: Spigot charges your saved method,
+              never more than your monthly cap.
+            </p>
+          )}
         </div>
-      ) : (
-        <>
-          <p className="mt-1 text-sm text-muted">
-            Your agent keeps working when its balance runs low: Spigot charges your saved method,
-            never more than your monthly cap.
-          </p>
-
-          {settings.declinedAt && (
-            <p
-              role="alert"
-              className="mt-3 rounded-md bg-danger-tint px-4 py-3 text-sm text-danger"
-            >
-              {autoTopupDeclinedMessage(
-                settings.savedMethod ? { method: settings.savedMethod.kind } : {},
-              )}
-            </p>
-          )}
-          {settings.capReached && (
-            <p
-              role="alert"
-              className="mt-3 rounded-md bg-warning-tint px-4 py-3 text-sm text-warning"
-            >
-              {autoTopupCapReachedMessage({ monthlyCapCents: settings.monthlyCapCents })}
-            </p>
-          )}
-
-          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted">Saved method</dt>
-            <dd className="text-body">
-              {settings.savedMethod ? (
-                settings.savedMethod.label
-              ) : (
-                <>None yet. Top up once with “Save for auto top-up” ticked.</>
-              )}
-            </dd>
-            <dt className="text-muted">This month</dt>
-            <dd className="tabular-nums text-body">
-              {formatCents(settings.remainingThisMonthCents)} left of{' '}
-              {formatCents(settings.monthlyCapCents)}
-            </dd>
-          </dl>
-
-          <form noValidate onSubmit={save} className="mt-4 space-y-3">
-            <label className="flex items-center gap-2 text-sm font-medium text-ink">
-              <input
-                type="checkbox"
-                checked={form.enabled}
-                onChange={(e) => {
-                  setSaved(false);
-                  setForm({ ...form, enabled: e.target.checked });
-                }}
-              />
-              Top up automatically
-            </label>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Field
-                id="auto-topup-amount"
-                label="Amount ($)"
-                value={form.amount}
-                error={fieldErrors.amount}
-                onChange={(v) => setForm({ ...form, amount: v })}
-              />
-              <Field
-                id="auto-topup-threshold"
-                label="When below ($)"
-                value={form.threshold}
-                error={fieldErrors.threshold}
-                onChange={(v) => setForm({ ...form, threshold: v })}
-              />
-              <Field
-                id="auto-topup-cap"
-                label="Monthly cap ($)"
-                value={form.cap}
-                error={fieldErrors.cap}
-                onChange={(v) => setForm({ ...form, cap: v })}
-              />
-            </div>
-            {saveError !== null && (
-              <ErrorBanner
-                error={saveError}
-                title={
-                  saveError instanceof ApiError && saveError.code === 'NO_SAVED_METHOD'
-                    ? 'Auto top-up needs a saved method.'
-                    : 'Not saved.'
-                }
-              />
+      </div>
+      <div className={ui.panelBody}>
+        {loadError !== null ? (
+          <ErrorBanner error={loadError} onRetry={() => setAttempt((n) => n + 1)} />
+        ) : !settings || !form ? (
+          <div aria-busy="true">
+            <SkeletonText lines={3} />
+          </div>
+        ) : (
+          <>
+            {settings.declinedAt && (
+              <p role="alert" className={`mb-4 ${ui.notice.danger}`}>
+                {autoTopupDeclinedMessage(
+                  settings.savedMethod ? { method: settings.savedMethod.kind } : {},
+                )}
+              </p>
             )}
-            <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60"
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-              {saved && (
-                <span role="status" className="text-sm text-positive">
-                  Saved.
-                </span>
+            {settings.capReached && (
+              <p role="alert" className={`mb-4 ${ui.notice.warning}`}>
+                {autoTopupCapReachedMessage({ monthlyCapCents: settings.monthlyCapCents })}
+              </p>
+            )}
+
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-medium text-muted">Saved method</dt>
+                <dd className="mt-1 font-medium text-ink">
+                  {settings.savedMethod ? (
+                    settings.savedMethod.label
+                  ) : (
+                    <span className="font-normal text-body">
+                      None yet. Top up once with “Save for auto top-up” ticked.
+                    </span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-muted">This month</dt>
+                <dd className="mt-1 font-medium tabular-nums text-ink">
+                  {formatCents(settings.remainingThisMonthCents)} left of{' '}
+                  {formatCents(settings.monthlyCapCents)}
+                </dd>
+                <CapMeter
+                  remaining={settings.remainingThisMonthCents}
+                  cap={settings.monthlyCapCents}
+                />
+              </div>
+            </dl>
+
+            <form noValidate onSubmit={save} className="mt-5 space-y-4 border-t border-line pt-5">
+              <label className={`${ui.checkboxLabel} font-medium text-ink`}>
+                <input
+                  className={ui.checkbox}
+                  type="checkbox"
+                  checked={form.enabled}
+                  onChange={(e) => {
+                    setSaved(false);
+                    setForm({ ...form, enabled: e.target.checked });
+                  }}
+                />
+                Top up automatically
+              </label>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field
+                  id="auto-topup-amount"
+                  label="Amount ($)"
+                  value={form.amount}
+                  error={fieldErrors.amount}
+                  onChange={(v) => setForm({ ...form, amount: v })}
+                />
+                <Field
+                  id="auto-topup-threshold"
+                  label="When below ($)"
+                  value={form.threshold}
+                  error={fieldErrors.threshold}
+                  onChange={(v) => setForm({ ...form, threshold: v })}
+                />
+                <Field
+                  id="auto-topup-cap"
+                  label="Monthly cap ($)"
+                  value={form.cap}
+                  error={fieldErrors.cap}
+                  onChange={(v) => setForm({ ...form, cap: v })}
+                />
+              </div>
+              {saveError !== null && (
+                <ErrorBanner
+                  error={saveError}
+                  title={
+                    saveError instanceof ApiError && saveError.code === 'NO_SAVED_METHOD'
+                      ? 'Auto top-up needs a saved method.'
+                      : 'Not saved.'
+                  }
+                />
               )}
-            </div>
-          </form>
-        </>
-      )}
+              <div className="flex items-center gap-3">
+                <button type="submit" disabled={saving} className={ui.btnPrimary}>
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+                {saved && (
+                  <span role="status" className="text-sm text-positive">
+                    Saved.
+                  </span>
+                )}
+              </div>
+            </form>
+          </>
+        )}
+      </div>
     </section>
+  );
+}
+
+/** How much of the monthly cap auto top-up has used. Decorative: the text above says it. */
+function CapMeter({ remaining, cap }: { remaining: number; cap: number }) {
+  const used = cap > 0 ? Math.min(1, Math.max(0, (cap - remaining) / cap)) : 0;
+  return (
+    <div aria-hidden="true" className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
+      <div
+        className={`h-full rounded-full ${used >= 1 ? 'bg-warning' : 'bg-accent'}`}
+        style={{ width: `${used * 100}%` }}
+      />
+    </div>
   );
 }
 
@@ -277,7 +295,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-ink">
+      <label htmlFor={id} className={ui.label}>
         {label}
       </label>
       <input
