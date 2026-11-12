@@ -204,9 +204,21 @@ function usageOf(u: Anthropic.Beta.BetaUsage | undefined): TokenUsage {
   };
 }
 
+/**
+ * The opt-in server-side fallback on a policy decline (routes by refusal category). `false`
+ * (CLAUDE_SERVER_FALLBACK=off) sends neither field, for a proxy that rejects them.
+ */
+export function serverFallbackParams(
+  on: boolean,
+): Pick<Anthropic.Beta.MessageCreateParamsNonStreaming, 'betas' | 'fallbacks'> {
+  return on ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {};
+}
+
 export interface LiveModelOptions {
   apiKey: string;
   model?: string;
+  /** Server-side fallback beta (default on); CLAUDE_SERVER_FALLBACK=off turns it off. */
+  serverFallback?: boolean;
   /** Tests inject a client. */
   client?: Pick<Anthropic, 'beta'>;
   /** Backoff between the 3 tries (tests pass zeros). */
@@ -220,6 +232,7 @@ export function createLiveModel(opts: LiveModelOptions): SchemaModel {
     opts.client ?? new Anthropic({ apiKey: opts.apiKey, maxRetries: 0, timeout: 120_000 });
   const create = (body: Anthropic.Beta.MessageCreateParamsNonStreaming) =>
     withModelRetry(() => client.beta.messages.create(body), opts.retry);
+  const fallback = serverFallbackParams(opts.serverFallback ?? true);
   const { system, dsl, repair } = loadPrompts();
   // tools render before system: one breakpoint on the last system block caches tool + both.
   const systemBlocks: Anthropic.Beta.BetaTextBlockParam[] = [
@@ -261,9 +274,7 @@ export function createLiveModel(opts: LiveModelOptions): SchemaModel {
           tools: [PROPOSE_SCHEMA_TOOL],
           tool_choice: { type: 'auto', disable_parallel_tool_use: true },
           output_config: { effort: 'medium' },
-          // Opt-in server-side fallback on a policy decline (routes by refusal category).
-          betas: ['server-side-fallback-2026-07-01'],
-          fallbacks: 'default',
+          ...fallback,
           messages,
         });
         last = res;
@@ -299,8 +310,7 @@ export function createLiveModel(opts: LiveModelOptions): SchemaModel {
         tools: [REPAIR_FIELDS_TOOL],
         tool_choice: { type: 'auto', disable_parallel_tool_use: true },
         output_config: { effort: 'medium' },
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
+        ...fallback,
         messages: [{ role: 'user', content: req.userPrompt }],
       });
       return toTurn(res, REPAIR_FIELDS_TOOL_NAME);
@@ -398,5 +408,6 @@ export function schemaModelFor(config: Config): SchemaModel {
   return createLiveModel({
     apiKey: ANTHROPIC_API_KEY,
     model: config.CLAUDE_MODEL ?? DEFAULT_CLAUDE_MODEL,
+    serverFallback: config.CLAUDE_SERVER_FALLBACK === 'on',
   });
 }

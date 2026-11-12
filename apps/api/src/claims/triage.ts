@@ -21,6 +21,7 @@ import type { Queryable } from '../db/index.js';
 import {
   DEFAULT_CLAUDE_MODEL,
   ModelUnavailableError,
+  serverFallbackParams,
   withModelRetry,
   type RetryOptions,
 } from '../schema-agent/claude.js';
@@ -135,6 +136,8 @@ export interface LiveTriageOptions {
   /** Tests inject a client. */
   client?: Pick<Anthropic, 'beta'>;
   retry?: RetryOptions;
+  /** Server-side fallback beta (default on); CLAUDE_SERVER_FALLBACK=off turns it off. */
+  serverFallback?: boolean;
 }
 
 export function createLiveTriageModel(opts: LiveTriageOptions): TriageModel {
@@ -156,8 +159,7 @@ export function createLiveTriageModel(opts: LiveTriageOptions): TriageModel {
             tools: [RECOMMEND_TOOL],
             tool_choice: { type: 'auto', disable_parallel_tool_use: true },
             output_config: { effort: 'low' },
-            betas: ['server-side-fallback-2026-07-01'],
-            fallbacks: 'default',
+            ...serverFallbackParams(opts.serverFallback ?? true),
             messages: [{ role: 'user', content: userPrompt }],
           }),
         opts.retry,
@@ -242,6 +244,7 @@ export function triageModelFor(config: Config): TriageModel {
   return createLiveTriageModel({
     apiKey: ANTHROPIC_API_KEY,
     model: config.CLAUDE_MODEL ?? DEFAULT_CLAUDE_MODEL,
+    serverFallback: config.CLAUDE_SERVER_FALLBACK === 'on',
   });
 }
 

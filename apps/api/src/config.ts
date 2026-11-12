@@ -101,6 +101,9 @@ const envSchema = z.object({
   ALLOW_MOCK_DECLINE: bool(false),
   WORKFLOWS_MODE: enumWithDefault(['inproc', 'workflows'] as const, 'inproc'),
   // Unset → `recorded` under NODE_ENV=test (tests and CI never need ANTHROPIC_API_KEY), else `live`.
+  // `off` drops the server-side fallback beta (`betas` + `fallbacks`) from Claude requests, for an
+  // Anthropic-compatible proxy (ANTHROPIC_BASE_URL) that rejects them as extra inputs.
+  CLAUDE_SERVER_FALLBACK: enumWithDefault(['on', 'off'] as const, 'on'),
   SCHEMA_AGENT_MODE: optionalString
     .transform((v) => v?.toLowerCase())
     .pipe(z.enum(['live', 'recorded']).optional()),
