@@ -64,7 +64,7 @@ export function BalanceHero({
   return (
     <section aria-labelledby="balance-title" className={ui.panel}>
       <div className="px-5 pb-5 pt-5 sm:px-6 sm:pt-6">
-        <h2 id="balance-title" className="text-sm font-medium text-muted">
+        <h2 id="balance-title" className={ui.statLabel}>
           Prepaid balance, funded with PayPal
         </h2>
         {display === null || balanceMicros === null ? (
@@ -72,9 +72,9 @@ export function BalanceHero({
             <Skeleton className="h-12 w-48" />
           </p>
         ) : (
-          <p className="mt-2 flex items-baseline gap-2.5">
+          <p className="mt-4 flex items-baseline gap-2.5">
             <span
-              className={`text-5xl font-semibold tracking-tight tabular-nums transition-colors duration-500 ${rising ? 'text-positive' : 'text-ink'}`}
+              className={`text-[44px] font-medium leading-none tracking-[-0.035em] tabular-nums sm:text-[56px] transition-colors duration-500 ${rising ? 'text-positive' : 'text-ink'}`}
               title={`${formatCount(balanceMicros)} micros`}
               data-micros={balanceMicros}
               data-testid="balance-amount"

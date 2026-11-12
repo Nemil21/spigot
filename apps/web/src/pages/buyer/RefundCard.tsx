@@ -174,8 +174,8 @@ export function RefundCard({
             )}
             {data.available.allowedCents > 0 && (
               <form onSubmit={submit} className="mt-4 flex flex-wrap items-end gap-2">
-                <label className="text-xs font-medium text-muted">
-                  <span className="block">Amount (USD)</span>
+                <label className="block">
+                  <span className={`block ${ui.statLabel}`}>Amount (USD)</span>
                   <input
                     inputMode="decimal"
                     value={amount}

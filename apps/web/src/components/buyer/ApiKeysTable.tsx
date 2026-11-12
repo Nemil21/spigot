@@ -100,11 +100,8 @@ export function ApiKeysTable({
           </p>
         </div>
         <form onSubmit={create} className="flex w-full items-end gap-2 sm:w-auto">
-          <label
-            className="min-w-0 flex-1 text-xs font-medium text-muted sm:flex-none"
-            htmlFor="key-name"
-          >
-            Key name
+          <label className="min-w-0 flex-1 sm:flex-none" htmlFor="key-name">
+            <span className={ui.statLabel}>Key name</span>
             <input
               id="key-name"
               value={name}
@@ -122,7 +119,7 @@ export function ApiKeysTable({
       {(revealed || error) && (
         <div className="space-y-3 border-b border-line px-5 py-4 sm:px-6">
           {revealed && (
-            <div role="status" className="rounded-lg border border-warning/40 bg-warning-tint p-4">
+            <div role="status" className="rounded-sm border border-warning/40 bg-warning-tint p-4">
               <p className="text-sm font-medium text-warning">
                 Copy this key now. We only show it once.
               </p>

@@ -227,7 +227,7 @@ export function UsageScreen({
           </p>
         </div>
         {rows === null ? (
-          <Skeleton className="block h-64 w-full rounded-xl" />
+          <Skeleton className="block h-64 w-full rounded-md" />
         ) : rows.length === 0 ? (
           <EmptyState
             message={W12_COPY.empty}
@@ -275,7 +275,7 @@ export function UsageScreen({
             onRetry={() => void loadClaims()}
           />
         ) : claims === null ? (
-          <Skeleton className="block h-32 w-full rounded-xl" />
+          <Skeleton className="block h-32 w-full rounded-md" />
         ) : (
           <ClaimsList claims={claims} onOpenCall={setOpenCall} />
         )}
@@ -303,10 +303,12 @@ export function UsageScreen({
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-6" data-screen="W12">
+    <div className="mx-auto max-w-[1120px] space-y-6" data-screen="W12">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Usage and claims</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className={ui.pageTitle}>
+          Usage and <span className={ui.accentWord}>claims</span>
+        </h1>
+        <p className={ui.pageLede}>
           What your agent bought, what it was charged, and claims for records that were wrong.
         </p>
       </header>
