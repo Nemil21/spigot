@@ -6,7 +6,7 @@ import { paths } from '../routes';
 /**
  * W01 Landing (SP-057; screens.md §W01, features/16 §Landing): one static page for judges and
  * visitors. Hero, two CTAs (W02 sign up, W11 buyer portal), the sourced bot stat, how it works,
- * a mini proposal card, a "for agents" block, honest limits and a footer. Responsive to 375 px.
+ * a mini proposal card, a "for agents" block. Responsive to 375 px.
  *
  * The proposal card is a static picture of W05's card, not `ProposalCard` itself, so the landing
  * chunk doesn't pull in AG Grid.
@@ -34,13 +34,6 @@ export const STEPS = [
   },
 ] as const;
 
-export const HONEST_LIMITS = [
-  'Stealth scrapers (residential proxies, spoofed browser user agents) are not stopped. Spigot gates declared bots and makes paying cheaper and better than evading.',
-  'For factual data, the "license" is a contract, not copyright.',
-  'Spigot is merchant of record in the demo. Production uses PayPal multiparty so the publisher is the merchant.',
-  'Holding prepaid balances needs the PayPal partner route (stored-value rules) in production.',
-  'The demo site, Bluebonnet Rentals, is fictional; simulated traffic and buyers are labelled SIM.',
-] as const;
 
 /** A paid read and its response (api.md §`GET /v1/:site/datasets/:dataset/records`). */
 export function sampleRequest(origin: string = window.location.origin): string {
@@ -277,43 +270,7 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
-        <section aria-labelledby="limits-title" className="border-t border-line bg-warning-tint">
-          <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-            <h2 id="limits-title" className="text-lg font-semibold text-ink">
-              Honest limits
-            </h2>
-            <ul className="mt-3 grid list-disc gap-x-10 gap-y-2 text-sm text-ink md:grid-cols-2 [&>li]:ml-5">
-              {HONEST_LIMITS.map((l) => (
-                <li key={l}>{l}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
       </main>
-
-      <footer className="border-t border-line bg-surface">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>Spigot · Built for the PayPal AI Hackathon 2026 · Paid out via PayPal · MIT licence</p>
-          <ul className="flex flex-wrap gap-4">
-            <li>
-              <Link to={paths.signUp} className="underline underline-offset-2 hover:text-ink">
-                Connect your site
-              </Link>
-            </li>
-            <li>
-              <Link to={paths.buyerPortal} className="underline underline-offset-2 hover:text-ink">
-                Agent builders
-              </Link>
-            </li>
-            <li>
-              <a href="/v1/openapi.yaml" className="underline underline-offset-2 hover:text-ink">
-                OpenAPI
-              </a>
-            </li>
-          </ul>
-        </div>
-      </footer>
     </div>
   );
 }
