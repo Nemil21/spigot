@@ -10,7 +10,7 @@ import {
   applyFrame,
   formatDuration,
   pausedMessage,
-  routineAiCalls,
+  type CrawlAiCalls,
   type CrawlRun,
   type CrawlSite,
 } from './model';
@@ -53,9 +53,19 @@ function run(over: Partial<CrawlRun> = {}): CrawlRun {
   };
 }
 
+function totals(runs: CrawlRun[]): CrawlAiCalls {
+  const connect = runs.filter((r) => r.trigger === 'CONNECT');
+  return {
+    discovery: connect.length ? connect.reduce((n, r) => n + r.aiCalls, 0) : null,
+    routine: runs.filter((r) => r.trigger !== 'CONNECT').reduce((n, r) => n + r.aiCalls, 0),
+  };
+}
+
 interface State {
   sites: CrawlSite[];
   runs: CrawlRun[];
+  /** What the API returns as `aiCalls`; default: totals over `runs` (the API sums every run). */
+  aiCalls?: CrawlAiCalls;
   crawl: () => Response;
   /** While set, POST /crawl stays open until it resolves. */
   crawlHeld?: Promise<void>;
@@ -75,7 +85,8 @@ function fakeApi(over: Partial<State> = {}) {
   const fetch = vi.fn<FetchLike>(async (url, init) => {
     const method = init.method ?? 'GET';
     if (method === 'GET' && url === '/api/sites') return json(200, { sites: state.sites });
-    if (method === 'GET' && url === RUNS_URL) return json(200, { runs: state.runs });
+    if (method === 'GET' && url === RUNS_URL)
+      return json(200, { runs: state.runs, aiCalls: state.aiCalls ?? totals(state.runs) });
     if (method === 'POST' && url === `/api/sites/${SITE_ID}/crawl`) {
       await state.crawlHeld;
       return state.crawl();
@@ -149,6 +160,35 @@ describe('W10 Crawls & health', () => {
     expect(kpi('AI calls on routine crawls')).toHaveTextContent(/^0$/);
     expect(kpi('AI calls on discovery')).toHaveTextContent(/^3$/);
     expect(screen.getByText(/Routine crawls use plain code: no AI calls\./)).toBeInTheDocument();
+  });
+
+  it('AI-call KPIs come from the API totals, not the 20 listed runs (discovery past the first page)', async () => {
+    // 25 runs on the site; the API lists the newest 20, none of them the discovery run.
+    const listed = Array.from({ length: 20 }, (_, i) =>
+      run({
+        id: `run-${i}`,
+        trigger: i % 2 ? 'SCHEDULE' : 'PING',
+        status: 'SUCCEEDED',
+        finishedAt: '2026-11-12T12:01:00.000Z',
+      }),
+    );
+    renderScreen(fakeApi({ runs: listed, aiCalls: { discovery: 3, routine: 0 } }));
+    await waitFor(() => expect(aiCell('run-19')).not.toBeNull());
+    expect(aiCell(DISCOVERY.id)).toBeNull();
+    expect(kpi('AI calls on discovery')).toHaveTextContent(/^3$/);
+    expect(kpi('AI calls on routine crawls')).toHaveTextContent(/^0$/);
+  });
+
+  it('a routine AI call anywhere on the site shows in the KPI', async () => {
+    renderScreen(fakeApi({ aiCalls: { discovery: 3, routine: 2 } }));
+    await waitFor(() => expect(kpi('AI calls on routine crawls')).toHaveTextContent(/^2$/));
+  });
+
+  it('no discovery run yet: the discovery KPI reads —', async () => {
+    renderScreen(fakeApi({ runs: [] }));
+    await screen.findByText(/No crawls yet\./);
+    expect(kpi('AI calls on discovery')).toHaveTextContent(/^—$/);
+    expect(kpi('AI calls on routine crawls')).toHaveTextContent(/^0$/);
   });
 
   it('shows triggers, page and record counters and durations', async () => {
@@ -408,7 +448,7 @@ describe('W10 Crawls & health', () => {
         : url === '/api/sites'
           ? json(200, { sites: api.state.sites })
           : url === RUNS_URL
-            ? json(200, { runs: api.state.runs })
+            ? json(200, { runs: api.state.runs, aiCalls: totals(api.state.runs) })
             : json(404, { error: { code: 'NOT_FOUND', message: String(init.method) } }),
     );
     renderScreen(api);
@@ -419,11 +459,6 @@ describe('W10 Crawls & health', () => {
 });
 
 describe('W10 model', () => {
-  it('routine AI calls exclude the discovery run', () => {
-    expect(routineAiCalls(FIXTURE)).toBe(0);
-    expect(routineAiCalls([...FIXTURE, run({ aiCalls: 2 })])).toBe(2);
-  });
-
   it('formats durations', () => {
     expect(formatDuration(null)).toBe('—');
     expect(formatDuration(45_000)).toBe('45 s');

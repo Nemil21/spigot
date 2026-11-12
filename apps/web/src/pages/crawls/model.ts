@@ -29,6 +29,16 @@ export interface CrawlRun {
   createdAt: string;
 }
 
+/**
+ * `aiCalls` of `GET /api/sites/:id/crawl-runs`: totals over all the site's runs, not just the
+ * listed page. `discovery`: the CONNECT runs' schema-proposal calls (null before the first);
+ * `routine`: every other run (should stay 0).
+ */
+export interface CrawlAiCalls {
+  discovery: number | null;
+  routine: number;
+}
+
 /** `progress` / `done` frames of `GET /api/crawl-runs/:id/events`. */
 export interface ProgressFrame {
   crawlRunId: string;
@@ -99,11 +109,6 @@ export function runStatusTone(s: RunStatus): PillTone {
 export function aiCallsNote(r: Pick<CrawlRun, 'trigger' | 'aiCalls'>): string | null {
   if (r.aiCalls === 0) return null;
   return r.trigger === 'CONNECT' ? 'schema proposal' : 'unexpected';
-}
-
-/** AI calls across every run that isn't the discovery crawl: the number W10 exists to show. */
-export function routineAiCalls(runs: readonly CrawlRun[]): number {
-  return runs.filter((r) => r.trigger !== 'CONNECT').reduce((n, r) => n + r.aiCalls, 0);
 }
 
 export const pagesHandled = (

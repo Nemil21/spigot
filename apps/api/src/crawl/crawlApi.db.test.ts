@@ -328,6 +328,40 @@ describe.skipIf(!testDatabaseUrl)('SP-009b crawl API (Postgres + demo site)', ()
     expect(listed.aiCalls).toBe(aiRows[0]!.ai_calls);
   }, 60_000);
 
+  it('the runs list carries site-wide AI calls, even when discovery is past the first page (W10)', async () => {
+    const pub = await newPublisher();
+    // Connected, not verified: no crawl starts, so only the rows below exist.
+    const { siteId } = await connect(pub);
+    const ins = (trigger: string, aiCalls: number, minutesAgo: number) =>
+      pool.query(
+        `INSERT INTO crawl_runs (site_id, trigger, status, ai_calls, created_at, finished_at)
+         VALUES ($1, $2, 'SUCCEEDED', $3, now() - make_interval(mins => $4),
+                 now() - make_interval(mins => $4))`,
+        [siteId, trigger, aiCalls, minutesAgo],
+      );
+    await ins('CONNECT', 3, 1000);
+    await ins('APPROVE', 0, 900);
+    for (let i = 0; i < 22; i++) await ins(i % 2 ? 'SCHEDULE' : 'MANUAL', 0, 800 - i);
+
+    const list = await getJson(`/api/sites/${siteId}/crawl-runs?limit=20`, pub.cookie);
+    expect(list.status).toBe(200);
+    expect(list.body.runs).toHaveLength(20);
+    expect(list.body.runs.some((r: { trigger: string }) => r.trigger === 'CONNECT')).toBe(false);
+    expect(list.body.aiCalls).toEqual({ discovery: 3, routine: 0 });
+
+    // A routine run that called Claude shows up in the total.
+    await ins('SCHEDULE', 2, 5000);
+    const again = await getJson(`/api/sites/${siteId}/crawl-runs?limit=20`, pub.cookie);
+    expect(again.body.aiCalls).toEqual({ discovery: 3, routine: 2 });
+  });
+
+  it('a site with no discovery run reports discovery AI calls as null', async () => {
+    const pub = await newPublisher();
+    const { siteId } = await connect(pub);
+    const list = await getJson(`/api/sites/${siteId}/crawl-runs`, pub.cookie);
+    expect(list.body).toEqual({ runs: [], aiCalls: { discovery: null, routine: 0 } });
+  });
+
   it('a mid-run reconnect gets the current counters first, then live progress and done', async () => {
     const pub = await newPublisher();
     const siteId = await crawledSite(pub);

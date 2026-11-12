@@ -76,5 +76,9 @@
       "finishedAt": "2026-11-12T10:09:00.000Z",
       "createdAt": "2026-11-12T10:05:00.000Z"
     }
-  ]
+  ],
+  "aiCalls": {
+    "discovery": 3,
+    "routine": 0
+  }
 }

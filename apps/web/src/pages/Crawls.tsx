@@ -12,8 +12,8 @@ import {
   isLive,
   pagesHandled,
   pausedMessage,
-  routineAiCalls,
   W10_COPY,
+  type CrawlAiCalls,
   type CrawlRun,
   type CrawlSite,
   type ProgressFrame,
@@ -145,6 +145,8 @@ function SiteCrawls({
   const [notice, setNotice] = useState<Notice>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [clock, setClock] = useState(now);
+  // Site-wide totals from the API: the listed page holds only the newest RUNS_LIMIT runs.
+  const [aiCalls, setAiCalls] = useState<CrawlAiCalls | null>(null);
   const runsRef = useRef<CrawlRun[]>([]);
   const seq = useRef(0);
   const runsPath = `/api/sites/${encodeURIComponent(site.id)}/crawl-runs?limit=${RUNS_LIMIT}`;
@@ -157,8 +159,10 @@ function SiteCrawls({
   /** Re-read the runs; an answer a newer request overtook is dropped. */
   const refetch = useCallback(async () => {
     const mine = ++seq.current;
-    const { runs: list } = await client.get<{ runs: CrawlRun[] }>(runsPath);
-    if (mine === seq.current) setRunList(list);
+    const res = await client.get<{ runs: CrawlRun[]; aiCalls: CrawlAiCalls }>(runsPath);
+    if (mine !== seq.current) return;
+    setAiCalls(res.aiCalls);
+    setRunList(res.runs);
   }, [client, runsPath, setRunList]);
 
   useEffect(() => {
@@ -292,8 +296,6 @@ function SiteCrawls({
   }
 
   const ready = runs.status === 'ready';
-  const discovery = list.find((r) => r.trigger === 'CONNECT');
-  const routine = routineAiCalls(list);
   const opened = openId ? list.find((r) => r.id === openId) : undefined;
 
   return frame(
@@ -338,13 +340,13 @@ function SiteCrawls({
         <Kpi
           label="AI calls on routine crawls"
           loading={!ready}
-          value={formatCount(routine)}
+          value={aiCalls ? formatCount(aiCalls.routine) : '—'}
           hint="Every crawl after the first: plain code, no Claude"
         />
         <Kpi
           label="AI calls on discovery"
           loading={!ready}
-          value={discovery ? formatCount(discovery.aiCalls) : '—'}
+          value={aiCalls?.discovery == null ? '—' : formatCount(aiCalls.discovery)}
           hint="One-time schema proposal on the first crawl"
         />
         <Kpi

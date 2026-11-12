@@ -223,6 +223,32 @@ export async function listCrawlRuns(
   return rows;
 }
 
+/**
+ * Site-wide AI calls for W10's KPIs (SP-054), over every run, not just the listed page:
+ * `discovery` sums the CONNECT runs (the schema agent's proposal calls; null before the first
+ * one), `routine` every other run (must stay 0, features/04 §6).
+ */
+export interface CrawlAiCalls {
+  discovery: number | null;
+  routine: number;
+}
+
+export async function crawlAiCalls(
+  q: Queryable,
+  publisherId: string,
+  siteId: string,
+): Promise<CrawlAiCalls> {
+  const scope = forPublisher(publisherId);
+  const site = await scope.get<{ id: string }>(q, 'sites', siteId, { columns: 't.id' });
+  const { rows } = await q.query<{ discovery: number | null; routine: number }>(
+    `SELECT (SUM(ai_calls) FILTER (WHERE trigger = 'CONNECT'))::int AS discovery,
+            COALESCE(SUM(ai_calls) FILTER (WHERE trigger <> 'CONNECT'), 0)::int AS routine
+       FROM crawl_runs WHERE site_id = $1`,
+    [site.id],
+  );
+  return rows[0]!;
+}
+
 /** One run of this publisher's, or 404. */
 export function getCrawlRun(
   q: Queryable,

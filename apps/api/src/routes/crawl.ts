@@ -3,6 +3,7 @@ import type { ServerResponse } from 'node:http';
 import { requirePublisher } from '../auth/publisherAuth.js';
 import {
   auditCrawlRunDone,
+  crawlAiCalls,
   crawlBody,
   getCrawlRun,
   listCrawlRuns,
@@ -28,7 +29,8 @@ import { handOffToWorkflows } from '../workflows/dispatch.js';
  *   → `202 { crawlRunId, workflowRunId }`; a live run → `409 CRAWL_IN_PROGRESS` with its id;
  *   PENDING_VERIFY → `403 SITE_NOT_VERIFIED`; a PAUSED site is resumed (→ READY) first.
  * - `POST /api/sites/:id/resume` → `{ status: 'READY' }` (PAUSED → READY, no crawl).
- * - `GET /api/sites/:id/crawl-runs?limit=20` → `{ runs: [...] }`, newest first.
+ * - `GET /api/sites/:id/crawl-runs?limit=20` → `{ runs: [...], aiCalls: { discovery, routine } }`,
+ *   runs newest first; `aiCalls` totals the site's runs (W10, SP-054).
  * - `GET /api/crawl-runs/:id/events` (SSE): `progress` (status + counters), then `done`.
  *
  * Also wired here: `site.verified` → `crawlSite(siteId, 'CONNECT')` (the discovery crawl), and
@@ -149,7 +151,8 @@ const crawlRoutes: FastifyPluginAsync = async (app) => {
   app.get<{ Params: { id: string } }>('/api/sites/:id/crawl-runs', async (req) => {
     const publisher = requirePublisher(req);
     const { limit } = parse(runsQuery, req.query, 'query');
-    return { runs: await listCrawlRuns(app.db.pool, publisher.id, req.params.id, limit) };
+    const runs = await listCrawlRuns(app.db.pool, publisher.id, req.params.id, limit);
+    return { runs, aiCalls: await crawlAiCalls(app.db.pool, publisher.id, req.params.id) };
   });
 
   app.get<{ Params: { id: string } }>('/api/crawl-runs/:id/events', async (req, reply) => {
