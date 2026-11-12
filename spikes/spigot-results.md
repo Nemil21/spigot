@@ -81,13 +81,14 @@ Last run 2026-11-12T01:55:29.140Z: **PASS**
 
 ### S7b: wallet CAPTURE → approve → capture `capture:<id>` + replays
 
-Last run 2026-11-12T02:10:07.072Z: **PENDING-HUMAN**
+Last run 2026-11-12T02:11:23.853Z: **PENDING-HUMAN**
+Attempts: 2026-11-12T02:10:07.072Z PENDING-HUMAN · 2026-11-12T02:11:23.853Z PENDING-HUMAN
 
 | call | PayPal-Request-Id | HTTP | body status | issue / name | debug id | ms | note |
 |---|---|---|---|---|---|---|---|
 | order create (wallet) | `e0a8f42c-d8a5-43dd-8366-930cd213a172` | 200 | PAYER_ACTION_REQUIRED | – | f2972850404dd | 873 | – |
 | order create replay same id | `e0a8f42c-d8a5-43dd-8366-930cd213a172` | 200 | PAYER_ACTION_REQUIRED | – | f407774b294b0 | 1086 | same order: true |
-| GET order | – | 200 | PAYER_ACTION_REQUIRED | – | ca591ff978915 | 668 | order state after waiting 898 s |
+| GET order | – | 200 | PAYER_ACTION_REQUIRED | – | ca592017869be | 455 | order state after waiting 975 s |
 
 ```json
 {
@@ -121,13 +122,14 @@ Last run 2026-11-12T01:55:43.994Z: **PASS**
 
 ### S8b: wallet vault (usage_type MERCHANT) on CAPTURE, then wallet MIT CAPTURE
 
-Last run 2026-11-12T02:10:07.509Z: **PENDING-HUMAN**
+Last run 2026-11-12T02:11:24.295Z: **PENDING-HUMAN**
+Attempts: 2026-11-12T02:10:07.509Z PENDING-HUMAN · 2026-11-12T02:11:24.295Z PENDING-HUMAN
 
 | call | PayPal-Request-Id | HTTP | body status | issue / name | debug id | ms | note |
 |---|---|---|---|---|---|---|---|
 | order create (wallet + vault) | `8eb53a6f-ce5d-4518-b81e-9d5b67530a1b` | 200 | PAYER_ACTION_REQUIRED | – | f869160804e1c | 1156 | – |
 | order create replay same id | `8eb53a6f-ce5d-4518-b81e-9d5b67530a1b` | 200 | PAYER_ACTION_REQUIRED | – | f6936221595f8 | 1163 | same order: true |
-| GET order | – | 200 | PAYER_ACTION_REQUIRED | – | ca591ff9b4bb9 | 436 | order state after waiting 897 s |
+| GET order | – | 200 | PAYER_ACTION_REQUIRED | – | ca592017b1bec | 442 | order state after waiting 973 s |
 
 ```json
 {
@@ -267,7 +269,8 @@ Attempts: 2026-11-12T01:56:40.116Z SCRIPT-ONLY · 2026-11-12T01:56:58.305Z SCRIP
 
 ### Final check: every order created is captured or un-approved
 
-Last run 2026-11-12T02:10:13.154Z: **PASS**
+Last run 2026-11-12T02:11:31.186Z: **PASS**
+Attempts: 2026-11-12T02:10:13.154Z PASS · 2026-11-12T02:11:31.186Z PASS
 
 ```json
 {
