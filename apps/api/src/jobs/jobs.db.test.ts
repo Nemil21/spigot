@@ -21,6 +21,21 @@ import { pollOpenTopups } from './topupPoller.js';
 const ORIGIN = REQUIRED_ENV.APP_BASE_URL!;
 const MIN = 60_000;
 
+/** FakePayPal answers with every capture's amount rewritten to `value` (a mismatched capture). */
+function amountRewritingFetch(fake: FakePayPal, value: string): typeof fetch {
+  return async (input, init) => {
+    const res = await fake.fetch(input, init);
+    if (res.status >= 300) return res;
+    const body = (await res.json()) as {
+      purchase_units?: { payments?: { captures?: { amount: unknown }[] } }[];
+    };
+    for (const pu of body.purchase_units ?? []) {
+      for (const c of pu.payments?.captures ?? []) c.amount = { value, currency_code: 'USD' };
+    }
+    return new Response(JSON.stringify(body), { status: res.status, headers: res.headers });
+  };
+}
+
 function cookiesOf(res: request.Response): string {
   const set = res.headers['set-cookie'] as unknown as string[] | undefined;
   return (set ?? []).map((c) => c.split(';', 1)[0]).join('; ');
@@ -187,6 +202,34 @@ describe.skipIf(!testDatabaseUrl)('SP-019 jobs (Postgres + FakePayPal)', () => {
       );
       expect(fake.order(orderId)?.captureIds).toHaveLength(1);
     }
+  });
+
+  it('a capture that does not match → one ALERT, then the poller leaves the row alone', async () => {
+    const buyer = await newBuyer();
+    const { topupId, orderId } = await openTopup(buyer.cookie);
+    fake.approve(orderId);
+    await deps.pp.captureOrder(orderId, topupId); // captured at PayPal, not credited yet
+    // PayPal reports a different amount than the top-up asked for.
+    const mismatched = fake.client({
+      timeoutMs: 1_000,
+      fetch: amountRewritingFetch(fake, '19.00'),
+    });
+    const before = getOrders(orderId);
+
+    for (let i = 0; i < 5; i++) await pollOpenTopups({ ...deps, pp: mismatched });
+
+    expect(getOrders(orderId) - before).toBe(1);
+    expect(await topupById(app.db, topupId)).toMatchObject({
+      status: 'AWAITING_APPROVAL',
+      needsReconcile: true,
+    });
+    const { rows } = await app.db.pool.query(
+      `SELECT id FROM audit_events WHERE entity_id = $1 AND action = 'ALERT'`,
+      [topupId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(await topupTxns(topupId)).toBe(0);
+    expect(await balanceOf(app.db.pool, buyer.id)).toBe(0);
   });
 
   it('31-min-old unapproved top-up → ABANDONED (after one getOrder); a 29-min-old one is left', async () => {

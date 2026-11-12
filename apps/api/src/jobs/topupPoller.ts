@@ -121,12 +121,17 @@ export interface PollResult {
   outcomes: Partial<Record<SettleOutcome, number>>;
 }
 
-/** One poller tick: every AWAITING_APPROVAL top-up with an order, created in the last 30 min. */
+/**
+ * One poller tick: every AWAITING_APPROVAL top-up with an order, created in the last 30 min.
+ * `needs_reconcile` rows are left for a person: re-polling a mismatched capture would only call
+ * PayPal and write the same `ALERT` again every tick.
+ */
 export async function pollOpenTopups(deps: JobDeps): Promise<PollResult> {
   const since = new Date(nowOf(deps) - POLL_WINDOW_MS);
   const { rows } = await deps.db.pool.query<TopupRow>(
     `SELECT ${TOPUP_COLUMNS} FROM topups
       WHERE status = 'AWAITING_APPROVAL' AND paypal_order_id IS NOT NULL AND created_at > $1
+        AND NOT needs_reconcile
       ORDER BY created_at LIMIT $2`,
     [since, POLL_BATCH],
   );
