@@ -14,6 +14,7 @@ import { mutateSummary } from '../admin.js';
 import { MutationError, parseMutateOptions } from '../data/mutations.js';
 import { DEFAULT_DATA_DIR, openStore } from '../data/store.js';
 import { pingConfigFromEnv, pingSpigot, pingUrls, type PingResult } from '../ping.js';
+import { scaleFromEnv } from '../data/seed.js';
 
 type Summary = ReturnType<typeof mutateSummary> & { ping?: PingResult };
 
@@ -26,6 +27,7 @@ function loadRootEnv(): void {
     'DEMO_ADMIN_TOKEN',
     'DEMO_DATA_DIR',
     'DEMO_SEED_SCALE',
+    'DEMO_LISTINGS',
     'SPIGOT_API_BASE',
     'SPIGOT_SITE_ID',
     'SPIGOT_CRAWL_KEY',
@@ -98,7 +100,7 @@ async function main(): Promise<void> {
   }
 
   const dataDir = process.env.DEMO_DATA_DIR || DEFAULT_DATA_DIR;
-  const scale = process.env.DEMO_SEED_SCALE ? Number(process.env.DEMO_SEED_SCALE) : 1;
+  const scale = scaleFromEnv(process.env);
   const store = await openStore({ dataDir, scale });
   const entry = await store.mutate(opts);
   emit(mutateSummary(entry));

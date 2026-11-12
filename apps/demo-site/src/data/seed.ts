@@ -37,6 +37,20 @@ export function countsForScale(scale: number): { listings: number; agents: numbe
   return { listings: n(BASE_COUNTS.listings), agents: n(BASE_COUNTS.agents), openHouses: n(BASE_COUNTS.openHouses) };
 }
 
+/**
+ * The seed scale from the environment. `DEMO_LISTINGS=10` asks for exactly that many listings (agents and open
+ * houses scale with it, at least 1 each), for a short live crawl; it wins over `DEMO_SEED_SCALE`. Neither set: scale 1.
+ */
+export function scaleFromEnv(env: Readonly<Record<string, string | undefined>>): number {
+  const listings = env.DEMO_LISTINGS?.trim();
+  if (listings) {
+    const n = Number(listings);
+    if (!Number.isInteger(n) || n <= 0) throw new Error(`DEMO_LISTINGS must be a positive integer, got ${listings}`);
+    return n / BASE_COUNTS.listings;
+  }
+  return env.DEMO_SEED_SCALE ? Number(env.DEMO_SEED_SCALE) : 1;
+}
+
 /** The demo query from the video: "3-bed under $2k in Austin". SP-004b's --focus picks from it. */
 export function isFocusListing(l: Pick<Listing, 'city' | 'bedrooms' | 'price_usd'>): boolean {
   return l.city === 'Austin' && l.bedrooms >= 3 && l.price_usd < 2000;

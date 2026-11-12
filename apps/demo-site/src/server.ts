@@ -1,9 +1,10 @@
 import { createApp, parseDemoLayout } from './app.js';
 import { DEFAULT_DATA_DIR, openStore } from './data/store.js';
 import { gateFromEnv, noopGate } from './gate.js';
+import { scaleFromEnv } from './data/seed.js';
 
 const port = Number(process.env.PORT ?? 4100);
-const scale = process.env.DEMO_SEED_SCALE ? Number(process.env.DEMO_SEED_SCALE) : 1;
+const scale = scaleFromEnv(process.env);
 const dataDir = process.env.DEMO_DATA_DIR || DEFAULT_DATA_DIR;
 
 const store = await openStore({ dataDir, scale });
