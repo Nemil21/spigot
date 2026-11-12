@@ -15,7 +15,7 @@ export const JSONPATH_MAX_LENGTH = 200;
 export const jsonPathSchema = z
   .string()
   .max(JSONPATH_MAX_LENGTH)
-  .regex(JSONPATH_PATTERN, 'JSONPath may only use .name, [\'name\'] and [0] segments');
+  .regex(JSONPATH_PATTERN, "JSONPath may only use .name, ['name'] and [0] segments");
 
 /** `text` (whitespace-collapsed text content) or an attribute name. */
 const attrSchema = z
@@ -132,7 +132,11 @@ export const extractorSpecSchema = z.object({
       const seen = new Set<string>();
       for (const [i, f] of fields.entries()) {
         if (seen.has(f.name)) {
-          ctx.addIssue({ code: 'custom', message: `duplicate field "${f.name}"`, path: [i, 'name'] });
+          ctx.addIssue({
+            code: 'custom',
+            message: `duplicate field "${f.name}"`,
+            path: [i, 'name'],
+          });
         }
         seen.add(f.name);
       }

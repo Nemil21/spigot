@@ -38,7 +38,8 @@ function step(v: unknown, seg: Segment, out: unknown[]): void {
     }
     return;
   }
-  if ('name' in seg && Object.hasOwn(v, seg.name)) out.push((v as Record<string, unknown>)[seg.name]);
+  if ('name' in seg && Object.hasOwn(v, seg.name))
+    out.push((v as Record<string, unknown>)[seg.name]);
 }
 
 /** Every match of `path` in `json`, in document order. */

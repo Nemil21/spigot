@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type * as JsonPathModule from './jsonpath.js';
 
 // Spy on the evaluator: a rejected spec must never reach it.
 const jsonPathCalls = vi.hoisted(() => ({ paths: [] as string[] }));
 vi.mock('./jsonpath.js', async (orig) => {
-  const mod = await orig<typeof import('./jsonpath.js')>();
+  const mod = await orig<typeof JsonPathModule>();
   return {
     ...mod,
     jsonPathFirst: (path: string, roots: readonly unknown[]) => {
@@ -14,9 +15,8 @@ vi.mock('./jsonpath.js', async (orig) => {
 });
 
 const { compileExtractor, extract } = await import('./extract.js');
-const { extractorSpecSchema, jsonPathSchema, recordKeySchema, transformSchema } = await import(
-  './spec.js'
-);
+const { extractorSpecSchema, jsonPathSchema, recordKeySchema, transformSchema } =
+  await import('./spec.js');
 
 const HTML = `<script type="application/ld+json">{"@type":"Apartment","numberOfRooms":2,"offers":{"price":2150}}</script>`;
 const URL_ = 'https://bluebonnet.example.com/listings/2br-east-cesar-chavez-4471';
@@ -31,12 +31,16 @@ afterEach(() => {
 });
 
 describe('JSONPath grammar', () => {
-  it.each(["$.offers.price", "$['@id']", '$.offers[0].price', "$['@graph'][1].name", '$.@type', '$.a_b.c-d'])(
-    'accepts %s',
-    (p) => {
-      expect(jsonPathSchema.safeParse(p).success).toBe(true);
-    },
-  );
+  it.each([
+    '$.offers.price',
+    "$['@id']",
+    '$.offers[0].price',
+    "$['@graph'][1].name",
+    '$.@type',
+    '$.a_b.c-d',
+  ])('accepts %s', (p) => {
+    expect(jsonPathSchema.safeParse(p).success).toBe(true);
+  });
 
   const malicious = [
     "$..[?(@.constructor.constructor('return process')())]",
@@ -64,7 +68,9 @@ describe('JSONPath grammar', () => {
     (p) => {
       expect(() => compileExtractor(specWith(p))).toThrow();
       expect(() => extract(HTML, specWith(p), URL_)).toThrow();
-      expect(() => extract(HTML, { recordKey: { jsonld: p }, fields: specWith('$.name').fields }, URL_)).toThrow();
+      expect(() =>
+        extract(HTML, { recordKey: { jsonld: p }, fields: specWith('$.name').fields }, URL_),
+      ).toThrow();
       expect(jsonPathCalls.paths).toEqual([]);
     },
   );
@@ -75,34 +81,83 @@ describe('JSONPath grammar', () => {
   });
 
   it('cannot reach prototype members', () => {
-    for (const p of ['$.constructor', '$.constructor.name', '$.__proto__', '$.toString', "$['constructor']['constructor']"]) {
-      expect(extract(HTML, { recordKey: { from: 'url' }, fields: [{ name: 'x', type: 'string', source: { jsonld: p } }, { name: 'y', type: 'integer', required: true, source: { jsonld: '$.numberOfRooms' } }] }, URL_)?.data.x).toBeNull();
+    for (const p of [
+      '$.constructor',
+      '$.constructor.name',
+      '$.__proto__',
+      '$.toString',
+      "$['constructor']['constructor']",
+    ]) {
+      expect(
+        extract(
+          HTML,
+          {
+            recordKey: { from: 'url' },
+            fields: [
+              { name: 'x', type: 'string', source: { jsonld: p } },
+              { name: 'y', type: 'integer', required: true, source: { jsonld: '$.numberOfRooms' } },
+            ],
+          },
+          URL_,
+        )?.data.x,
+      ).toBeNull();
     }
   });
 });
 
 describe('transform whitelist', () => {
   it.each([
-    'trim', 'lower', 'toInt', 'toFloat', 'firstInt', 'money', 'date', 'datetime', 'absoluteUrl',
-    'split:,', 'split: / ', 'bool:yes', 'bool:dogs ok', 'regex:(\\d+)',
+    'trim',
+    'lower',
+    'toInt',
+    'toFloat',
+    'firstInt',
+    'money',
+    'date',
+    'datetime',
+    'absoluteUrl',
+    'split:,',
+    'split: / ',
+    'bool:yes',
+    'bool:dogs ok',
+    'regex:(\\d+)',
   ])('accepts %s', (t) => {
     expect(transformSchema.safeParse(t).success).toBe(true);
   });
 
   it.each([
-    'eval', 'upper', 'toint', 'trim:', 'split:', 'split:' + ','.repeat(11), 'bool:', 'bool:   ',
-    'regex:(a+)+$', 'regex:' + 'a'.repeat(101), 'regex:(a)\\1', 'js:process.exit()', '',
+    'eval',
+    'upper',
+    'toint',
+    'trim:',
+    'split:',
+    'split:' + ','.repeat(11),
+    'bool:',
+    'bool:   ',
+    'regex:(a+)+$',
+    'regex:' + 'a'.repeat(101),
+    'regex:(a)\\1',
+    'js:process.exit()',
+    '',
   ])('rejects %j', (t) => {
     expect(transformSchema.safeParse(t).success).toBe(false);
   });
 
   it('an unknown transform rejects the whole spec', () => {
-    const spec = { recordKey: { from: 'url' }, fields: [{ name: 'x', type: 'string', source: { css: 'h1' }, transforms: ['trim', 'exec'] }] };
+    const spec = {
+      recordKey: { from: 'url' },
+      fields: [{ name: 'x', type: 'string', source: { css: 'h1' }, transforms: ['trim', 'exec'] }],
+    };
     expect(extractorSpecSchema.safeParse(spec).success).toBe(false);
   });
 
   it('a catastrophic regex rejects the whole spec', () => {
-    const spec = { recordKey: { from: 'url' }, fields: [{ name: 'x', type: 'string', source: { css: 'h1' }, transforms: ['regex:(\\w+\\s?)*$'] }] };
+    const spec = {
+      recordKey: { from: 'url' },
+      fields: [
+        { name: 'x', type: 'string', source: { css: 'h1' }, transforms: ['regex:(\\w+\\s?)*$'] },
+      ],
+    };
     expect(extractorSpecSchema.safeParse(spec).success).toBe(false);
   });
 });
@@ -110,15 +165,38 @@ describe('transform whitelist', () => {
 describe('extractor spec', () => {
   const ok = {
     recordKey: { from: 'url' },
-    fields: [{ name: 'price_usd', type: 'integer', required: true, source: { jsonld: '$.offers.price' }, transforms: ['toInt'] }],
+    fields: [
+      {
+        name: 'price_usd',
+        type: 'integer',
+        required: true,
+        source: { jsonld: '$.offers.price' },
+        transforms: ['toInt'],
+      },
+    ],
   };
 
   it('applies defaults and strips non-extractor keys (propose_schema extras)', () => {
     const parsed = extractorSpecSchema.parse({
       ...ok,
-      fields: [{ name: 'title', type: 'string', source: { css: 'h1' }, description: 'Title', filterable: ['eq'], pii: false }],
+      fields: [
+        {
+          name: 'title',
+          type: 'string',
+          source: { css: 'h1' },
+          description: 'Title',
+          filterable: ['eq'],
+          pii: false,
+        },
+      ],
     });
-    expect(parsed.fields[0]).toEqual({ name: 'title', type: 'string', required: false, source: { css: 'h1', attr: 'text' }, transforms: [] });
+    expect(parsed.fields[0]).toEqual({
+      name: 'title',
+      type: 'string',
+      required: false,
+      source: { css: 'h1', attr: 'text' },
+      transforms: [],
+    });
   });
 
   it.each([
@@ -128,7 +206,10 @@ describe('extractor spec', () => {
     ['reserved updated_at', { ...ok, fields: [{ ...ok.fields[0], name: 'updated_at' }] }],
     ['duplicate names', { ...ok, fields: [ok.fields[0], ok.fields[0]] }],
     ['no fields', { ...ok, fields: [] }],
-    ['mixed source', { ...ok, fields: [{ ...ok.fields[0], source: { jsonld: '$.a', css: 'h1' } }] }],
+    [
+      'mixed source',
+      { ...ok, fields: [{ ...ok.fields[0], source: { jsonld: '$.a', css: 'h1' } }] },
+    ],
     ['bad attr', { ...ok, fields: [{ ...ok.fields[0], source: { css: 'a', attr: 'on click' } }] }],
     ['empty css', { ...ok, fields: [{ ...ok.fields[0], source: { css: '  ' } }] }],
     ['bad recordKey', { ...ok, recordKey: { from: 'title' } }],
@@ -142,6 +223,8 @@ describe('extractor spec', () => {
   });
 
   it('an invalid CSS selector is rejected at compile time', () => {
-    expect(() => compileExtractor({ ...ok, fields: [{ name: 'x', type: 'string', source: { css: 'dl[' } }] })).toThrow(/invalid CSS selector/);
+    expect(() =>
+      compileExtractor({ ...ok, fields: [{ name: 'x', type: 'string', source: { css: 'dl[' } }] }),
+    ).toThrow(/invalid CSS selector/);
   });
 });

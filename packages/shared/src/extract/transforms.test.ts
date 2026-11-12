@@ -94,18 +94,21 @@ describe('transforms', () => {
   });
 
   it('chains in order', () => {
-    const chain = ['trim', 'lower', 'bool:ok'].map(
-      (t) => compileTransform(parseTransform(t) as ParsedTransform),
+    const chain = ['trim', 'lower', 'bool:ok'].map((t) =>
+      compileTransform(parseTransform(t) as ParsedTransform),
     );
     expect(chain.reduce<Value>((v, f) => f(v, ctx), '  Cats OK ')).toBe(true);
   });
 
   it('a regex the engine refuses yields null instead of throwing', () => {
-    const f = compileTransform({ op: 'regex', pattern: '(\\d+)' }, {
-      compile() {
-        throw new Error('nope');
+    const f = compileTransform(
+      { op: 'regex', pattern: '(\\d+)' },
+      {
+        compile() {
+          throw new Error('nope');
+        },
       },
-    });
+    );
     expect(f('12', ctx)).toBeNull();
   });
 });

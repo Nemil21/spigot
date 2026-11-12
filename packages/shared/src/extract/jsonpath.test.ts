@@ -29,7 +29,14 @@ describe('jsonPathAll', () => {
   });
 
   it('never reads prototype members', () => {
-    for (const p of ['$.constructor', '$.constructor.constructor', '$.__proto__', '$.toString', '$.offers.length', '$.hasOwnProperty']) {
+    for (const p of [
+      '$.constructor',
+      '$.constructor.constructor',
+      '$.__proto__',
+      '$.toString',
+      '$.offers.length',
+      '$.hasOwnProperty',
+    ]) {
       expect(jsonPathAll(p, doc)).toEqual([]);
     }
   });
@@ -42,7 +49,9 @@ describe('jsonPathAll', () => {
 describe('jsonPathFirst', () => {
   it('returns the first non-null match across roots', () => {
     expect(jsonPathFirst('$.offers.price', [doc])).toBe(2150);
-    expect(jsonPathFirst('$.name', [{ name: null }, { a: 1 }, { name: 'second' }, { name: 'third' }])).toBe('second');
+    expect(
+      jsonPathFirst('$.name', [{ name: null }, { a: 1 }, { name: 'second' }, { name: 'third' }]),
+    ).toBe('second');
     expect(jsonPathFirst('$.name', [])).toBeNull();
   });
 });

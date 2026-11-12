@@ -1,7 +1,14 @@
 // Transform whitelist (features/04 §3). Each transform is compiled once per spec and maps one
 // scalar to a value; arrays (CSS `all`, JSON-LD arrays, `split`) are mapped element-wise.
 // `null` in → `null` out, and nothing throws.
-import { parseDate, parseDateTime, parseHttpUrl, parseNumber, type Scalar, type Value } from './coerce.js';
+import {
+  parseDate,
+  parseDateTime,
+  parseHttpUrl,
+  parseNumber,
+  type Scalar,
+  type Value,
+} from './coerce.js';
 import { nativeRegexEngine, type RegexEngine } from './regex.js';
 import type { ParsedTransform } from './spec.js';
 
@@ -15,7 +22,11 @@ export type CompiledTransform = (v: Value, ctx: TransformContext) => Value;
 const FIRST_INT_RE = /\d{1,3}(?:,\d{3})+(?!\d)|\d+/;
 
 /** Lowercase words separated by single spaces, for whole-word `bool:` matching. */
-const words = (s: string) => ` ${s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()} `;
+const words = (s: string) =>
+  ` ${s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()} `;
 
 function scalarFn(t: ParsedTransform, regex: RegexEngine): ScalarFn {
   switch (t.op) {
@@ -78,7 +89,10 @@ function scalarFn(t: ParsedTransform, regex: RegexEngine): ScalarFn {
   }
 }
 
-export function compileTransform(t: ParsedTransform, regex: RegexEngine = nativeRegexEngine): CompiledTransform {
+export function compileTransform(
+  t: ParsedTransform,
+  regex: RegexEngine = nativeRegexEngine,
+): CompiledTransform {
   const fn = scalarFn(t, regex);
   const apply = (v: Value, ctx: TransformContext): Value => {
     if (v === null) return null;
