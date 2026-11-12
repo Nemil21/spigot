@@ -94,7 +94,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** A client-side check that mirrors the API's (`publisherId` is a UUID); `null` when valid. */
 export function searchError(s: AuditSearch): string | null {
-  if (s.publisherId && !UUID.test(s.publisherId)) return 'Publisher id must be a UUID.';
+  // Trimmed like `auditUrl`: a pasted id often carries a trailing space or newline.
+  const publisherId = s.publisherId?.trim();
+  if (publisherId && !UUID.test(publisherId)) return 'Publisher id must be a UUID.';
   return null;
 }
 

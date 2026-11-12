@@ -209,6 +209,7 @@ function SearchForm({
   const initialKey = JSON.stringify(initial);
   useEffect(() => {
     setValues(JSON.parse(initialKey) as AuditSearch);
+    setError(null);
   }, [initialKey]);
 
   function submit(e: FormEvent) {

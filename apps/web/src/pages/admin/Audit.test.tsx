@@ -6,7 +6,7 @@ import { createApiClient, type FetchLike } from '../../api/client';
 import auditFixture from '../../fixtures/admin/audit.json';
 import healthFixture from '../../fixtures/admin/health.json';
 import { AuditScreen } from './Audit';
-import { auditUrl, dataSummary, formatAt, isSimEvent, lastGateHit } from './model';
+import { auditUrl, dataSummary, formatAt, isSimEvent, lastGateHit, searchError } from './model';
 import type { AdminHealth, AdminRunResult, AuditEvent, LedgerCheckResult } from './model';
 
 const json = (status: number, body: unknown) =>
@@ -206,6 +206,20 @@ describe('W14 Admin / audit', () => {
     expect(auditCalls(api)).toHaveLength(before);
   });
 
+  it('a pasted publisher id with surrounding whitespace is trimmed, not refused', async () => {
+    const api = fakeApi();
+    renderScreen(api);
+    await screen.findByText('5 events, newest first');
+    await userEvent.type(
+      screen.getByRole('searchbox', { name: 'Publisher id' }),
+      `  ${PUBLISHER} `,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(await screen.findByText('2 events, newest first')).toBeInTheDocument();
+    expect(screen.queryByText('Publisher id must be a UUID.')).toBeNull();
+    expect(auditCalls(api).at(-1)).toBe(`/admin/audit?publisherId=${PUBLISHER}&limit=50`);
+  });
+
   it('no match: empty state whose one action clears the search', async () => {
     renderScreen(fakeApi());
     await screen.findByText('5 events, newest first');
@@ -338,6 +352,12 @@ describe('W14 model', () => {
       '/admin/audit?paypalId=X1&limit=50',
     );
     expect(auditUrl({}, '99', 10)).toBe('/admin/audit?limit=10&cursor=99');
+  });
+
+  it('searchError trims before checking the UUID', () => {
+    expect(searchError({ publisherId: ` ${PUBLISHER}\n` })).toBeNull();
+    expect(searchError({ publisherId: '   ' })).toBeNull();
+    expect(searchError({ publisherId: 'nope' })).toBe('Publisher id must be a UUID.');
   });
 
   it('isSimEvent: SIM actor or data.isSimulated', () => {
