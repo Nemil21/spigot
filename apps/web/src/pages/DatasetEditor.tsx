@@ -714,7 +714,7 @@ function Frame({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-4" data-screen="W06">
+    <div className="mx-auto max-w-6xl space-y-4 px-6 py-8" data-screen="W06">
       <Link to={paths.recordTypes} className="text-sm text-accent hover:underline">
         ← Record types
       </Link>

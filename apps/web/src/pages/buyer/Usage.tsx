@@ -268,7 +268,7 @@ export function UsageScreen({
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-6" data-screen="W12">
+    <div className="mx-auto max-w-6xl space-y-6 px-6 py-8" data-screen="W12">
       <h1 className="text-2xl font-semibold text-ink">Usage and claims</h1>
       {children}
     </div>

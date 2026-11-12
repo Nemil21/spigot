@@ -180,11 +180,14 @@ export function ProposalCard({
     <article
       aria-labelledby={headingId}
       data-dataset-id={p.datasetId}
-      className="rounded-lg border border-line bg-surface p-5 shadow-sm"
+      className="rounded-lg border border-line bg-surface p-7 shadow-card"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id={headingId} className="text-lg font-semibold text-ink">
+          <h2
+            id={headingId}
+            className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-ink"
+          >
             {countLabel(p)}
           </h2>
           {pattern && <code className="mt-1 block text-sm text-muted">{pattern}</code>}
@@ -196,11 +199,19 @@ export function ProposalCard({
 
       <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
         <div>
-          <p className="text-xs font-medium text-muted">Key fields</p>
-          <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-sm" aria-label="Key fields">
+          <p className="text-[11px] font-medium tracking-[0.08em] text-muted uppercase">
+            Key fields
+          </p>
+          <dl
+            className="mt-2 grid grid-cols-2 gap-3 text-sm lg:grid-cols-4"
+            aria-label="Key fields"
+          >
             {keys.map((f) => (
-              <div key={f.name} className="min-w-0">
-                <dt className="font-mono text-ink">{f.name}</dt>
+              <div
+                key={f.name}
+                className="min-w-0 rounded-[10px] border border-line bg-surface-2/60 px-3 py-2.5"
+              >
+                <dt className="font-mono text-xs text-accent">{f.name}</dt>
                 <dd className="truncate text-body" title={exampleText(f.example)}>
                   {exampleText(f.example)}
                 </dd>

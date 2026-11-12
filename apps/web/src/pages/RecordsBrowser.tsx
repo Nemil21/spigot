@@ -338,7 +338,7 @@ export function RecordsBrowserScreen({ client = defaultApi }: { client?: ApiClie
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4" data-screen="W07">
+    <div className="mx-auto max-w-7xl space-y-4 px-6 py-8" data-screen="W07">
       <h1 className="text-2xl font-semibold text-ink">Records</h1>
       {body}
       {open && (

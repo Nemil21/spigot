@@ -56,7 +56,7 @@ export function BalanceHero({ balanceMicros }: { balanceMicros: number | null })
   return (
     <section
       aria-labelledby="balance-title"
-      className="rounded-lg border border-line bg-surface p-5 shadow-card"
+      className="rounded-[20px] border border-accent/30 bg-gradient-to-br from-accent/25 via-sim/12 to-positive/8 p-7 shadow-card"
     >
       <h2 id="balance-title" className="text-sm font-medium text-muted">
         Prepaid balance, funded with PayPal
@@ -66,7 +66,7 @@ export function BalanceHero({ balanceMicros }: { balanceMicros: number | null })
           <Skeleton className="h-10 w-40" />
         </p>
       ) : (
-        <p className="mt-1 text-4xl font-semibold text-ink">
+        <p className="mt-2 font-[family-name:var(--font-display)] text-6xl font-light tracking-tight text-ink">
           <span
             className={`tabular-nums ${rising ? 'text-positive' : ''}`}
             title={`${formatCount(balanceMicros)} micros`}

@@ -172,6 +172,18 @@ form h1,
   background: var(--sp-canvas);
 }
 
+/*
+ * Figma primary buttons are white on navy. Every primary action in the app is `bg-accent`, so in
+ * dark mode a solid accent button becomes white instead of touching each page.
+ */
+[data-theme='dark'] :is(a, button).bg-accent {
+  background-color: #ffffff;
+  color: #0a1230;
+}
+[data-theme='dark'] :is(a, button).bg-accent:hover:not(:disabled) {
+  background-color: #e6eaff;
+}
+
 /* Auth backdrop tiles (Render-style): lift and tilt in 3D on hover. */
 .tile {
   transition:

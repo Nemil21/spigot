@@ -278,7 +278,7 @@ export function EarningsScreen({
 
 function Frame({ status, children }: { status: EventStreamStatus; children: React.ReactNode }) {
   return (
-    <div className="space-y-6" data-screen="W08">
+    <div className="mx-auto max-w-7xl space-y-6 px-6 py-8" data-screen="W08">
       <header className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold text-ink">Earnings</h1>
         {status === 'open' && (

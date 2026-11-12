@@ -179,11 +179,14 @@ export function PayoutsScreen({
       <section
         aria-label="Next payout"
         aria-busy={!ready || undefined}
-        className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5 shadow-card"
+        className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] border border-accent/30 bg-gradient-to-r from-accent/18 to-positive/6 p-7 shadow-card"
       >
         <div className="min-w-0">
           {ready ? (
-            <p className="text-lg font-semibold text-ink tabular-nums" data-next-payout="">
+            <p
+              className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-ink tabular-nums"
+              data-next-payout=""
+            >
               {nextPayoutLine(data.next)}
             </p>
           ) : (
@@ -302,7 +305,7 @@ function StatusBanner({ item }: { item: PayoutItem }) {
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-4" data-screen="W09">
+    <div className="mx-auto max-w-6xl space-y-4 px-6 py-8" data-screen="W09">
       <h1 className="text-2xl font-semibold text-ink">Payouts</h1>
       {children}
     </div>

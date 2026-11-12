@@ -237,7 +237,7 @@ export function BuyerPortal({
 
 function PortalFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="mx-auto max-w-5xl space-y-4 px-6 py-8">
       <h1 className="text-2xl font-semibold text-ink">Balance and keys</h1>
       {children}
     </div>

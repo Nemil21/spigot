@@ -663,7 +663,7 @@ function RunPayout({ client, onDone }: { client: ApiClient; onDone: () => void }
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-6" data-screen="W14">
+    <div className="mx-auto max-w-6xl space-y-6 px-6 py-8" data-screen="W14">
       <div>
         <h1 className="text-2xl font-semibold text-ink">Admin / audit</h1>
         <p className="text-sm text-muted">
