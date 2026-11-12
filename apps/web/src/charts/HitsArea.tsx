@@ -59,7 +59,7 @@ export function HitsArea({
       })),
       axes: {
         x: { type: 'time', position: 'bottom' },
-        y: { type: 'number', position: 'left', title: { text: 'Hits' } },
+        y: { type: 'number', position: 'left' },
       },
       legend: { position: 'bottom' },
     };
