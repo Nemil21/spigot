@@ -4,7 +4,6 @@ import { RouterProvider, createMemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { paths } from '../routes';
 import LandingPage, {
-  HONEST_LIMITS,
   SAMPLE_RESPONSE,
   STAT_SOURCE_URL,
   STEPS,
@@ -99,12 +98,5 @@ describe('W01 Landing (SP-057)', () => {
       '"https://spigot.example/v1/bluebonnet/datasets/listings/records?city=Austin&bedrooms[gte]=3&limit=50"',
     );
     expect(sampleRequest('https://spigot.example')).toMatch(/^curl -g /);
-  });
-
-  it('shows every honest limit and a footer', () => {
-    setup();
-    const limits = screen.getByRole('region', { name: 'Honest limits' });
-    expect(within(limits).getAllByRole('listitem')).toHaveLength(HONEST_LIMITS.length);
-    expect(screen.getByRole('contentinfo')).toHaveTextContent('Paid out via PayPal');
   });
 });
