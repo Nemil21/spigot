@@ -47,5 +47,5 @@ export function renderTermsPage(site: { name: string }, links: CatalogPageLinks)
       catalog. Neither Spigot nor the site owner guarantees accuracy or completeness.
     </p>
     <footer><a href="${links.catalogUrl}">Back to the ${name} catalog</a></footer>`;
-  return page({ title: `Data terms: ${name}`, body });
+  return page({ title: `Data terms: ${name}`, body, home: links.home });
 }
