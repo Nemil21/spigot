@@ -100,8 +100,12 @@ export function BuyerSignUp({ client = defaultApi }: { client?: ApiClient }) {
             minLength={PASSWORD_MIN}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            aria-describedby="signup-password-hint"
             className={field}
           />
+          <p id="signup-password-hint" className="mt-1.5 text-xs text-muted">
+            At least {PASSWORD_MIN} characters.
+          </p>
 
           {error && (
             <p
