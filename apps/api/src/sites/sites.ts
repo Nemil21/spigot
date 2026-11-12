@@ -178,10 +178,21 @@ function probeError(err: unknown): ApiError {
   return new ApiError('ORIGIN_ERROR', MESSAGES.unreachable);
 }
 
-/** `Sitemap:` lines from robots.txt that point at this origin, in order. */
-export function sitemapsFromRobots(robots: string, origin: string): string[] {
+/**
+ * At most this many robots.txt `Sitemap:` URLs are tried, so a hostile robots.txt can't make one
+ * connect call fan out into thousands of outbound fetches.
+ */
+export const MAX_ROBOTS_SITEMAPS = 3;
+
+/** The first `max` distinct `Sitemap:` lines from robots.txt that point at this origin, in order. */
+export function sitemapsFromRobots(
+  robots: string,
+  origin: string,
+  max = MAX_ROBOTS_SITEMAPS,
+): string[] {
   const out: string[] = [];
   for (const line of robots.split(/\r?\n/)) {
+    if (out.length >= max) break;
     const m = /^\s*sitemap\s*:\s*(\S+)/i.exec(line);
     const url = m && normalizeOnOrigin(m[1]!, origin);
     if (url && !out.includes(url)) out.push(url);

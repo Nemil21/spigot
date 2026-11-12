@@ -6,6 +6,7 @@ import { generateSiteSecrets, sha256Hex, verifyBodyMatches } from './keys.js';
 import {
   baseSlug,
   installSnippet,
+  MAX_ROBOTS_SITEMAPS,
   MESSAGES,
   normalizeOrigin,
   pickSlug,
@@ -126,6 +127,29 @@ describe('probeOrigin', () => {
       expect(o.origin).toBe(ORIGIN);
       expect(o.headers?.['user-agent']).toMatch(/^SpigotCrawler\/1\.0/);
     }
+  });
+  it('tries at most MAX_ROBOTS_SITEMAPS robots.txt Sitemap: lines (no fetch fan-out)', async () => {
+    const lines = Array.from({ length: 1000 }, (_, i) => `Sitemap: /bad-${i}.xml`).join('\n');
+    const urls: string[] = [];
+    const d = deps({
+      [`${ORIGIN}/robots.txt`]: res('', 200, `User-agent: *\n${lines}\n`),
+      [`${ORIGIN}/bad-0.xml`]: res('', 200, '<html>not a sitemap</html>'),
+    });
+    const fetch = d.fetch;
+    d.fetch = async (url, opts) => {
+      urls.push(url);
+      return fetch(url, opts);
+    };
+    expect(await codeOf(probeOrigin(ORIGIN, undefined, d))).toEqual([
+      'VALIDATION_ERROR',
+      MESSAGES.noSitemap,
+    ]);
+    expect(urls).toEqual([
+      `${ORIGIN}/robots.txt`,
+      ...Array.from({ length: MAX_ROBOTS_SITEMAPS }, (_, i) => `${ORIGIN}/bad-${i}.xml`),
+      `${ORIGIN}/sitemap.xml`,
+    ]);
+    expect(MAX_ROBOTS_SITEMAPS).toBe(3);
   });
   it('prefers a robots.txt Sitemap: line on the origin, ignores off-origin ones', async () => {
     const robots = `User-agent: *\nSitemap: https://evil.test/s.xml\nsitemap:  /maps/index.xml\n`;
