@@ -173,11 +173,32 @@ export interface FingerprintOptions {
 export const FINGERPRINT_DEFAULTS = { depth: 4 } as const satisfies Required<FingerprintOptions>;
 
 const VOID_TAGS = new Set([
-  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source',
-  'track', 'wbr',
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr',
 ]);
 /** Content is skipped: text or a foreign tree, not page layout. */
-const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'template', 'textarea', 'title', 'svg', 'math']);
+const SKIP_TAGS = new Set([
+  'script',
+  'style',
+  'noscript',
+  'template',
+  'textarea',
+  'title',
+  'svg',
+  'math',
+]);
 /** An open tag that implicitly closes an open sibling of the listed tags (HTML optional end tags). */
 const IMPLIED_CLOSE: Record<string, readonly string[]> = {
   li: ['li'],
@@ -229,7 +250,9 @@ export function fingerprint(html: string, options: FingerprintOptions = {}): Set
 
     const attrs = m[3] ?? '';
     const cm = CLASS_RE.exec(attrs);
-    const cls = (cm?.[1] ?? cm?.[2] ?? cm?.[3] ?? '').split(/\s+/).find((c) => STABLE_CLASS_RE.test(c));
+    const cls = (cm?.[1] ?? cm?.[2] ?? cm?.[3] ?? '')
+      .split(/\s+/)
+      .find((c) => STABLE_CLASS_RE.test(c));
     const token = cls ? `${tag}.${cls}` : tag;
     const path = [...stack.slice(-(depth - 1)).map((e) => e.token), token];
     shingles.add(path.join('>'));
@@ -264,8 +287,7 @@ export const CONFIRM_DEFAULTS = {
 } as const satisfies Required<ConfirmOptions>;
 
 export type FingerprintsByPageId =
-  | ReadonlyMap<string, Fingerprint>
-  | ((pageId: string) => Fingerprint | undefined);
+  ReadonlyMap<string, Fingerprint> | ((pageId: string) => Fingerprint | undefined);
 
 /**
  * Confirms a URL-pattern template with DOM fingerprints (features/04 §1, P1). Distinct
@@ -284,7 +306,8 @@ export function confirmCluster(
   options: ConfirmOptions = {},
 ): Template[] {
   const opts = { ...CONFIRM_DEFAULTS, ...options };
-  const fpOf = typeof fingerprints === 'function' ? fingerprints : (id: string) => fingerprints.get(id);
+  const fpOf =
+    typeof fingerprints === 'function' ? fingerprints : (id: string) => fingerprints.get(id);
 
   // Pages with identical fingerprints are one node; most pages of a real template collapse here.
   const nodes = new Map<string, { fp: Fingerprint; pageIds: string[] }>();
@@ -333,18 +356,18 @@ export function confirmCluster(
   const types = template.jsonldTypes.join(',');
   const kept = layouts.filter((ids) => ids.length >= opts.minPages);
   return kept.map((pageIds, i) => ({
-      pathPattern: template.pathPattern,
-      urlPattern: template.urlPattern,
-      jsonldTypes: [...template.jsonldTypes],
-      pageCount: pageIds.length,
+    pathPattern: template.pathPattern,
+    urlPattern: template.urlPattern,
+    jsonldTypes: [...template.jsonldTypes],
+    pageCount: pageIds.length,
+    pageIds,
+    samplePageIds: seededSample(
       pageIds,
-      samplePageIds: seededSample(
-        pageIds,
-        opts.sampleSize,
-        `${opts.seed}|${template.urlPattern}|${types}|v${i + 1}`,
-      ),
-      ...(kept.length > 1 ? { variant: i + 1 } : {}),
-    }));
+      opts.sampleSize,
+      `${opts.seed}|${template.urlPattern}|${types}|v${i + 1}`,
+    ),
+    ...(kept.length > 1 ? { variant: i + 1 } : {}),
+  }));
 }
 
 /** `confirmCluster` over every template from `clusterUrls`, keeping their order. */

@@ -143,7 +143,10 @@ describe('confirmCluster', () => {
   });
 
   it('drops a layout with fewer than minPages pages and keeps the rest without a variant', () => {
-    const bodies = [...Array.from({ length: 20 }, () => LISTING), ...Array.from({ length: 3 }, () => AGENT)];
+    const bodies = [
+      ...Array.from({ length: 20 }, () => LISTING),
+      ...Array.from({ length: 3 }, () => AGENT),
+    ];
     const { template, fps } = mixedTemplate(bodies);
     const [only, ...rest] = confirmCluster(template, fps);
     expect(rest).toEqual([]);
@@ -153,15 +156,34 @@ describe('confirmCluster', () => {
   });
 
   it('drops a pattern whose pages share no structure (/about-like)', () => {
-    const tags = ['section', 'aside', 'table', 'form', 'figure', 'nav', 'header', 'footer', 'ol', 'blockquote', 'pre', 'details'];
-    const bodies = tags.map((t, i) => `<body><main><${t} class="c${'x'.repeat(i)}"><span>${i}</span></${t}></main></body>`);
+    const tags = [
+      'section',
+      'aside',
+      'table',
+      'form',
+      'figure',
+      'nav',
+      'header',
+      'footer',
+      'ol',
+      'blockquote',
+      'pre',
+      'details',
+    ];
+    const bodies = tags.map(
+      (t, i) =>
+        `<body><main><${t} class="c${'x'.repeat(i)}"><span>${i}</span></${t}></main></body>`,
+    );
     const { template, fps } = mixedTemplate(bodies);
     expect(template.pageCount).toBe(12);
     expect(confirmCluster(template, fps)).toEqual([]);
   });
 
   it('keeps pages without a fingerprint with the largest layout', () => {
-    const bodies = [...Array.from({ length: 15 }, () => LISTING), ...Array.from({ length: 12 }, () => AGENT)];
+    const bodies = [
+      ...Array.from({ length: 15 }, () => LISTING),
+      ...Array.from({ length: 12 }, () => AGENT),
+    ];
     const { template, fps } = mixedTemplate(bodies);
     const missing = [template.pageIds[0]!, template.pageIds[20]!];
     for (const id of missing) fps.delete(id);
@@ -178,13 +200,19 @@ describe('confirmCluster', () => {
   });
 
   it('returns the template as is above maxDistinct fingerprints', () => {
-    const bodies = [...Array.from({ length: 12 }, () => LISTING), ...Array.from({ length: 12 }, () => AGENT)];
+    const bodies = [
+      ...Array.from({ length: 12 }, () => LISTING),
+      ...Array.from({ length: 12 }, () => AGENT),
+    ];
     const { template, fps } = mixedTemplate(bodies);
     expect(confirmCluster(template, fps, { maxDistinct: 1 })).toEqual([template]);
   });
 
   it('is deterministic and independent of page order', () => {
-    const bodies = [...Array.from({ length: 14 }, () => AGENT), ...Array.from({ length: 22 }, () => LISTING)];
+    const bodies = [
+      ...Array.from({ length: 14 }, () => AGENT),
+      ...Array.from({ length: 22 }, () => LISTING),
+    ];
     const { template, fps } = mixedTemplate(bodies);
     const shuffled: Template = { ...template, pageIds: [...template.pageIds].reverse() };
     const a = confirmCluster(template, fps);
@@ -199,6 +227,8 @@ describe('confirmCluster', () => {
       ...Array.from({ length: 12 }, () => LISTING_OH),
     ]);
     expect(confirmCluster(template, fps)).toEqual([template]);
-    expect(confirmCluster(template, fps, { threshold: 0.99 }).map((t) => t.pageCount)).toEqual([12, 12]);
+    expect(confirmCluster(template, fps, { threshold: 0.99 }).map((t) => t.pageCount)).toEqual([
+      12, 12,
+    ]);
   });
 });
