@@ -79,12 +79,28 @@ const codeBlock =
   'max-w-full overflow-x-auto p-4 font-mono text-xs leading-relaxed text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus';
 
 /** A code sample in a titled panel. */
-function CodePanel({ title, children }: { title: string; children: ReactNode }) {
+function CodePanel({
+  title,
+  file,
+  caption,
+  children,
+}: {
+  title: string;
+  /** The file or endpoint the sample belongs to, shown beside the title. */
+  file?: string;
+  /** One line telling the visitor what to do with the sample. */
+  caption?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface shadow-card">
-      <p className="border-b border-line bg-surface-2 px-4 py-2 font-mono text-2xs text-muted">
-        {title}
-      </p>
+      <div className="border-b border-line bg-surface-2 px-4 py-2.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+          <h3 className="text-sm font-semibold text-ink">{title}</h3>
+          {file && <span className="font-mono text-2xs text-muted">{file}</span>}
+        </div>
+        {caption && <p className="mt-0.5 text-xs text-muted">{caption}</p>}
+      </div>
       {children}
     </div>
   );
@@ -212,7 +228,7 @@ export default function LandingPage() {
                 <strong className="block text-xl font-semibold text-ink sm:text-2xl">
                   1 AI bot for every 31 human visits
                 </strong>
-                <span className="mt-1 inline-block">up from 1 in 200. </span>{' '}
+                <span className="mt-1 inline-block">Up from 1 in 200.</span>{' '}
                 <a
                   href={STAT_SOURCE_URL}
                   target="_blank"
@@ -295,12 +311,21 @@ export default function LandingPage() {
               </dl>
             </div>
             <div className="min-w-0 space-y-4">
-              <CodePanel title="claude_desktop_config.json">
+              <CodePanel
+                title="Claude Desktop (MCP)"
+                file="claude_desktop_config.json"
+                caption={
+                  <>
+                    Add to <code className="font-mono">claude_desktop_config.json</code> with your
+                    API key.
+                  </>
+                }
+              >
                 <pre tabIndex={0} aria-label="MCP config" className={codeBlock}>
                   {mcpConfig}
                 </pre>
               </CodePanel>
-              <CodePanel title="REST API">
+              <CodePanel title="REST API" file="GET /v1/:site/datasets/:dataset/records">
                 <pre tabIndex={0} aria-label="Sample request" className={codeBlock}>
                   {sampleRequest()}
                 </pre>

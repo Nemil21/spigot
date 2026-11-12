@@ -83,6 +83,10 @@ describe('W01 Landing (SP-057)', () => {
   it('gives agents an MCP config and sample JSON that parse', () => {
     setup();
     const agents = screen.getByRole('region', { name: 'For agents' });
+    expect(
+      within(agents).getByRole('heading', { level: 3, name: 'Claude Desktop (MCP)' }),
+    ).toBeInTheDocument();
+    expect(agents).toHaveTextContent('Add to claude_desktop_config.json with your API key.');
     const config = JSON.parse(within(agents).getByLabelText('MCP config').textContent ?? '');
     expect(config.mcpServers.spigot.args).toContain(`${window.location.origin}/mcp`);
     const sample = JSON.parse(
