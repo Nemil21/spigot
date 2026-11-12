@@ -1,4 +1,6 @@
-# Claude Desktop setup for the demo
+# Claude Desktop setup (optional)
+
+> **The demo path is Claude Code CLI**, see [claude-code-cli.md](claude-code-cli.md). This page stays for anyone who prefers the desktop app (W11 still shows this snippet); the recording and `npm run demo:dry-run` don't use it.
 
 The demo buyer, "Acme Agents (demo)", connects Claude Desktop to Spigot's MCP server (`/mcp`, features/11) with its API key. W11 shows the same snippet with the key filled in (SP-032). The key below is a **placeholder**: never commit, paste into a ticket, or leave a real key on screen.
 

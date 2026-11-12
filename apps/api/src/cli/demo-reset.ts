@@ -89,7 +89,7 @@ try {
       : '  balance already $0 (no ledger txn)',
     `  ${r.buyer.hiddenCalls} call(s) hidden (kept, hidden_at set); ${r.buyer.revokedKeyIds.length} key(s) revoked`,
     `  NEW API key ${r.buyer.apiKey}`,
-    '  (update Claude Desktop / the demo prompt card; the old key now answers 401)',
+    '  (re-add it to Claude Code: claude mcp remove spigot, then claude mcp add …; the old key now answers 401)',
   ];
   console.log(lines.join('\n'));
 

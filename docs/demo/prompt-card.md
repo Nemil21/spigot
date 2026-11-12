@@ -1,6 +1,6 @@
-# Prompt card (Claude Desktop beat, 1:50–2:25)
+# Prompt card (Claude Code CLI beat, 1:50–2:25)
 
-Paste exactly, in a new chat:
+Paste exactly, in a new `claude` session in `~/spigot-demo` ([claude-code-cli.md](claude-code-cli.md)), or pass it to `claude -p`:
 
 > Using Spigot, find 3-bedroom rentals under $2,000 in Austin on Bluebonnet Rentals that changed today. Quote first, then fetch.
 
@@ -36,5 +36,7 @@ Price = records × per-record price ($1.50 per 1,000 = $0.0015 per record → 37
 ## Before the take
 
 - `get_balance` shows $20.00 (after the W11 top-up).
-- Spigot tools set to "Allow always" (in a warm-up chat) so approval dialogs don't interrupt the shot.
+- `claude` started with the `--allowedTools` list from [claude-code-cli.md](claude-code-cli.md), so no permission prompt interrupts the shot.
+- `claude mcp list` shows `spigot` ✓ Connected with **today's** key (`demo:reset` rotates it).
+- Rehearse it with `npm run demo:dry-run` (SP-039b): same prompt through `claude -p`, judged by the rules above.
 - W08 open in another window for the cut to the earnings row flash.

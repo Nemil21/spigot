@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../config.js';
 import { REQUIRED_ENV } from '../test/env.js';
+import { makeIdFactory } from './fake/http.js';
 import { createPayPalClient, FAKE_PAYPAL_BASE, FakePayPal, sharedFakePayPal } from './index.js';
 
 const config = (extra: Record<string, string> = {}) => loadConfig({ ...REQUIRED_ENV, ...extra });
@@ -17,6 +18,23 @@ describe('createPayPalClient', () => {
     });
     expect(r.status).toBe('AWAITING_APPROVAL');
     expect(sharedFakePayPal().order(r.orderId!)).toBeDefined();
+  });
+
+  it('seqStart offsets ids, so two processes sharing a database never mint the same order id', async () => {
+    const make = async (fake: FakePayPal) =>
+      (
+        await createPayPalClient(config({ PAYPAL_MODE: 'stub' }), { fake }).createTopupOrder({
+          topupId: 'idx-seq',
+          amountCents: 500,
+          source: { kind: 'none' },
+        })
+      ).orderId;
+    // Default stays deterministic for tests; a seeded process and the API used to collide here.
+    expect(await make(new FakePayPal())).toBe(await make(new FakePayPal()));
+    expect(await make(new FakePayPal({ seqStart: 1_000 }))).not.toBe(await make(new FakePayPal()));
+    // Refund and payout ids (fake.extras) use their own factories with the same start.
+    expect(makeIdFactory()('B')).toBe('B000000000001');
+    expect(makeIdFactory(1_000)('B')).toBe('B0000000000RT');
   });
 
   it('stub mode can use a given fake', async () => {
