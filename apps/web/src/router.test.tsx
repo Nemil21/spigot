@@ -10,7 +10,6 @@ import { buyerNav, href, paths, publisherNav } from './routes';
 const SCREENS: [path: string, screen: string, title: string][] = [
   ['/app/records', 'W07', 'Records'],
   ['/app/crawls', 'W10', 'Crawls'],
-  ['/app/admin/audit', 'W14', 'Audit'],
   ['/buyers/usage', 'W12', 'Usage and claims'],
 ];
 
@@ -35,6 +34,8 @@ const BUILT: [path: string, screen: string, title: string, landmark: string][] =
   // SP-030b; no earnings API here either, so W08 shows its inline error banner. Its states are
   // tested in pages/Earnings.
   ['/app/earnings', 'W08', 'Earnings', 'alert'],
+  // SP-062; no admin API here, so the health and audit panels both error: use the search form.
+  ['/app/admin/audit', 'W14', 'Admin / audit', 'search'],
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */

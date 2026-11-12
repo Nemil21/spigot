@@ -1,0 +1,27 @@
+{
+  "status": "ok",
+  "checkedAt": "2026-11-12T10:01:00.000Z",
+  "checks": {
+    "paypal": { "ok": true, "ms": 212 },
+    "db": { "ok": true, "ms": 3 },
+    "workflows": { "ok": true, "mode": "inproc", "detail": "not used (in-process jobs)" },
+    "facts": { "ok": true, "ms": 9 }
+  },
+  "gate": [
+    {
+      "siteId": "00000000-0000-4000-8000-0000000000a1",
+      "publisherId": "00000000-0000-4000-8000-000000000001",
+      "origin": "http://localhost:4000",
+      "status": "VERIFIED",
+      "lastGateSeenAt": "2026-11-12T10:00:30.000Z",
+      "lastHitAt": "2026-11-12T10:00:00.000Z"
+    }
+  ],
+  "openTopups": { "count": 1, "oldestAt": "2026-11-12T09:59:00.000Z", "needsReconcile": 0 },
+  "pendingPayouts": {
+    "pendingItems": 1,
+    "unclaimedItems": 0,
+    "oldestAt": "2026-11-12T10:00:02.000Z",
+    "batchesNeedingReconcile": 0
+  }
+}

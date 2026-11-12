@@ -1,0 +1,65 @@
+{
+  "events": [
+    {
+      "id": "1042",
+      "at": "2026-11-12T10:00:02.000Z",
+      "actorType": "SYSTEM",
+      "actorId": null,
+      "publisherId": "00000000-0000-4000-8000-000000000001",
+      "entity": "payout_items",
+      "entityId": "bbbbbbbb-0000-4000-8000-000000000001",
+      "action": "PAYOUT_SENT",
+      "paypalId": "FXBATCH7K2M9Q",
+      "data": { "netCents": 41275, "batchId": "aaaaaaaa-0000-4000-8000-000000000001" }
+    },
+    {
+      "id": "1041",
+      "at": "2026-11-12T09:58:40.000Z",
+      "actorType": "BUYER",
+      "actorId": "00000000-0000-4000-8000-0000000000b1",
+      "publisherId": "00000000-0000-4000-8000-000000000001",
+      "entity": "api_call",
+      "entityId": "c0ffee00-0000-4000-8000-000000000001",
+      "action": "CALL_CHARGED",
+      "paypalId": null,
+      "data": { "endpoint": "records", "priceMicros": 55500, "isSimulated": false }
+    },
+    {
+      "id": "1040",
+      "at": "2026-11-12T09:57:11.000Z",
+      "actorType": "BUYER",
+      "actorId": "00000000-0000-4000-8000-0000000000b1",
+      "publisherId": null,
+      "entity": "topups",
+      "entityId": "dddddddd-0000-4000-8000-000000000001",
+      "action": "TOPUP_COMPLETED",
+      "paypalId": "FXCAPTURE3H8W1",
+      "data": { "orderId": "FXORDER5T6Y7U", "captureId": "FXCAPTURE3H8W1", "amountCents": 2000 }
+    },
+    {
+      "id": "1039",
+      "at": "2026-11-12T09:56:30.000Z",
+      "actorType": "BUYER",
+      "actorId": "00000000-0000-4000-8000-0000000000b1",
+      "publisherId": null,
+      "entity": "topups",
+      "entityId": "dddddddd-0000-4000-8000-000000000001",
+      "action": "TOPUP_CREATED",
+      "paypalId": "FXORDER5T6Y7U",
+      "data": { "amountCents": 2000 }
+    },
+    {
+      "id": "1038",
+      "at": "2026-11-11T18:20:00.000Z",
+      "actorType": "SIM",
+      "actorId": "00000000-0000-4000-8000-0000000000c3",
+      "publisherId": null,
+      "entity": "topups",
+      "entityId": "dddddddd-0000-4000-8000-0000000000c3",
+      "action": "TOPUP_COMPLETED",
+      "paypalId": "FXSIMCAPTURE01",
+      "data": { "captureId": "FXSIMCAPTURE01", "amountCents": 5000 }
+    }
+  ],
+  "next": null
+}
