@@ -77,6 +77,8 @@ export type TopupResult =
       orderId: string;
       captureId: string;
       amountCents: number | null;
+      /** The capture's `amount.currency_code` (SP-018a asserts USD before crediting). */
+      currency?: string | null;
       feeCents: number | null;
       vault: VaultRef | null;
       customId: string | null;
@@ -87,6 +89,7 @@ export type TopupResult =
       orderId: string;
       captureId: string;
       amountCents: number | null;
+      currency?: string | null;
       reason: string | null;
       vault: VaultRef | null;
       customId: string | null;
@@ -119,6 +122,8 @@ export interface CaptureView {
   id: string;
   status: string;
   amountCents: number | null;
+  /** `amount.currency_code`. */
+  currency: string | null;
   feeCents: number | null;
   netCents: number | null;
   /** `status_details.reason` (PENDING / DECLINED captures). */

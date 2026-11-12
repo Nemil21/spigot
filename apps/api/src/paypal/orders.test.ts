@@ -46,6 +46,7 @@ describe('topupResultOf (normaliser)', () => {
       orderId: 'ORD-1',
       captureId: 'CAP-COMPLETED',
       amountCents: 2000,
+      currency: 'USD',
       feeCents: 119,
       vault: { id: 'V1', kind: 'card', customerId: 'C1' },
       customId: 'tp-1',
