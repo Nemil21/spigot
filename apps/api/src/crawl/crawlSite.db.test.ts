@@ -326,6 +326,8 @@ describe.skipIf(!testDatabaseUrl)('crawlSite / fetchPage', () => {
     >;
     let hits: Record<string, number>;
     let paths: string[];
+    /** path → sitemap <lastmod> (whole seconds, like the demo site). */
+    let lastmods: Record<string, string>;
 
     beforeAll(async () => {
       server = createServer((req, res) => {
@@ -334,7 +336,10 @@ describe.skipIf(!testDatabaseUrl)('crawlSite / fetchPage', () => {
           res.writeHead(200, { 'content-type': 'application/xml' });
           res.end(
             `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths
-              .map((p) => `<url><loc>${origin}${p}</loc></url>`)
+              .map(
+                (p) =>
+                  `<url><loc>${origin}${p}</loc>${lastmods[p] ? `<lastmod>${lastmods[p]}</lastmod>` : ''}</url>`,
+              )
               .join('')}</urlset>`,
           );
           return;
@@ -354,6 +359,24 @@ describe.skipIf(!testDatabaseUrl)('crawlSite / fetchPage', () => {
       routes = {};
       hits = {};
       paths = Array.from({ length: 20 }, (_, i) => `/p${String(i).padStart(2, '0')}`);
+      lastmods = {};
+    });
+
+    it('a page edited in the same second as its last fetch is fetched again (lastmod is whole seconds)', async () => {
+      const siteId = await newSite(origin, 'PROPOSING');
+      paths = ['/same', '/older'];
+      await crawlSite({ siteId, trigger: 'CONNECT' }, deps);
+      // Both fetched at 12:00:00.700; /same was edited at 12:00:00.900 → lastmod 12:00:00.
+      await pools.a.query(
+        `UPDATE pages SET fetched_at = '2026-11-12T12:00:00.700Z' WHERE site_id = $1`,
+        [siteId],
+      );
+      lastmods['/same'] = '2026-11-12T12:00:00Z';
+      lastmods['/older'] = '2026-11-12T11:59:59Z';
+      hits = {};
+      const res = await crawlSite({ siteId, trigger: 'DEMO_MUTATE' }, deps);
+      expect(res.status).toBe('SUCCEEDED');
+      expect(hits).toEqual({ '/same': 1 });
     });
 
     it('429/503: honours Retry-After, then 3 in a row pause the run and a READY site', async () => {
