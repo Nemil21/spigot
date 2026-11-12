@@ -1,6 +1,7 @@
 import { PUBLISHER_EVENTS_CHANNEL, publisherEvent } from '@spigot/shared';
 import { emitRunFinished } from '../crawl/hooks.js';
 import { notify, transition, type Db, type Queryable } from '../db/index.js';
+import { admitChangedPage, backstopRunDrift, settleRunDrift } from '../extract/drift.js';
 import { extractPage } from '../extract/extractPage.js';
 import { extractTemplate, type ExtractTemplateResult } from '../extract/extractTemplate.js';
 import { publishWatermark } from '../extract/publishWatermark.js';
@@ -15,8 +16,11 @@ import { ensureFilterIndexes } from './filterIndexes.js';
  *   batch, then the run ends like any other (`onRunFinished`). It has its own `crawl_runs` row
  *   (`trigger = APPROVE`), which the one-live-crawl index ignores, so it may overlap a crawl.
  * - Crawl hooks: `onPageChanged` → `extractPage` into every LIVE / LIVE_STALE dataset of the
- *   page's template; `onRunFinished` → `publishWatermark` for the site's sold datasets, so a
- *   crawl's changes become visible in the feed once all its batches committed.
+ *   page's template, through SP-052a's drift probe (`admitChangedPage` may hold the page until
+ *   the run's first 20 changed pages pass); `onRunEnding` → `settleRunDrift` (held pages are
+ *   probed and written before the run ends); `onRunFinished` → `publishWatermark` for the site's
+ *   sold datasets, so a crawl's changes become visible in the feed once all its batches
+ *   committed, then the drift backstop.
  *
  * A page the sitemap introduced after the schema agent ran has no `template_id`. It joins the
  * template of a sold dataset whose `url_pattern` matches its path, when exactly one does (two
@@ -71,12 +75,31 @@ export async function extractChangedPage(db: Db, pageId: string, runId: string):
       WHERE p.id = $1 AND d.status = ANY($2::text[])`,
     [pageId, SOLD],
   );
-  for (const d of rows) await extractPage({ pageId, datasetId: d.id, runId }, { db });
+  for (const d of rows) {
+    const admitted = await admitChangedPage(db, { datasetId: d.id, pageId, runId });
+    if (admitted === 'UNGATED') await extractPage({ pageId, datasetId: d.id, runId }, { db });
+  }
   return rows.length;
 }
 
-/** `onRunFinished` handler: publish the watermark of every sold dataset of the run's site. */
+/** `onRunEnding` handler (SP-052a): settle the run's drift probes, writing held pages. */
+export async function settleRunDatasets(db: Db, runId: string): Promise<void> {
+  await settleRunDrift(db, runId);
+}
+
+/**
+ * `onRunFinished` handler: settle any drift probe still open (idempotent; normally done at
+ * `onRunEnding`), publish the watermark of every sold dataset of the run's site, then run the
+ * drift backstop over the run's changed pages (SP-052a).
+ */
 export async function publishRunDatasets(db: Db, runId: string): Promise<string[]> {
+  await settleRunDrift(db, runId);
+  const published = await publishSiteDatasets(db, runId);
+  await backstopRunDrift(db, runId);
+  return published;
+}
+
+async function publishSiteDatasets(db: Db, runId: string): Promise<string[]> {
   const { rows } = await db.pool.query<{ id: string }>(
     `SELECT d.id FROM datasets d JOIN crawl_runs r ON r.site_id = d.site_id
       WHERE r.id = $1 AND d.status = ANY($2::text[]) ORDER BY d.id`,

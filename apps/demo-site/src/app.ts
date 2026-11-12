@@ -22,6 +22,21 @@ export interface AppOptions {
   accessLog?: AccessLog;
   /** DEMO_ADMIN_TOKEN for /admin/{mutate,reset,state} (SP-004b). Unset → every /admin path is a 404. */
   adminToken?: string;
+  /**
+   * `DEMO_LAYOUT` (SP-052a, the drift demo). `v2` is the "redesign": listing pages render
+   * `listing-v2.ejs` (renamed CSS classes, `available_from` moved) and their sitemap lastmod is at
+   * least `layoutSince`, so a scheduled crawl re-fetches them like after a real redeploy.
+   */
+  layout?: DemoLayout;
+  /** When the v2 layout went live (default: when createApp ran). */
+  layoutSince?: Date;
+}
+
+export type DemoLayout = 'v1' | 'v2';
+
+/** `DEMO_LAYOUT` → layout: `v2` (any case) is the redesign, anything else the original. */
+export function parseDemoLayout(v: string | undefined): DemoLayout {
+  return v?.trim().toLowerCase() === 'v2' ? 'v2' : 'v1';
 }
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -50,8 +65,20 @@ function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
-export function createApp({ store, gate = noopGate, verifyToken, accessLog = createAccessLog(), adminToken }: AppOptions) {
+export function createApp({
+  store,
+  gate = noopGate,
+  verifyToken,
+  accessLog = createAccessLog(),
+  adminToken,
+  layout = 'v1',
+  layoutSince = new Date(),
+}: AppOptions) {
   const app = express();
+  // Sitemap lastmod format (whole seconds, Z).
+  const layoutLastmod = `${layoutSince.toISOString().slice(0, 19)}Z`;
+  const listingLastmod = (updatedAt: string) =>
+    layout === 'v2' && layoutLastmod > updatedAt ? layoutLastmod : updatedAt;
   app.set('views', VIEWS_DIR);
   app.set('view engine', 'ejs');
   app.set('etag', false); // sendWithEtag sets a strong hash-of-body ETag instead
@@ -119,7 +146,7 @@ export function createApp({ store, gate = noopGate, verifyToken, accessLog = cre
     const listing = store.listing(req.params.slug);
     if (!listing) return notFound(req, res);
     const url = `${origin(req)}/listings/${listing.slug}`;
-    return page(req, res, 'listing', {
+    return page(req, res, layout === 'v2' ? 'listing-v2' : 'listing', {
       title: `${listing.title} | ${SITE_NAME}`,
       listing,
       agent: store.agent(listing.agent_slug),
@@ -167,7 +194,7 @@ export function createApp({ store, gate = noopGate, verifyToken, accessLog = cre
     const base = origin(req);
     const newest = (dates: string[]) => dates.reduce((a, b) => (a > b ? a : b), '1970-01-01T00:00:00Z');
     const siteLastmod = newest([
-      ...store.listings.map((l) => l.updated_at),
+      ...store.listings.map((l) => listingLastmod(l.updated_at)),
       ...store.agents.map((a) => a.updated_at),
       ...store.openHouses.map((o) => o.updated_at),
     ]);
@@ -175,7 +202,7 @@ export function createApp({ store, gate = noopGate, verifyToken, accessLog = cre
       ['/', siteLastmod],
       ['/about', siteLastmod],
       ['/blog', newest(store.blogPosts.map((p) => p.updated_at))],
-      ...store.listings.map((l): [string, string] => [`/listings/${l.slug}`, l.updated_at]),
+      ...store.listings.map((l): [string, string] => [`/listings/${l.slug}`, listingLastmod(l.updated_at)]),
       ...store.agents.map((a): [string, string] => [`/agents/${a.slug}`, a.updated_at]),
       ...store.openHouses.map((o): [string, string] => [`/open-houses/${o.id}`, o.updated_at]),
       ...store.blogPosts.map((p): [string, string] => [`/blog/${p.slug}`, p.updated_at]),

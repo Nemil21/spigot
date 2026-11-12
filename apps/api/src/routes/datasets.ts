@@ -1,11 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requirePublisher } from '../auth/publisherAuth.js';
-import { onPageChanged, onRunFinished } from '../crawl/hooks.js';
+import { onPageChanged, onRunEnding, onRunFinished } from '../crawl/hooks.js';
 import { approveBody, approveDataset, rejectDataset } from '../datasets/approve.js';
 import {
   extractChangedPage,
   publishRunDatasets,
   runApproveExtract,
+  settleRunDatasets,
 } from '../datasets/extractRun.js';
 import { patchBody, patchDataset } from '../datasets/patch.js';
 import { unpublishDataset } from '../datasets/unpublish.js';
@@ -41,6 +42,9 @@ const datasetRoutes: FastifyPluginAsync = async (app) => {
   const offPage = onPageChanged(async (pageId, runId) => {
     await extractChangedPage(app.db, pageId, runId);
   });
+  const offEnding = onRunEnding(async (runId) => {
+    await settleRunDatasets(app.db, runId);
+  });
   const offRun = onRunFinished(async (runId) => {
     await publishRunDatasets(app.db, runId);
   });
@@ -54,6 +58,7 @@ const datasetRoutes: FastifyPluginAsync = async (app) => {
     ]);
     clearTimeout(timer);
     offPage();
+    offEnding();
     offRun();
   });
 

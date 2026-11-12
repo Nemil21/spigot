@@ -7,7 +7,8 @@ import { z } from 'zod';
  * Payloads carry ids only (the client refetches): never emails, amounts or PayPal payer ids.
  *
  * Producers: `hits` SP-008b · `crawl.progress` SP-009a2 · `proposal.ready` SP-012a ·
- * `dataset.extract.progress` SP-014a · `call.charged` SP-016 · `payout.updated` SP-021.
+ * `dataset.extract.progress` SP-014a · `call.charged` SP-016 · `payout.updated` SP-021 ·
+ * `dataset.stale` SP-052a (drift: the dataset went LIVE_STALE; ids = dataset, crawl run).
  */
 export const PUBLISHER_EVENTS_CHANNEL = 'publisher_events';
 
@@ -18,6 +19,7 @@ export const PUBLISHER_EVENT_TYPES = [
   'proposal.ready',
   'crawl.progress',
   'dataset.extract.progress',
+  'dataset.stale',
 ] as const;
 export type PublisherEventType = (typeof PUBLISHER_EVENT_TYPES)[number];
 
@@ -47,6 +49,7 @@ export const publisherEventSchema = z.discriminatedUnion('type', [
   eventOf('proposal.ready'),
   eventOf('crawl.progress'),
   eventOf('dataset.extract.progress'),
+  eventOf('dataset.stale'),
 ]);
 
 export type PublisherEvent = z.infer<typeof publisherEventSchema>;

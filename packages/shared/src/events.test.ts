@@ -21,6 +21,7 @@ describe('PublisherEvent', () => {
       'proposal.ready',
       'crawl.progress',
       'dataset.extract.progress',
+      'dataset.stale',
     ]);
   });
 

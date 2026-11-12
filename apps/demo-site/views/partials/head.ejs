@@ -22,9 +22,14 @@
   .photo { aspect-ratio:16/7; border-radius:8px; background:linear-gradient(135deg,#dbe4ff,#e6fcf5); display:flex; align-items:center; justify-content:center; color:var(--muted); }
   .status-badge { display:inline-block; padding:.1rem .55rem; border-radius:999px; font-size:.8rem; font-weight:600; color:#fff; background:var(--ok); }
   .status-badge.status-leased { background:var(--gone); }
+  .avail-pill { display:inline-block; padding:.1rem .55rem; border-radius:999px; font-size:.8rem; font-weight:600; color:#fff; background:var(--ok); }
+  .avail-pill.avail-leased { background:var(--gone); }
   dl.facts { display:grid; grid-template-columns:max-content 1fr; gap:.35rem 1.25rem; }
   dl.facts dt { color:var(--muted); }
   dl.facts dd { margin:0; }
+  dl.specs { display:grid; grid-template-columns:max-content 1fr; gap:.35rem 1.25rem; }
+  dl.specs dt { color:var(--muted); }
+  dl.specs dd { margin:0; }
   form.search { display:flex; flex-wrap:wrap; gap:.75rem; align-items:end; background:#fff; border:1px solid var(--line); border-radius:8px; padding:1rem; }
   form.search label { display:flex; flex-direction:column; font-size:.85rem; color:var(--muted); }
   form.search input, form.search select, form.search button { font:inherit; padding:.4rem .5rem; }

@@ -13,9 +13,13 @@
 import { parseArgs } from 'node:util';
 import { auditCrawlRunDone } from '../crawl/api.js';
 import type { CrawlDeps } from '../crawl/deps.js';
-import { onPageChanged, onRunFinished } from '../crawl/hooks.js';
+import { onPageChanged, onRunEnding, onRunFinished } from '../crawl/hooks.js';
 import { ConfigError, loadConfig } from '../config.js';
-import { extractChangedPage, publishRunDatasets } from '../datasets/extractRun.js';
+import {
+  extractChangedPage,
+  publishRunDatasets,
+  settleRunDatasets,
+} from '../datasets/extractRun.js';
 import { createDb, createPool } from '../db/index.js';
 import { loadDotenv } from '../env.js';
 import { ledgerCheck } from '../ledger/check.js';
@@ -112,6 +116,7 @@ try {
         // The API process's crawl hooks (routes/crawl.ts, routes/datasets.ts), for this run.
         const off = [
           onPageChanged((pageId, runId) => extractChangedPage(db, pageId, runId).then(() => {})),
+          onRunEnding((runId) => settleRunDatasets(db, runId)),
           onRunFinished(async (runId) => {
             await publishRunDatasets(db, runId);
             await auditCrawlRunDone(db, runId);

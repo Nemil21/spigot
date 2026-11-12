@@ -4,6 +4,10 @@
  *
  * - `onPageChanged(pageId, runId)`: a page's body hash changed, or the page was removed
  *   (404/410 twice, or dropped from the sitemap). SP-014a wires extraction here.
+ * - `onRunEnding(runId)`: every page of the run has been fetched and its `onPageChanged` handlers
+ *   have returned; the run is about to end (still RUNNING). SP-052a releases pages it held back
+ *   for the drift probe here, so their versions are written before the run is terminal. May fire
+ *   more than once per run (pings drained at run end, a resumed run).
  * - `onRunFinished(runId)`: a run reached SUCCEEDED / PARTIAL / FAILED (after commit).
  * - `onDiscoveryDone(siteId, runId)`: the site's discovery run moved it VERIFIED → PROPOSING
  *   (after commit, after `onRunFinished`). SP-012a starts the schema agent here.
@@ -14,14 +18,16 @@
  */
 
 export type PageChangedHandler = (pageId: string, runId: string) => Promise<void> | void;
+export type RunEndingHandler = (runId: string) => Promise<void> | void;
 export type RunFinishedHandler = (runId: string) => Promise<void> | void;
 export type DiscoveryDoneHandler = (siteId: string, runId: string) => Promise<void> | void;
 
-export type HookName = 'pageChanged' | 'runFinished' | 'discoveryDone';
+export type HookName = 'pageChanged' | 'runEnding' | 'runFinished' | 'discoveryDone';
 export type HookErrorSink = (hook: HookName, err: unknown) => void;
 
 const handlers = {
   pageChanged: [] as PageChangedHandler[],
+  runEnding: [] as RunEndingHandler[],
   runFinished: [] as RunFinishedHandler[],
   discoveryDone: [] as DiscoveryDoneHandler[],
 };
@@ -40,6 +46,7 @@ function register<T>(list: T[], fn: T): () => void {
 
 /** Each `on*` returns an unsubscribe function. */
 export const onPageChanged = (fn: PageChangedHandler) => register(handlers.pageChanged, fn);
+export const onRunEnding = (fn: RunEndingHandler) => register(handlers.runEnding, fn);
 export const onRunFinished = (fn: RunFinishedHandler) => register(handlers.runFinished, fn);
 export const onDiscoveryDone = (fn: DiscoveryDoneHandler) => register(handlers.discoveryDone, fn);
 
@@ -64,6 +71,7 @@ async function emit<A extends unknown[]>(
 
 export const emitPageChanged = (pageId: string, runId: string) =>
   emit('pageChanged', handlers.pageChanged, [pageId, runId]);
+export const emitRunEnding = (runId: string) => emit('runEnding', handlers.runEnding, [runId]);
 export const emitRunFinished = (runId: string) =>
   emit('runFinished', handlers.runFinished, [runId]);
 export const emitDiscoveryDone = (siteId: string, runId: string) =>
@@ -72,6 +80,7 @@ export const emitDiscoveryDone = (siteId: string, runId: string) =>
 /** Tests only: drop every handler. */
 export function clearCrawlHooks(): void {
   handlers.pageChanged.length = 0;
+  handlers.runEnding.length = 0;
   handlers.runFinished.length = 0;
   handlers.discoveryDone.length = 0;
 }
