@@ -29,7 +29,7 @@
     "seed:demo": "node scripts/not-yet.mjs seed:demo SP-035",
     "sim:bots": "node scripts/not-yet.mjs sim:bots SP-037",
     "sim:buyers": "node scripts/not-yet.mjs sim:buyers SP-036",
-    "demo:mutate": "node scripts/not-yet.mjs demo:mutate SP-004b",
+    "demo:mutate": "npm run demo:mutate -w @spigot/demo-site --",
     "demo:reset": "node scripts/not-yet.mjs demo:reset SP-038",
     "demo:payout": "node scripts/not-yet.mjs demo:payout SP-038",
     "demo:decline": "node scripts/not-yet.mjs demo:decline SP-047b"

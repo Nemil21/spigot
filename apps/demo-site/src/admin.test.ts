@@ -64,8 +64,16 @@ describe('admin endpoints: auth', () => {
   });
 
   it('401 without the token or with a wrong one, for every endpoint', async () => {
-    const app = createApp({ store: createStore(SCALE), adminToken: TOKEN, accessLog: createAccessLog(() => {}) });
-    for (const [method, p] of [['get', '/admin/state'], ['post', '/admin/mutate'], ['post', '/admin/reset']] as const) {
+    const app = createApp({
+      store: createStore(SCALE),
+      adminToken: TOKEN,
+      accessLog: createAccessLog(() => {}),
+    });
+    for (const [method, p] of [
+      ['get', '/admin/state'],
+      ['post', '/admin/mutate'],
+      ['post', '/admin/reset'],
+    ] as const) {
       const res = await request(app)[method](p).expect(401);
       expect(res.headers['www-authenticate']).toMatch(/^Bearer/);
       await request(app)[method](p).set('Authorization', 'Bearer wrong').expect(401);
@@ -78,11 +86,22 @@ describe('admin endpoints: auth', () => {
   it('400 on bad options or bad JSON, and nothing changes', async () => {
     const store = createStore(SCALE);
     const app = createApp({ store, adminToken: TOKEN, accessLog: createAccessLog(() => {}) });
-    expect((await request(app).post('/admin/mutate').set(auth).send({}).expect(400)).body.message).toMatch(/nothing to change/);
+    expect(
+      (await request(app).post('/admin/mutate').set(auth).send({}).expect(400)).body.message,
+    ).toMatch(/nothing to change/);
     await request(app).post('/admin/mutate').set(auth).send({ prices: 'lots' }).expect(400);
-    await request(app).post('/admin/mutate').set(auth).send({ prices: 1, focus: 'colour=red' }).expect(400);
+    await request(app)
+      .post('/admin/mutate')
+      .set(auth)
+      .send({ prices: 1, focus: 'colour=red' })
+      .expect(400);
     await request(app).post('/admin/mutate').set(auth).send({ prices: 10_000 }).expect(400);
-    await request(app).post('/admin/mutate').set(auth).set('Content-Type', 'application/json').send('{not json').expect(400);
+    await request(app)
+      .post('/admin/mutate')
+      .set(auth)
+      .set('Content-Type', 'application/json')
+      .send('{not json')
+      .expect(400);
     expect(store.state().mutations).toBe(0);
   });
 });
@@ -96,7 +115,11 @@ describe('admin endpoints: mutate, restart, reset', () => {
     const before = await crawl(app);
 
     c.tick();
-    const res = await request(app).post('/admin/mutate').set(auth).send({ prices: 10, leased: 3, new: 2, seed: 42 }).expect(200);
+    const res = await request(app)
+      .post('/admin/mutate')
+      .set(auth)
+      .send({ prices: 10, leased: 3, new: 2, seed: 42 })
+      .expect(200);
     const m = res.body;
     expect(m.label).toBe('demo mutation');
     expect(m.prices).toHaveLength(10);
@@ -123,7 +146,9 @@ describe('admin endpoints: mutate, restart, reset', () => {
     const p0 = m.prices[0];
     const html = cheerio.load((await request(app).get(`/listings/${p0.slug}`).expect(200)).text);
     expect(html('.listing-price').text()).toBe(`$${p0.to.toLocaleString('en-US')}`);
-    const leasedHtml = cheerio.load((await request(app).get(`/listings/${m.leased[0]}`).expect(200)).text);
+    const leasedHtml = cheerio.load(
+      (await request(app).get(`/listings/${m.leased[0]}`).expect(200)).text,
+    );
     expect(leasedHtml('.status-badge').text().trim()).toBe('Leased');
 
     const state = (await request(app).get('/admin/state').set(auth).expect(200)).body;
@@ -155,7 +180,10 @@ describe('admin endpoints: mutate, restart, reset', () => {
         expect(now, p).toEqual(before.get(p));
       }
     }
-    expect((await request(app).get('/admin/state').set(auth).expect(200)).body).toMatchObject({ mutations: 0, lastResetAt: r.at });
+    expect((await request(app).get('/admin/state').set(auth).expect(200)).body).toMatchObject({
+      mutations: 0,
+      lastResetAt: r.at,
+    });
 
     // The reset survives a restart too (log = one reset entry carrying the new lastmods).
     ({ app } = await boot(dir, c.now));
@@ -193,7 +221,9 @@ describe('admin endpoints: mutate, restart, reset', () => {
     const reopened = await openStore({ dataDir: dir, scale: SCALE, now: c.now });
     expect(reopened.data).toEqual(store.data);
     await reopened.mutate({ prices: 1, leased: 0, new: 0, seed: 2, ping: false });
-    expect((await openStore({ dataDir: dir, scale: SCALE, now: c.now })).data).toEqual(reopened.data);
+    expect((await openStore({ dataDir: dir, scale: SCALE, now: c.now })).data).toEqual(
+      reopened.data,
+    );
     await expect(openStore({ dataDir: dir, scale: 0.1 })).rejects.toThrow(/DEMO_SEED_SCALE/);
   });
 });

@@ -52,7 +52,8 @@ describe('planMutation', () => {
     expect(new Set(all).size).toBe(38); // disjoint
     expect(new Set(d.price)).toEqual(new Set(entry.prices.map((p) => p.slug)));
     expect(new Set(d.status)).toEqual(new Set(entry.leased));
-    for (const slug of entry.leased) expect(after.listings.find((l) => l.slug === slug)!.status).toBe('leased');
+    for (const slug of entry.leased)
+      expect(after.listings.find((l) => l.slug === slug)!.status).toBe('leased');
     for (const l of entry.added) {
       expect(l.status).toBe('available');
       expect(after.listings.filter((x) => x.slug === l.slug)).toHaveLength(1);
@@ -78,9 +79,17 @@ describe('planMutation', () => {
 
   it('is reproducible: same data + same seed → same slugs; another seed → different ones', () => {
     const a = planMutation(full(), opts({ prices: 30, leased: 5, new: 3, seed: 42 }), NOW);
-    const b = planMutation(full(), opts({ prices: 30, leased: 5, new: 3, seed: 42 }), new Date('2026-12-01T00:00:00Z'));
+    const b = planMutation(
+      full(),
+      opts({ prices: 30, leased: 5, new: 3, seed: 42 }),
+      new Date('2026-12-01T00:00:00Z'),
+    );
     const c = planMutation(full(), opts({ prices: 30, leased: 5, new: 3, seed: 43 }), NOW);
-    const slugs = (e: typeof a) => ({ prices: e.prices, leased: e.leased, added: e.added.map((l) => l.slug) });
+    const slugs = (e: typeof a) => ({
+      prices: e.prices,
+      leased: e.leased,
+      added: e.added.map((l) => l.slug),
+    });
     expect(slugs(b)).toEqual(slugs(a));
     expect(slugs(c).prices).not.toEqual(slugs(a).prices);
   });
@@ -88,7 +97,11 @@ describe('planMutation', () => {
   it('with --focus, all price changes stay inside the filter and all new listings match it', () => {
     const data = full();
     const focus = parseFocus(DEMO_FOCUS);
-    const entry = planMutation(data, opts({ prices: 30, leased: 5, new: 3, seed: 42, focus: DEMO_FOCUS }), NOW);
+    const entry = planMutation(
+      data,
+      opts({ prices: 30, leased: 5, new: 3, seed: 42, focus: DEMO_FOCUS }),
+      NOW,
+    );
     const bySlug = new Map(data.listings.map((l) => [l.slug, l]));
     expect(entry.prices).toHaveLength(30);
     for (const p of entry.prices) {
@@ -100,12 +113,17 @@ describe('planMutation', () => {
     expect(entry.added).toHaveLength(3);
     for (const l of entry.added) expect(isFocusListing(l)).toBe(true);
     applyEntry(data, entry);
-    for (const p of entry.prices) expect(focus.matches(data.listings.find((l) => l.slug === p.slug)!)).toBe(true);
+    for (const p of entry.prices)
+      expect(focus.matches(data.listings.find((l) => l.slug === p.slug)!)).toBe(true);
   });
 
   it('fails clearly when the focus population is too small', () => {
-    expect(() => planMutation(full(), opts({ prices: 200, seed: 1, focus: DEMO_FOCUS }), NOW)).toThrow(MutationError);
-    expect(() => planMutation(full(), opts({ new: 1, seed: 1, focus: 'city=Nowhere' }), NOW)).toThrow(/no listing matches/);
+    expect(() =>
+      planMutation(full(), opts({ prices: 200, seed: 1, focus: DEMO_FOCUS }), NOW),
+    ).toThrow(MutationError);
+    expect(() =>
+      planMutation(full(), opts({ new: 1, seed: 1, focus: 'city=Nowhere' }), NOW),
+    ).toThrow(/no listing matches/);
   });
 
   it('touches only the changed listings and the agent / open-house pages that render them', () => {
@@ -115,7 +133,8 @@ describe('planMutation', () => {
     for (const p of entry.prices) {
       const l = data.listings.find((x) => x.slug === p.slug)!;
       expected.add(`/listings/${l.slug}`).add(`/agents/${l.agent_slug}`);
-      for (const o of data.openHouses) if (o.listing_slug === l.slug) expected.add(`/open-houses/${o.id}`);
+      for (const o of data.openHouses)
+        if (o.listing_slug === l.slug) expected.add(`/open-houses/${o.id}`);
     }
     for (const slug of entry.leased) {
       const l = data.listings.find((x) => x.slug === slug)!;
@@ -151,7 +170,9 @@ describe('planReset', () => {
     const strip = (d: SiteData) => d.listings.map(({ updated_at: _u, ...rest }) => rest);
     expect(strip(data)).toEqual(strip(seed));
     for (const [path, page] of pageIndex(data)) {
-      expect(page.updated_at).toBe(r.reverted.includes(path) ? r.at : pageIndex(seed).get(path)!.updated_at);
+      expect(page.updated_at).toBe(
+        r.reverted.includes(path) ? r.at : pageIndex(seed).get(path)!.updated_at,
+      );
     }
 
     // A second reset with nothing new keeps the first reset's lastmod (never moves backwards).
@@ -163,7 +184,14 @@ describe('planReset', () => {
 
 describe('options and focus parsing', () => {
   it('parses CLI strings and JSON numbers alike, and rejects bad input', () => {
-    expect(opts({ prices: '30', leased: '5', new: '3', seed: '42' })).toEqual({ prices: 30, leased: 5, new: 3, seed: 42, focus: undefined, ping: false });
+    expect(opts({ prices: '30', leased: '5', new: '3', seed: '42' })).toEqual({
+      prices: 30,
+      leased: 5,
+      new: 3,
+      seed: 42,
+      focus: undefined,
+      ping: false,
+    });
     expect(opts({ prices: 1 }).seed).toBe(7);
     expect(opts({ prices: 1, ping: true }).ping).toBe(true);
     expect(() => opts({})).toThrow(/nothing to change/);
@@ -181,13 +209,19 @@ describe('options and focus parsing', () => {
     expect(parseFocus(DEMO_FOCUS).matches(l)).toBe(true);
     expect(parseFocus('city=austin').matches(l)).toBe(true);
     expect(parseFocus('city!=Austin').matches(l)).toBe(false);
-    expect(parseFocus(`price_usd<=${l.price_usd},price_usd>=${l.price_usd},price_usd=${l.price_usd}`).matches(l)).toBe(true);
+    expect(
+      parseFocus(
+        `price_usd<=${l.price_usd},price_usd>=${l.price_usd},price_usd=${l.price_usd}`,
+      ).matches(l),
+    ).toBe(true);
     expect(parseFocus(`price_usd>${l.price_usd}`).matches(l)).toBe(false);
     expect(parseFocus(`price_usd!=${l.price_usd}`).matches(l)).toBe(false);
   });
 
   it('nextStamp is ≥ now and strictly after every previous stamp', () => {
     expect(nextStamp(new Date('2026-11-12T10:00:00.900Z'), [])).toBe('2026-11-12T10:00:00Z');
-    expect(nextStamp(NOW, ['2026-11-12T10:00:00Z', '2026-11-12T09:00:00Z'])).toBe('2026-11-12T10:00:01Z');
+    expect(nextStamp(NOW, ['2026-11-12T10:00:00Z', '2026-11-12T09:00:00Z'])).toBe(
+      '2026-11-12T10:00:01Z',
+    );
   });
 });

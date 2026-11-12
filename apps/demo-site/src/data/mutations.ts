@@ -1,7 +1,16 @@
 import { Faker, en } from '@faker-js/faker';
 import { generateSeed, slugify } from './seed.js';
 import type { Listing, SiteData } from './types.js';
-import { FEATURES, NEARBY, PETS, POSTAL_PREFIX, STREET_NAMES, STREET_SUFFIXES, TITLE_ADJECTIVES, UNIT_KINDS } from './vocab.js';
+import {
+  FEATURES,
+  NEARBY,
+  PETS,
+  POSTAL_PREFIX,
+  STREET_NAMES,
+  STREET_SUFFIXES,
+  TITLE_ADJECTIVES,
+  UNIT_KINDS,
+} from './vocab.js';
 
 /**
  * "Demo mutation" planning (SP-004b). Pure functions over SiteData: plan a mutation into a
@@ -41,18 +50,25 @@ export function parseFocus(text: string): Focus {
     .filter(Boolean)
     .map((raw): FocusClause => {
       const m = /^([a-z_]+)\s*(>=|<=|!=|=|>|<)\s*(.+)$/.exec(raw);
-      if (!m) throw new MutationError(`focus: can't parse "${raw}" (expected field<op>value, op one of >= <= != = > <)`);
+      if (!m)
+        throw new MutationError(
+          `focus: can't parse "${raw}" (expected field<op>value, op one of >= <= != = > <)`,
+        );
       const [, field, op, value] = m as unknown as [string, string, Op, string];
       if ((NUMERIC_FIELDS as readonly string[]).includes(field)) {
         const n = Number(value);
-        if (!Number.isFinite(n)) throw new MutationError(`focus: ${field} needs a number, got "${value}"`);
+        if (!Number.isFinite(n))
+          throw new MutationError(`focus: ${field} needs a number, got "${value}"`);
         return { field: field as FocusField, op, value: n };
       }
       if ((STRING_FIELDS as readonly string[]).includes(field)) {
-        if (op !== '=' && op !== '!=') throw new MutationError(`focus: ${field} only supports = and !=`);
+        if (op !== '=' && op !== '!=')
+          throw new MutationError(`focus: ${field} only supports = and !=`);
         return { field: field as FocusField, op, value: value.trim() };
       }
-      throw new MutationError(`focus: unknown field "${field}" (use ${[...NUMERIC_FIELDS, ...STRING_FIELDS].join(', ')})`);
+      throw new MutationError(
+        `focus: unknown field "${field}" (use ${[...NUMERIC_FIELDS, ...STRING_FIELDS].join(', ')})`,
+      );
     });
   if (clauses.length === 0) throw new MutationError('focus: empty filter');
   const test = (c: FocusClause, l: Listing): boolean => {
@@ -63,12 +79,18 @@ export function parseFocus(text: string): Focus {
     }
     const n = v as number;
     switch (c.op) {
-      case '>=': return n >= c.value;
-      case '<=': return n <= c.value;
-      case '>': return n > c.value;
-      case '<': return n < c.value;
-      case '=': return n === c.value;
-      case '!=': return n !== c.value;
+      case '>=':
+        return n >= c.value;
+      case '<=':
+        return n <= c.value;
+      case '>':
+        return n > c.value;
+      case '<':
+        return n < c.value;
+      case '=':
+        return n === c.value;
+      case '!=':
+        return n !== c.value;
     }
   };
   return { text, clauses, matches: (l) => clauses.every((c) => test(c, l)) };
@@ -97,20 +119,26 @@ function count(input: Record<string, unknown>, key: string): number {
 }
 
 /** Validates CLI flags or a `POST /admin/mutate` body. A missing seed gets a random one (echoed in the result). */
-export function parseMutateOptions(input: Record<string, unknown>, randomSeed = () => Math.floor(Math.random() * 1_000_000)): MutateOptions {
+export function parseMutateOptions(
+  input: Record<string, unknown>,
+  randomSeed = () => Math.floor(Math.random() * 1_000_000),
+): MutateOptions {
   const prices = count(input, 'prices');
   const leased = count(input, 'leased');
   const added = count(input, 'new');
-  if (prices + leased + added === 0) throw new MutationError('nothing to change: pass prices, leased and/or new');
+  if (prices + leased + added === 0)
+    throw new MutationError('nothing to change: pass prices, leased and/or new');
   let seed = randomSeed();
   if (input.seed !== undefined && input.seed !== null && input.seed !== '') {
     const s = typeof input.seed === 'string' ? Number(input.seed) : input.seed;
-    if (typeof s !== 'number' || !Number.isSafeInteger(s) || s < 0) throw new MutationError('seed must be a non-negative integer');
+    if (typeof s !== 'number' || !Number.isSafeInteger(s) || s < 0)
+      throw new MutationError('seed must be a non-negative integer');
     seed = s;
   }
   let focus: string | undefined;
   if (input.focus !== undefined && input.focus !== null && input.focus !== '') {
-    if (typeof input.focus !== 'string' || input.focus.length > 200) throw new MutationError('focus must be a string (≤ 200 chars)');
+    if (typeof input.focus !== 'string' || input.focus.length > 200)
+      throw new MutationError('focus must be a string (≤ 200 chars)');
     parseFocus(input.focus); // validate early
     focus = input.focus;
   }
@@ -187,7 +215,8 @@ export function pageIndex(data: SiteData): Map<string, Page> {
 function pagesShowing(data: SiteData, listing: Listing, opts: { openHouses: boolean }): string[] {
   const paths = [`/listings/${listing.slug}`, `/agents/${listing.agent_slug}`];
   if (opts.openHouses) {
-    for (const o of data.openHouses) if (o.listing_slug === listing.slug) paths.push(`/open-houses/${o.id}`);
+    for (const o of data.openHouses)
+      if (o.listing_slug === listing.slug) paths.push(`/open-houses/${o.id}`);
   }
   return paths;
 }
@@ -196,7 +225,12 @@ function round5(n: number): number {
   return Math.round(n / 5) * 5;
 }
 
-function newRent(f: Faker, from: number, focus: Focus | undefined, listing: Listing): number | undefined {
+function newRent(
+  f: Faker,
+  from: number,
+  focus: Focus | undefined,
+  listing: Listing,
+): number | undefined {
   for (let attempt = 0; attempt < 8; attempt++) {
     const pct = f.number.float({ min: 0.03, max: 0.08 });
     const signs = f.datatype.boolean() ? [1, -1] : [-1, 1];
@@ -211,10 +245,19 @@ function newRent(f: Faker, from: number, focus: Focus | undefined, listing: List
   return undefined;
 }
 
-function newListing(f: Faker, data: SiteData, id: number, template: Listing, focus: Focus | undefined, at: string): Listing | undefined {
+function newListing(
+  f: Faker,
+  data: SiteData,
+  id: number,
+  template: Listing,
+  focus: Focus | undefined,
+  at: string,
+): Listing | undefined {
   const { city, neighbourhood, bedrooms, bathrooms } = template;
   const street = `${f.helpers.arrayElement(STREET_NAMES)} ${f.helpers.arrayElement(STREET_SUFFIXES)}`;
-  const unit = f.datatype.boolean(0.55) ? ` ${f.helpers.arrayElement(UNIT_KINDS)} ${f.number.int({ min: 1, max: 340 })}` : '';
+  const unit = f.datatype.boolean(0.55)
+    ? ` ${f.helpers.arrayElement(UNIT_KINDS)} ${f.number.int({ min: 1, max: 340 })}`
+    : '';
   const bedsLabel = bedrooms === 0 ? 'Studio' : `${bedrooms}-bed`;
   const atMs = Date.parse(at);
   const candidate: Listing = {
@@ -233,7 +276,9 @@ function newListing(f: Faker, data: SiteData, id: number, template: Listing, foc
     state: 'TX',
     postal_code: `${POSTAL_PREFIX[city] ?? template.postal_code.slice(0, 3)}${String(f.number.int({ min: 1, max: 99 })).padStart(2, '0')}`,
     neighbourhood,
-    available_from: new Date(atMs + f.number.int({ min: 0, max: 30 }) * DAY_MS).toISOString().slice(0, 10),
+    available_from: new Date(atMs + f.number.int({ min: 0, max: 30 }) * DAY_MS)
+      .toISOString()
+      .slice(0, 10),
     pets_allowed: f.helpers.weightedArrayElement(PETS),
     status: 'available',
     agent_slug: f.helpers.arrayElement(data.agents).slug,
@@ -262,26 +307,33 @@ export function planMutation(data: SiteData, opts: MutateOptions, now: Date): Mu
   const available = data.listings.filter((l) => l.status === 'available');
 
   const prices: PriceChange[] = [];
-  const pricePool = f.helpers.shuffle(focus ? available.filter((l) => focus.matches(l)) : available);
+  const pricePool = f.helpers.shuffle(
+    focus ? available.filter((l) => focus.matches(l)) : available,
+  );
   for (const l of pricePool) {
     if (prices.length === opts.prices) break;
     const to = newRent(f, l.price_usd, focus, l);
     if (to !== undefined) prices.push({ slug: l.slug, from: l.price_usd, to });
   }
   if (prices.length < opts.prices) {
-    throw new MutationError(`only ${prices.length} available listings${focus ? ` match focus "${focus.text}"` : ''}; asked for ${opts.prices} price changes`);
+    throw new MutationError(
+      `only ${prices.length} available listings${focus ? ` match focus "${focus.text}"` : ''}; asked for ${opts.prices} price changes`,
+    );
   }
 
   const repriced = new Set(prices.map((p) => p.slug));
   const leasePool = available.filter((l) => !repriced.has(l.slug));
   if (leasePool.length < opts.leased) {
-    throw new MutationError(`only ${leasePool.length} other available listings; asked to lease ${opts.leased}`);
+    throw new MutationError(
+      `only ${leasePool.length} other available listings; asked to lease ${opts.leased}`,
+    );
   }
   const leased = f.helpers.arrayElements(leasePool, opts.leased).map((l) => l.slug);
 
   // New listings copy the shape (city, neighbourhood, beds, baths) of a template listing.
   const templates = focus ? data.listings.filter((l) => focus.matches(l)) : data.listings;
-  if (opts.new > 0 && templates.length === 0) throw new MutationError(`no listing matches focus "${focus?.text}" to model new listings on`);
+  if (opts.new > 0 && templates.length === 0)
+    throw new MutationError(`no listing matches focus "${focus?.text}" to model new listings on`);
   const placeholder = isoSeconds(now.getTime());
   let nextId = data.listings.reduce((m, l) => Math.max(m, l.id), 0) + 1;
   const added: Listing[] = [];
@@ -290,20 +342,28 @@ export function planMutation(data: SiteData, opts: MutateOptions, now: Date): Mu
     for (let attempt = 0; attempt < 20 && !listing; attempt++) {
       listing = newListing(f, data, nextId, f.helpers.arrayElement(templates), focus, placeholder);
     }
-    if (!listing) throw new MutationError(`couldn't build a new listing matching focus "${focus?.text}"`);
+    if (!listing)
+      throw new MutationError(`couldn't build a new listing matching focus "${focus?.text}"`);
     added.push(listing);
     nextId += 1;
   }
 
   const bySlug = new Map(data.listings.map((l) => [l.slug, l]));
   const touched = new Set<string>();
-  for (const p of prices) for (const path of pagesShowing(data, bySlug.get(p.slug)!, { openHouses: true })) touched.add(path);
+  for (const p of prices)
+    for (const path of pagesShowing(data, bySlug.get(p.slug)!, { openHouses: true }))
+      touched.add(path);
   // Open-house pages show rent, not status, so a lease doesn't change them.
-  for (const slug of leased) for (const path of pagesShowing(data, bySlug.get(slug)!, { openHouses: false })) touched.add(path);
+  for (const slug of leased)
+    for (const path of pagesShowing(data, bySlug.get(slug)!, { openHouses: false }))
+      touched.add(path);
   for (const l of added) touched.add(`/agents/${l.agent_slug}`);
 
   const pages = pageIndex(data);
-  const at = nextStamp(now, [...touched].map((p) => pages.get(p)?.updated_at ?? placeholder));
+  const at = nextStamp(
+    now,
+    [...touched].map((p) => pages.get(p)?.updated_at ?? placeholder),
+  );
   for (const l of added) {
     l.created_at = at;
     l.updated_at = at;
@@ -326,7 +386,9 @@ export function planMutation(data: SiteData, opts: MutateOptions, now: Date): Mu
 /** Applies a log entry to `data` in place. Throws if the entry doesn't fit the data (a log from another seed). */
 export function applyEntry(data: SiteData, entry: LogEntry): void {
   if (entry.scale !== data.scale) {
-    throw new MutationError(`mutation log was written at DEMO_SEED_SCALE=${entry.scale}, the site runs at ${data.scale}; POST /admin/reset or delete the log`);
+    throw new MutationError(
+      `mutation log was written at DEMO_SEED_SCALE=${entry.scale}, the site runs at ${data.scale}; POST /admin/reset or delete the log`,
+    );
   }
   if (entry.kind === 'reset') {
     const seed = generateSeed(data.scale);
@@ -371,7 +433,10 @@ export function planReset(data: SiteData, log: readonly LogEntry[], now: Date): 
   const reverted = [...touched].filter((p) => seedPages.has(p)).sort();
   const seedSlugs = new Set(seed.listings.map((l) => l.slug));
   const removed = data.listings.filter((l) => !seedSlugs.has(l.slug)).map((l) => l.slug);
-  const at = nextStamp(now, reverted.map((p) => current.get(p)!.updated_at));
+  const at = nextStamp(
+    now,
+    reverted.map((p) => current.get(p)!.updated_at),
+  );
 
   const lastmod: Record<string, string> = {};
   for (const e of log) if (e.kind === 'reset') Object.assign(lastmod, e.lastmod);

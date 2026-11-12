@@ -62,8 +62,14 @@ async function main(): Promise<void> {
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify(opts),
     });
-    const body = (await res.json().catch(() => ({}))) as Summary & { message?: string; error?: string };
-    if (!res.ok) throw new Error(`${url.origin}/admin/mutate → ${res.status} ${body.message ?? body.error ?? ''}`.trim());
+    const body = (await res.json().catch(() => ({}))) as Summary & {
+      message?: string;
+      error?: string;
+    };
+    if (!res.ok)
+      throw new Error(
+        `${url.origin}/admin/mutate → ${res.status} ${body.message ?? body.error ?? ''}`.trim(),
+      );
     emit(body);
     return;
   }
@@ -73,7 +79,9 @@ async function main(): Promise<void> {
   const store = await openStore({ dataDir, scale });
   const entry = await store.mutate(opts);
   emit({ ...mutateSummary(entry), ping: opts.ping ? 'not implemented until SP-055' : undefined });
-  console.error(`wrote the mutation log in ${dataDir}; restart a running demo site to serve it (or use --target)`);
+  console.error(
+    `wrote the mutation log in ${dataDir}; restart a running demo site to serve it (or use --target)`,
+  );
 }
 
 main().catch((err: unknown) => {

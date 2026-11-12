@@ -53,12 +53,21 @@ export function createAdminRouter({ store, token }: AdminOptions): Router {
   router.post('/mutate', async (req, res) => {
     const opts = parseMutateOptions((req.body ?? {}) as Record<string, unknown>);
     const entry = await store.mutate(opts);
-    res.json({ ...mutateSummary(entry), ping: opts.ping ? 'not implemented until SP-055' : undefined, counts: store.counts() });
+    res.json({
+      ...mutateSummary(entry),
+      ping: opts.ping ? 'not implemented until SP-055' : undefined,
+      counts: store.counts(),
+    });
   });
 
   router.post('/reset', async (_req, res) => {
     const entry = await store.reset();
-    res.json({ at: entry.at, reverted: entry.reverted, removed: entry.removed, counts: store.counts() });
+    res.json({
+      at: entry.at,
+      reverted: entry.reverted,
+      removed: entry.removed,
+      counts: store.counts(),
+    });
   });
 
   router.get('/state', (_req, res) => {
@@ -70,7 +79,8 @@ export function createAdminRouter({ store, token }: AdminOptions): Router {
   });
 
   router.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
-    if (err instanceof MutationError) return void res.status(400).json({ error: 'bad_request', message: err.message });
+    if (err instanceof MutationError)
+      return void res.status(400).json({ error: 'bad_request', message: err.message });
     if (err && typeof err === 'object' && 'type' in err && err.type === 'entity.parse.failed') {
       return void res.status(400).json({ error: 'bad_request', message: 'body is not valid JSON' });
     }
