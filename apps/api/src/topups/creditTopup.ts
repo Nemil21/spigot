@@ -47,6 +47,14 @@ export interface CreditActor {
   actorId?: string | null;
 }
 
+export interface CreditOptions {
+  /**
+   * Dates the TOPUP ledger txn (SP-035 / SP-036's simulated week). Applied only to `trigger=SIM`
+   * top-ups (the ledger accepts it only on simulated txns); ignored for every other top-up.
+   */
+  simulatedAt?: Date;
+}
+
 export type CreditOutcome =
   /** This call credited the balance. */
   | { result: 'CREDITED'; topup: TopupRow; balanceMicros: number }
@@ -76,8 +84,9 @@ export async function creditTopup(
   topupId: string,
   capture: CapturedFacts,
   actor: CreditActor = { actorType: 'SYSTEM' },
+  opts: CreditOptions = {},
 ): Promise<CreditOutcome> {
-  return db.tx((tx) => creditTopupTx(tx, topupId, capture, actor));
+  return db.tx((tx) => creditTopupTx(tx, topupId, capture, actor, opts));
 }
 
 /** `creditTopup` inside the caller's transaction. */
@@ -86,6 +95,7 @@ export async function creditTopupTx(
   topupId: string,
   capture: CapturedFacts,
   actor: CreditActor = { actorType: 'SYSTEM' },
+  opts: CreditOptions = {},
 ): Promise<CreditOutcome> {
   const { rows } = await tx.query<TopupRow>(
     `SELECT ${TOPUP_COLUMNS} FROM topups WHERE id = $1 FOR UPDATE`,
@@ -159,6 +169,7 @@ export async function creditTopupTx(
     refId: topup.id,
     entries: topupEntries({ buyer: buyerAccount, paypalCash }, amountMicros),
     isSimulated: topup.trigger === 'SIM',
+    ...(topup.trigger === 'SIM' && opts.simulatedAt ? { simulatedAt: opts.simulatedAt } : {}),
   });
 
   const { rows: updated } = await tx.query<TopupRow>(

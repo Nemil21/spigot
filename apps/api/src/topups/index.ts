@@ -9,6 +9,7 @@ export {
   balanceOf,
   type CapturedFacts,
   type CreditActor,
+  type CreditOptions,
   type CreditOutcome,
 } from './creditTopup.js';
 export {

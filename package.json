@@ -27,7 +27,7 @@
     "security:secrets": "bash scripts/secret-scan.sh",
     "security:audit": "npm audit --audit-level=high",
     "dev:db": "bash scripts/dev-db.sh",
-    "seed:demo": "node scripts/not-yet.mjs seed:demo SP-035",
+    "seed:demo": "npm run seed:demo -w @spigot/api --",
     "sim:bots": "tsx scripts/sim-bots.ts",
     "sim:buyers": "node scripts/not-yet.mjs sim:buyers SP-036",
     "demo:mutate": "npm run demo:mutate -w @spigot/demo-site --",
