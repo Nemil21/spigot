@@ -45,6 +45,11 @@ interface Baseline {
   perChangeMicros: number;
   /** The schema version Publish approves (a PATCH with field edits makes a new one). */
   schemaVersionId: string | null;
+  /**
+   * Whether that version can still be approved (PROPOSED). After drift with no re-inference yet,
+   * a LIVE_STALE dataset's latest version is the active APPROVED one: approving it is a 409.
+   */
+  versionApprovable: boolean;
 }
 
 type Phase =
@@ -84,6 +89,7 @@ function baselineOf(d: DatasetDetail): Baseline {
     perRecordMicros: d.prices.perRecordMicros,
     perChangeMicros: d.prices.perChangeMicros,
     schemaVersionId: d.latestSchemaVersion?.id ?? null,
+    versionApprovable: d.latestSchemaVersion?.status === 'PROPOSED',
   };
 }
 
@@ -166,19 +172,19 @@ export function DatasetEditorScreen({
     PRICE_EDITABLE.includes(status) &&
     (phase.kind === 'editing' || phase.kind === 'published');
 
-  function patchBody(): PatchBody | null {
+  function patchBody({ fields }: { fields: boolean }): PatchBody | null {
     if (!baseline || perRecordMicros === null || perChangeMicros === null) return null;
     const body: PatchBody = {};
     const changes = fieldChanges(baseline.edits, edits);
-    if (changes.length && status && PUBLISHABLE.includes(status)) body.fields = changes;
+    if (fields && changes.length && status && PUBLISHABLE.includes(status)) body.fields = changes;
     if (perRecordMicros !== baseline.perRecordMicros) body.perRecordMicros = perRecordMicros;
     if (perChangeMicros !== baseline.perChangeMicros) body.perChangeMicros = perChangeMicros;
     return Object.keys(body).length ? body : null;
   }
 
   /** PATCH what changed and move the baseline, so a retry never re-sends (or re-versions) it. */
-  async function saveEdits(): Promise<string | null> {
-    const body = patchBody();
+  async function saveEdits({ fields }: { fields: boolean }): Promise<string | null> {
+    const body = patchBody({ fields });
     let versionId = baseline?.schemaVersionId ?? null;
     if (!body) return versionId;
     const r = await client.patch<PatchResult>(base, body);
@@ -188,6 +194,7 @@ export function DatasetEditorScreen({
       perRecordMicros: r.dataset.perRecordMicros,
       perChangeMicros: r.dataset.perChangeMicros,
       schemaVersionId: versionId,
+      versionApprovable: r.schemaVersion ? true : (baseline?.versionApprovable ?? false),
     });
     return versionId;
   }
@@ -209,10 +216,13 @@ export function DatasetEditorScreen({
     setNotice(null);
     if (!detail || busy.current) return;
     if (visibleCount === 0 || !rights || !pricesValid) return;
+    if (!baseline?.versionApprovable && fieldChanges(baseline?.edits ?? {}, edits).length === 0) {
+      return;
+    }
     busy.current = true;
     try {
       setPhase({ kind: 'saving' });
-      const versionId = await saveEdits();
+      const versionId = await saveEdits({ fields: true });
       if (!versionId) throw new Error('This dataset has no schema to publish yet.');
       setPhase({ kind: 'approving' });
       const a = await client.post<ApproveResult>(`${base}/approve`, {
@@ -304,7 +314,7 @@ export function DatasetEditorScreen({
     setNotice(null);
     setPhase({ kind: 'saving' });
     try {
-      await saveEdits();
+      await saveEdits({ fields: false }); // Prices only; field edits go out with Publish.
       setNotice({
         tone: 'info',
         text: 'Prices saved. New calls use them; past charges keep theirs.',
@@ -364,6 +374,9 @@ export function DatasetEditorScreen({
     path;
   const isLive = detail.status === 'LIVE' || detail.status === 'LIVE_STALE';
   const publishable = PUBLISHABLE.includes(detail.status);
+  // Something approve can take: a PROPOSED version, or field edits that PATCH turns into one.
+  const hasApprovable =
+    baseline.versionApprovable || fieldChanges(baseline.edits, edits).length > 0;
   const dirtyPrices =
     perRecordMicros !== baseline.perRecordMicros || perChangeMicros !== baseline.perChangeMicros;
   const working = phase.kind === 'saving' || phase.kind === 'approving' || !!publishing;
@@ -494,7 +507,7 @@ export function DatasetEditorScreen({
                 if (n.perChange !== undefined) setPerChange(n.perChange);
               }}
             />
-            {!publishable && pricesEditable && (
+            {isLive && pricesEditable && (
               <button
                 type="button"
                 onClick={() => void savePrices()}
@@ -542,7 +555,7 @@ export function DatasetEditorScreen({
               <button
                 type="button"
                 onClick={() => void publish()}
-                disabled={working || visibleCount === 0 || !pricesValid}
+                disabled={working || visibleCount === 0 || !pricesValid || !hasApprovable}
                 className="mt-3 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-strong disabled:opacity-50"
               >
                 {phase.kind === 'saving'
@@ -553,6 +566,12 @@ export function DatasetEditorScreen({
                       ? 'Extracting…'
                       : 'Publish'}
               </button>
+              {!hasApprovable && (
+                <p className="mt-2 text-sm text-muted" data-validation="nothing-to-approve">
+                  Nothing new to publish: this schema is already live. Change which fields you sell
+                  to publish a new version, or use Save prices for a price change.
+                </p>
+              )}
             </section>
           )}
         </div>

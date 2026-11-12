@@ -438,6 +438,79 @@ describe('W06 dataset editor screen', () => {
     ]);
   });
 
+  describe('LIVE_STALE (drift)', () => {
+    /** After drift, before re-inference: the latest version is the active APPROVED one. */
+    const STALE: DatasetDetail = {
+      ...LIVE,
+      status: 'LIVE_STALE',
+      staleSince: '2026-11-12T08:00:00.000Z',
+    };
+
+    it('latest version APPROVED: Save prices saves prices only; Publish is off with a reason', async () => {
+      const api = fakeApi({ detail: STALE });
+      renderEditor(api, STALE.id);
+      expect(await screen.findByText(/The page layout changed/)).toBeInTheDocument();
+      const publish = screen.getByRole('button', { name: 'Publish' });
+      expect(publish).toBeDisabled();
+      expect(document.querySelector('[data-validation="nothing-to-approve"]')).toHaveTextContent(
+        'Nothing new to publish',
+      );
+
+      const input = screen.getByLabelText('Per record');
+      await userEvent.clear(input);
+      await userEvent.type(input, '2');
+      // A field edit made alongside isn't sent by Save prices (it goes out with Publish).
+      await userEvent.click(screen.getByRole('switch', { name: 'Sell agent_name' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save prices' }));
+      expect(await screen.findByText(/Prices saved/)).toBeInTheDocument();
+      expect(api.calls.filter((c) => c.method !== 'GET')).toEqual([
+        { method: 'PATCH', path: `/api/datasets/${STALE.id}`, body: { perRecordMicros: 2000 } },
+      ]);
+    });
+
+    it('latest version APPROVED + a field edit: Publish makes a new version and approves it', async () => {
+      const api = fakeApi({ detail: STALE, afterPublish: LIVE });
+      renderEditor(api, STALE.id);
+      await userEvent.click(await screen.findByRole('switch', { name: 'Sell agent_name' }));
+      await userEvent.click(screen.getByRole('checkbox', { name: /I own this content/ }));
+      const publish = screen.getByRole('button', { name: 'Publish' });
+      expect(publish).toBeEnabled();
+      await userEvent.click(publish);
+      await screen.findByRole('region', { name: 'Live' });
+      expect(api.calls.filter((c) => c.method !== 'GET')).toEqual([
+        {
+          method: 'PATCH',
+          path: `/api/datasets/${STALE.id}`,
+          body: { fields: [{ name: 'agent_name', visible: false }] },
+        },
+        {
+          method: 'POST',
+          path: `/api/datasets/${STALE.id}/approve`,
+          body: { schemaVersionId: NEW_VERSION, rightsAttested: true },
+        },
+      ]);
+    });
+
+    it('a re-inferred PROPOSED v(n+1): Publish approves it as it is', async () => {
+      const proposed: DatasetDetail = {
+        ...STALE,
+        latestSchemaVersion: { id: NEW_VERSION, version: 3, status: 'PROPOSED', proposedBy: 'AI' },
+      };
+      const api = fakeApi({ detail: proposed, afterPublish: LIVE });
+      renderEditor(api, proposed.id);
+      await userEvent.click(await screen.findByRole('checkbox', { name: /I own this content/ }));
+      await userEvent.click(screen.getByRole('button', { name: 'Publish' }));
+      await screen.findByRole('region', { name: 'Live' });
+      expect(api.calls.filter((c) => c.method !== 'GET')).toEqual([
+        {
+          method: 'POST',
+          path: `/api/datasets/${proposed.id}/approve`,
+          body: { schemaVersionId: NEW_VERSION, rightsAttested: true },
+        },
+      ]);
+    });
+  });
+
   it('shows the API error with retry when the dataset fails to load', async () => {
     const api = fakeApi();
     renderEditor(api, 'missing');
