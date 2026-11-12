@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import {
+  Button,
   EmptyState,
   ErrorBanner,
   Kpi,
@@ -172,6 +173,31 @@ describe('shared states', () => {
       'href',
       '/app/install',
     );
+  });
+
+  it('EmptyState shows an optional title above the sentence', () => {
+    render(
+      <MemoryRouter>
+        <EmptyState
+          title="No payouts yet"
+          message="Payouts appear here once you've earned."
+          action={{ label: 'See earnings', onClick: () => {} }}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('No payouts yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'See earnings' })).toBeInTheDocument();
+  });
+
+  it('Button never submits a form unless asked to', () => {
+    render(
+      <>
+        <Button>Save</Button>
+        <Button type="submit">Send</Button>
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveAttribute('type', 'button');
+    expect(screen.getByRole('button', { name: 'Send' })).toHaveAttribute('type', 'submit');
   });
 
   it('Skeleton is hidden from assistive tech', () => {

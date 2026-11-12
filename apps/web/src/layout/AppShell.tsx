@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ComponentType } from 'react';
+import { useEffect, useId, useRef, useState, type ComponentType } from 'react';
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { api } from '../api/client';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -81,8 +81,22 @@ export function AppShell<T extends { name: string; email: string }>({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
 
+  const menuButton = useRef<HTMLButtonElement>(null);
+
   // A nav click on a phone closes the menu.
   useEffect(() => setMenuOpen(false), [location.pathname]);
+
+  // Escape closes the open menu and puts focus back on its toggle.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   if (session.status === 'signedOut') {
     const next = `${location.pathname}${location.search}`;
@@ -122,6 +136,7 @@ export function AppShell<T extends { name: string; email: string }>({
             <span className="truncate">{brand}</span>
           </Link>
           <button
+            ref={menuButton}
             type="button"
             className="grid size-8 place-items-center rounded-md text-body hover:bg-surface-2 hover:text-ink lg:hidden"
             aria-expanded={menuOpen}
