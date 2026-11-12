@@ -10,7 +10,8 @@ const job: Job = {
   name: 'payouts.poll',
   everyMs: POLL_EVERY_MS,
   run: async () => {
-    await pollRecentBatches(payoutJobDeps());
+    const deps = payoutJobDeps();
+    if (deps) await pollRecentBatches(deps);
   },
 };
 

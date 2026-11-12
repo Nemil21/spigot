@@ -169,7 +169,7 @@ Every key is listed, with no values, in `.env.example` (SP-001a). The ones you n
 | `PAYPAL_WEBHOOK_ID` | Only if webhooks are registered |
 | `DEMO_PUBLISHER_PAYOUT_EMAIL` | The **separate publisher business** sandbox account that receives payouts |
 | `VITE_PAYPAL_CLIENT_ID` | Same client id, for the JS SDK v6 button |
-| `ANTHROPIC_API_KEY`, `CLAUDE_MODEL`, `SCHEMA_AGENT_MODE` | Schema agent; `recorded` replays a recorded proposal with no key |
+| `ANTHROPIC_API_KEY`, `CLAUDE_MODEL`, `SCHEMA_AGENT_MODE` | Schema agent; `recorded` replays a recorded proposal with no key (the default under `NODE_ENV=test`; otherwise `live`) |
 | `AG_GRID_LICENSE_KEY`, `VITE_AG_GRID_LICENSE_KEY` | AG Grid Enterprise (watermarked without it) |
 | `WORKFLOWS_MODE`, `RENDER_API_KEY`, `RENDER_WORKFLOWS_SERVICE_ID` | `inproc` (default) or `workflows` on Render |
 | `SPIGOT_GATE_DEMO` | Lets the gate label `X-Spigot-Sim: 1` traffic as SIM |
