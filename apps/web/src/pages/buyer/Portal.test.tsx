@@ -187,7 +187,8 @@ describe('W11 buyer portal', () => {
 
     expect(await screen.findByText(/Your balance is empty/)).toBeInTheDocument();
     expect(balanceText()).toHaveTextContent('$0.00');
-    expect(sdk.loadSdk).toHaveBeenCalledWith(SANDBOX);
+    // The SDK loads from an effect that can run after the empty-balance copy renders.
+    await waitFor(() => expect(sdk.loadSdk).toHaveBeenCalledWith(SANDBOX));
     expect(screen.getByRole('button', { name: '$20' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.click(screen.getByLabelText('Save for auto top-up'));
 
