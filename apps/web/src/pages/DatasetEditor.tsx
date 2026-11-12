@@ -9,6 +9,7 @@ import { CopyButton, EndpointPreview } from './dataset-editor/EndpointPreview';
 import { FieldList } from './dataset-editor/FieldList';
 import { PriceInputs } from './dataset-editor/PriceInputs';
 import { SchemaGrid } from './dataset-editor/SchemaGrid';
+import { StaleBanner } from './dataset-editor/StaleBanner';
 import {
   NO_VISIBLE_FIELDS,
   PRICE_EDITABLE,
@@ -30,11 +31,14 @@ import {
   type FieldEdits,
   type PatchBody,
   type PatchResult,
+  type ReinferResult,
 } from './dataset-editor/model';
 
 export const EVENTS_URL = '/api/publishers/me/events';
 /** While the APPROVE run extracts, the page re-reads its progress this often (SSE also nudges). */
 export const PROGRESS_POLL_MS = 1500;
+/** While re-inference runs (SP-052b), the page re-reads the dataset this often (SSE also nudges). */
+export const REINFER_POLL_MS = 5000;
 
 type Load = { status: 'loading' } | { status: 'error'; error: unknown } | { status: 'ready' };
 
@@ -126,6 +130,7 @@ export function DatasetEditorScreen({
   const [notice, setNotice] = useState<Notice>(null);
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   const busy = useRef(false);
 
   const base = `/api/datasets/${encodeURIComponent(datasetId)}`;
@@ -306,6 +311,51 @@ export function DatasetEditorScreen({
     { ...sse, events: ['dataset.extract.progress'] },
   );
 
+  // --- re-inference (SP-052b) -----------------------------------------------------------------
+
+  // Re-read while Claude re-proposes the extractor; `proposal.ready` brings the new version.
+  const reinferPending =
+    detail?.status === 'LIVE_STALE' &&
+    phase.kind === 'editing' &&
+    (!detail.reinference ||
+      detail.reinference.state === 'QUEUED' ||
+      detail.reinference.state === 'RUNNING');
+  const reloadQuietly = useCallback(() => {
+    reload().catch(() => undefined); // The next tick or event tries again.
+  }, [reload]);
+  useEffect(() => {
+    if (!reinferPending) return;
+    const t = setInterval(reloadQuietly, REINFER_POLL_MS);
+    return () => clearInterval(t);
+  }, [reinferPending, reloadQuietly]);
+  useEventStream(
+    reinferPending ? EVENTS_URL : null,
+    {
+      onEvent: (m) => {
+        const ids = (m.data as { ids?: unknown } | null)?.ids;
+        if (m.type === 'proposal.ready' && (!Array.isArray(ids) || ids.includes(datasetId))) {
+          reloadQuietly();
+        }
+      },
+      onRefetch: reloadQuietly,
+    },
+    { ...sse, events: ['proposal.ready'] },
+  );
+
+  async function retryReinfer() {
+    if (retrying) return;
+    setRetrying(true);
+    setNotice(null);
+    try {
+      await client.post<ReinferResult>(`${base}/reinfer`, {});
+      await reload();
+    } catch (err) {
+      setNotice({ tone: 'danger', text: errorMessage(err) });
+    } finally {
+      setRetrying(false);
+    }
+  }
+
   // --- other actions ---------------------------------------------------------------------------
 
   async function savePrices() {
@@ -386,16 +436,8 @@ export function DatasetEditorScreen({
       title={`${detail.typeName} · ${formatCount(detail.recordCount)} records`}
       status={detail.status}
     >
-      {/* Stale banner slot (P1, SP-052b fills it with the re-inference flow). */}
-      {detail.staleSince && (
-        <p
-          role="status"
-          data-slot="stale-banner"
-          className="rounded-md bg-warning-tint px-4 py-3 text-sm text-warning"
-        >
-          The page layout changed on {new Date(detail.staleSince).toLocaleDateString('en-US')}.
-          Buyers still get the last good records.
-        </p>
+      {detail.status === 'LIVE_STALE' && (
+        <StaleBanner detail={detail} retrying={retrying} onRetry={() => void retryReinfer()} />
       )}
 
       {notice && (

@@ -449,7 +449,7 @@ describe('W06 dataset editor screen', () => {
     it('latest version APPROVED: Save prices saves prices only; Publish is off with a reason', async () => {
       const api = fakeApi({ detail: STALE });
       renderEditor(api, STALE.id);
-      expect(await screen.findByText(/The page layout changed/)).toBeInTheDocument();
+      expect(await screen.findByText(/the site changed layout/)).toBeInTheDocument();
       const publish = screen.getByRole('button', { name: 'Publish' });
       expect(publish).toBeDisabled();
       expect(document.querySelector('[data-validation="nothing-to-approve"]')).toHaveTextContent(

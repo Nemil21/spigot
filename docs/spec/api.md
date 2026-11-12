@@ -170,6 +170,7 @@ Errors: `VALIDATION_ERROR` (rights not attested; no visible fields).
 
 ### `POST /api/datasets/:id/unpublish` → `{ "status": "UNPUBLISHED" }`
 ### `POST /api/datasets/:id/reinfer` (P1) → `202` (drift; see 04)
+LIVE_STALE only (else `409 STATE_CONFLICT`). → `{ "status": "REINFERRING" }` (Claude re-proposes in the background; `proposal.ready` on the publisher SSE), or `{ "status": "PROPOSED", "schemaVersionId", "version" }` when a re-proposal for this stale period already exists (no second model call). The re-proposal keeps the approved type name, record key and every field name and type; approve it like any proposal (`LIVE_STALE → LIVE`, `stale_since = null`, re-extract). It also runs on its own when a crawl leaves a dataset LIVE_STALE (SP-052b). For a LIVE_STALE dataset, `GET /api/datasets/:id` adds `lastGoodExtractAt` and `reinference: { state: QUEUED | RUNNING | PROPOSED | FAILED, schemaVersionId, version, reason, sources: [{ name, before, after, changed }] }` (W06 stale banner and diff of sources).
 
 ### `GET /api/publishers/me/earnings?from&to&groupBy=<dims>&includeSim=true`
 `groupBy` is one dimension (`buyer` | `dataset` | `day`; default `buyer`) or a comma list of distinct dimensions from `buyer,dataset,day,channel`, in order (W08 reads `groupBy=buyer,dataset,channel,day`). A repeated, empty or unknown dimension is `400 VALIDATION_ERROR`. `from` is inclusive, `to` exclusive; `includeSim=false` drops SIM calls and SIM txns.

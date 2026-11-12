@@ -12,6 +12,10 @@ export const AUDIT_ACTIONS = [
   // outcomes; `data.message` = "no repeated structure found" is W05's empty state).
   'SCHEMA_PROPOSAL_STARTED',
   'SCHEMA_PROPOSAL_DONE',
+  // SP-052b: a re-inference after drift started (the sweep's 5-minute marker) / finished
+  // (`data.outcome`: proposed | existing | failed | rejected | …).
+  'SCHEMA_REINFER_STARTED',
+  'SCHEMA_REINFER_DONE',
   'SCHEMA_APPROVED',
   'DATASET_PUBLISHED',
   'DATASET_UNPUBLISHED',

@@ -163,7 +163,7 @@ async function scanPages(q: Queryable, siteId: string, batchSize: number): Promi
   }
 }
 
-async function loadSamples(q: Queryable, pageIds: readonly string[]): Promise<SamplePage[]> {
+export async function loadSamples(q: Queryable, pageIds: readonly string[]): Promise<SamplePage[]> {
   const { rows } = await q.query<{ id: string; url: string; html_gz: Buffer }>(
     `SELECT p.id, p.url, snap.html_gz FROM pages p ${LATEST_SNAPSHOT} WHERE p.id = ANY($1::uuid[])`,
     [pageIds],
