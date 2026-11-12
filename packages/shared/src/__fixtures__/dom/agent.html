@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agnes Purdy, Larkspur Lane Homes | Bluebonnet Rentals</title>
+<style>
+  :root { --ink:#1f2933; --muted:#5f6b7a; --line:#e3e6ea; --accent:#3b5bdb; --bg:#fafaf7; --ok:#2b8a3e; --gone:#868e96; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--ink); background:var(--bg); }
+  a { color:var(--accent); }
+  header.site { display:flex; gap:1.5rem; align-items:center; padding:.9rem 1.5rem; background:#fff; border-bottom:1px solid var(--line); }
+  header.site .brand { font-weight:700; font-size:1.15rem; color:var(--ink); text-decoration:none; }
+  header.site .brand span { color:#4c6ef5; }
+  header.site nav { display:flex; gap:1rem; }
+  main { max-width:1080px; margin:0 auto; padding:1.5rem; }
+  footer.site { border-top:1px solid var(--line); padding:1.25rem 1.5rem; color:var(--muted); font-size:.9rem; text-align:center; background:#fff; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:1rem; padding:0; list-style:none; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:8px; padding:1rem; }
+  .card h3 { margin:.25rem 0; font-size:1rem; }
+  .muted { color:var(--muted); }
+  .photo { aspect-ratio:16/7; border-radius:8px; background:linear-gradient(135deg,#dbe4ff,#e6fcf5); display:flex; align-items:center; justify-content:center; color:var(--muted); }
+  .status-badge { display:inline-block; padding:.1rem .55rem; border-radius:999px; font-size:.8rem; font-weight:600; color:#fff; background:var(--ok); }
+  .status-badge.status-leased { background:var(--gone); }
+  dl.facts { display:grid; grid-template-columns:max-content 1fr; gap:.35rem 1.25rem; }
+  dl.facts dt { color:var(--muted); }
+  dl.facts dd { margin:0; }
+  form.search { display:flex; flex-wrap:wrap; gap:.75rem; align-items:end; background:#fff; border:1px solid var(--line); border-radius:8px; padding:1rem; }
+  form.search label { display:flex; flex-direction:column; font-size:.85rem; color:var(--muted); }
+  form.search input, form.search select, form.search button { font:inherit; padding:.4rem .5rem; }
+  .layout-2 { display:grid; grid-template-columns:2fr 1fr; gap:1.5rem; }
+  @media (max-width: 760px) { .layout-2 { grid-template-columns:1fr; } }
+  .price { font-size:1.5rem; font-weight:700; margin:.25rem 0; }
+</style>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="/">Bluebonnet <span>Rentals</span></a>
+  <nav><a href="/search">Search</a><a href="/blog">Renter notes</a><a href="/about">About</a></nav>
+</header>
+<main>
+
+<article class="agent">
+  <h1 class="agent-name">Agnes Purdy</h1>
+  <p class="agent-brokerage">Larkspur Lane Homes</p>
+  <p><a class="agent-phone" href="tel:5125550121">(512) 555-0121</a> · <a class="agent-email" href="mailto:agnes.purdy.22@example.com">agnes.purdy.22@example.com</a></p>
+  <dl class="facts">
+    <dt>Brokerage</dt><dd data-k="brokerage">Larkspur Lane Homes</dd>
+    <dt>Licence</dt><dd data-k="license">TX-DEMO-100777</dd>
+    <dt>Experience</dt><dd data-k="experience">17 years</dd>
+    <dt>Languages</dt><dd data-k="languages">English</dd>
+    <dt>Areas</dt><dd data-k="areas">Gilleland Creek, Crestview, Brushy Creek</dd>
+    <dt>Active listings</dt><dd data-k="active_listings">23</dd>
+    <dt>Leased recently</dt><dd data-k="leased_listings">2</dd>
+  </dl>
+  <p class="agent-bio">Agnes has helped renters find homes in Gilleland Creek, Crestview, Brushy Creek for 17 years.</p>
+  <h2>Active listings</h2>
+  
+  <ul class="grid agent-listings">
+    <li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/3br-rosedale-juniper-ridge-dr-133">Walkable 3-bed in Rosedale</a></h3>
+  <div class="price">$3,125<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">3 beds · 2 baths · 1,925 sq ft</div>
+  <div class="muted">Rosedale, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/1br-brushy-creek-windmill-st-182">Sunny 1-bed in Brushy Creek</a></h3>
+  <div class="price">$1,410<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">1 bed · 1 bath · 795 sq ft</div>
+  <div class="muted">Brushy Creek, Round Rock</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/1br-rosedale-yaupon-dr-240">Shaded 1-bed in Rosedale</a></h3>
+  <div class="price">$1,170<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">1 bed · 1 bath · 870 sq ft</div>
+  <div class="muted">Rosedale, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-anderson-mill-firewheel-way-264">Bright 2-bed in Anderson Mill</a></h3>
+  <div class="price">$1,670<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 2 baths · 1,335 sq ft</div>
+  <div class="muted">Anderson Mill, Cedar Park</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/3br-bouldin-creek-caliche-cv-300">Quiet 3-bed in Bouldin Creek</a></h3>
+  <div class="price">$2,760<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">3 beds · 2 baths · 1,845 sq ft</div>
+  <div class="muted">Bouldin Creek, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/1br-travis-heights-redbud-dr-432">Renovated 1-bed in Travis Heights</a></h3>
+  <div class="price">$1,240<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">1 bed · 1 bath · 985 sq ft</div>
+  <div class="muted">Travis Heights, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/1br-allandale-juniper-ridge-ct-584">Light-filled 1-bed in Allandale</a></h3>
+  <div class="price">$1,370<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">1 bed · 1 bath · 885 sq ft</div>
+  <div class="muted">Allandale, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/4br-georgetown-square-mesquite-ct-668">Light-filled 4-bed in Georgetown Square</a></h3>
+  <div class="price">$2,640<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">4 beds · 3 baths · 1,810 sq ft</div>
+  <div class="muted">Georgetown Square, Georgetown</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-holly-cedar-elm-dr-670">Updated 2-bed in Holly</a></h3>
+  <div class="price">$1,835<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 1 bath · 1,485 sq ft</div>
+  <div class="muted">Holly, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-govalle-spanish-oak-way-678">Shaded 2-bed in Govalle</a></h3>
+  <div class="price">$1,870<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 2 baths · 1,390 sq ft</div>
+  <div class="muted">Govalle, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/studio-old-town-pflugerville-bur-oak-way-752">Renovated Studio in Old Town Pflugerville</a></h3>
+  <div class="price">$855<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">Studio · 1 bath · 545 sq ft</div>
+  <div class="muted">Old Town Pflugerville, Pflugerville</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/1br-allandale-caliche-cv-798">Shaded 1-bed in Allandale</a></h3>
+  <div class="price">$1,460<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">1 bed · 1 bath · 1,005 sq ft</div>
+  <div class="muted">Allandale, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-old-town-pflugerville-paintbrush-trl-891">Walkable 2-bed in Old Town Pflugerville</a></h3>
+  <div class="price">$1,780<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 1 bath · 1,355 sq ft</div>
+  <div class="muted">Old Town Pflugerville, Pflugerville</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-hyde-park-prickly-pear-ct-893">Cozy 2-bed in Hyde Park</a></h3>
+  <div class="price">$1,755<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 1.5 baths · 1,360 sq ft</div>
+  <div class="muted">Hyde Park, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/4br-old-town-round-rock-lantana-cv-969">Quiet 4-bed in Old Town Round Rock</a></h3>
+  <div class="price">$2,655<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">4 beds · 2 baths · 2,080 sq ft</div>
+  <div class="muted">Old Town Round Rock, Round Rock</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/3br-anderson-mill-copper-leaf-st-1214">Renovated 3-bed in Anderson Mill</a></h3>
+  <div class="price">$1,855<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">3 beds · 3 baths · 1,530 sq ft</div>
+  <div class="muted">Anderson Mill, Cedar Park</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-cedar-park-town-center-sotol-dr-1429">Shaded 2-bed in Cedar Park Town Center</a></h3>
+  <div class="price">$2,115<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 2 baths · 1,125 sq ft</div>
+  <div class="muted">Cedar Park Town Center, Cedar Park</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-windsor-park-cypress-hollow-blvd-1565">Quiet 2-bed in Windsor Park</a></h3>
+  <div class="price">$2,120<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 1 bath · 1,445 sq ft</div>
+  <div class="muted">Windsor Park, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/1br-brushy-creek-redbud-ct-1791">Renovated 1-bed in Brushy Creek</a></h3>
+  <div class="price">$1,405<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">1 bed · 1 bath · 775 sq ft</div>
+  <div class="muted">Brushy Creek, Round Rock</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-holly-cypress-hollow-dr-1817">Renovated 2-bed in Holly</a></h3>
+  <div class="price">$2,045<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 1.5 baths · 1,490 sq ft</div>
+  <div class="muted">Holly, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/1br-brentwood-larkspur-ln-1906">Cozy 1-bed in Brentwood</a></h3>
+  <div class="price">$1,475<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">1 bed · 1 bath · 785 sq ft</div>
+  <div class="muted">Brentwood, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/3br-allandale-mesquite-trl-1974">Updated 3-bed in Allandale</a></h3>
+  <div class="price">$2,165<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">3 beds · 2 baths · 1,870 sq ft</div>
+  <div class="muted">Allandale, Austin</div>
+</li>
+<li class="card listing-card">
+  <span class="status-badge status-available">Available</span>
+  <h3><a href="/listings/2br-gilleland-creek-spanish-oak-ave-2192">Cozy 2-bed in Gilleland Creek</a></h3>
+  <div class="price">$1,750<span class="muted" style="font-size:.9rem;font-weight:400"> / month</span></div>
+  <div class="muted">2 beds · 1.5 baths · 1,180 sq ft</div>
+  <div class="muted">Gilleland Creek, Pflugerville</div>
+</li>
+
+  </ul>
+  
+</article>
+</main>
+<footer class="site">
+  <p class="site-notice">Fictional demo site for Spigot. Not a real business.</p>
+  <p>Names, phone numbers (555-01xx) and email addresses (example.com) on this site are invented.</p>
+</footer>
+</body>
+</html>
+

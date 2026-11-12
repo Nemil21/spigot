@@ -37,6 +37,11 @@
       "source": "./src/gate.ts",
       "types": "./dist/gate.d.ts",
       "default": "./dist/gate.js"
+    },
+    "./cluster": {
+      "source": "./src/cluster.ts",
+      "types": "./dist/cluster.d.ts",
+      "default": "./dist/cluster.js"
     }
   },
   "files": [

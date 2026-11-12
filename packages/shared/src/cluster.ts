@@ -4,6 +4,9 @@
 // `paramMinDistinct` pages with slug/number shapes becomes a `:param`. Each group is then split
 // by its JSON-LD `@type` set, small groups are dropped, and 5 sample pages are picked with a
 // seeded shuffle so the same input always yields the same samples.
+//
+// P1 (SP-065): `confirmCluster` checks each template against page DOM fingerprints (tag-path
+// shingles) and splits a URL pattern that mixes layouts into sub-templates (Jaccard < 0.8).
 
 export interface ClusterPage {
   id: string;
@@ -22,6 +25,11 @@ export interface Template {
   pageIds: string[];
   /** Up to `sampleSize` page ids, deterministic for the same input and seed. */
   samplePageIds: string[];
+  /**
+   * Set by `confirmCluster` when one URL pattern holds several kept layouts: 1 for the largest
+   * sub-template, 2 for the next, … Sub-templates share `urlPattern`; pages map by id.
+   */
+  variant?: number;
 }
 
 export interface ClusterOptions {
@@ -52,6 +60,9 @@ const ID_RES = [
 
 const isSlugOrNumber = (s: string) => SLUG_RE.test(s);
 const isId = (s: string) => ID_RES.some((re) => re.test(s));
+
+// WHATWG URL exists in browsers and Node; lib ES2022 with types [] doesn't declare it.
+declare const URL: new (url: string, base?: string) => { pathname: string };
 
 /** Path of a URL (or bare path) without query, fragment or trailing slash; `/` for the root. */
 export function urlPath(url: string): string | null {
@@ -150,6 +161,222 @@ export function clusterUrls(
   return templates.sort(
     (a, b) => b.pageCount - a.pageCount || (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0),
   );
+}
+
+export type Fingerprint = ReadonlySet<string>;
+
+export interface FingerprintOptions {
+  /** Tags per shingle: the element plus up to `depth - 1` of its nearest ancestors. */
+  depth?: number;
+}
+
+export const FINGERPRINT_DEFAULTS = { depth: 4 } as const satisfies Required<FingerprintOptions>;
+
+const VOID_TAGS = new Set([
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr',
+]);
+/** Content is skipped: text or a foreign tree, not page layout. */
+const SKIP_TAGS = new Set([
+  'script',
+  'style',
+  'noscript',
+  'template',
+  'textarea',
+  'title',
+  'svg',
+  'math',
+]);
+/** An open tag that implicitly closes an open sibling of the listed tags (HTML optional end tags). */
+const IMPLIED_CLOSE: Record<string, readonly string[]> = {
+  li: ['li'],
+  dt: ['dt', 'dd'],
+  dd: ['dt', 'dd'],
+  p: ['p'],
+  tr: ['tr', 'td', 'th'],
+  td: ['td', 'th'],
+  th: ['td', 'th'],
+  option: ['option'],
+};
+const TAG_RE = /<!--[\s\S]*?(?:-->|$)|<(\/?)([A-Za-z][A-Za-z0-9-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+const CLASS_RE = /(?:^|\s)class\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i;
+const STABLE_CLASS_RE = /^[A-Za-z_-]+$/;
+
+/**
+ * Tag-path shingles of a page's `<body>`: for each element, the path of its last `depth` tags
+ * (each `tag` or `tag.firstClass`) from the root. Text, attributes other than the first class,
+ * scripts/styles and repeat counts don't count, so pages of one template share a fingerprint
+ * even when their content and list lengths differ. Pure string scan, no DOM: browser-safe.
+ */
+export function fingerprint(html: string, options: FingerprintOptions = {}): Set<string> {
+  const { depth } = { ...FINGERPRINT_DEFAULTS, ...options };
+  const bodyAt = html.search(/<body[\s>]/i);
+  const src = bodyAt >= 0 ? html.slice(bodyAt) : html;
+  const lower = src.toLowerCase();
+  const shingles = new Set<string>();
+  const stack: { tag: string; token: string }[] = [];
+  const re = new RegExp(TAG_RE.source, 'g');
+
+  for (let m = re.exec(src); m; m = re.exec(src)) {
+    const tag = m[2]?.toLowerCase();
+    if (!tag) continue; // comment
+    if (m[1]) {
+      let at = stack.length - 1;
+      while (at >= 0 && stack[at]!.tag !== tag) at--;
+      if (at >= 0) stack.length = at;
+      continue;
+    }
+    if (tag === 'body') continue;
+    if (SKIP_TAGS.has(tag)) {
+      const end = lower.indexOf(`</${tag}`, re.lastIndex);
+      re.lastIndex = end < 0 ? src.length : end;
+      continue;
+    }
+    const closes = IMPLIED_CLOSE[tag];
+    const top = stack[stack.length - 1];
+    if (closes && top && closes.includes(top.tag)) stack.pop();
+
+    const attrs = m[3] ?? '';
+    const cm = CLASS_RE.exec(attrs);
+    const cls = (cm?.[1] ?? cm?.[2] ?? cm?.[3] ?? '')
+      .split(/\s+/)
+      .find((c) => STABLE_CLASS_RE.test(c));
+    const token = cls ? `${tag}.${cls}` : tag;
+    const path = [...stack.slice(-(depth - 1)).map((e) => e.token), token];
+    shingles.add(path.join('>'));
+    if (!VOID_TAGS.has(tag) && !/\/\s*$/.test(attrs)) stack.push({ tag, token });
+  }
+  return shingles;
+}
+
+/** |A ∩ B| / |A ∪ B|; two empty fingerprints count as identical. */
+export function jaccard(a: Fingerprint, b: Fingerprint): number {
+  if (a.size === 0 && b.size === 0) return 1;
+  const [small, large] = a.size <= b.size ? [a, b] : [b, a];
+  let shared = 0;
+  for (const s of small) if (large.has(s)) shared++;
+  return shared / (a.size + b.size - shared);
+}
+
+export interface ConfirmOptions extends ClusterOptions {
+  /** Two layouts are the same template when their fingerprints' Jaccard is at least this. */
+  threshold?: number;
+  /**
+   * Above this many distinct fingerprints in one template the pairwise check is skipped and the
+   * template is returned unchanged (keeps the cost bounded on very large, very varied sites).
+   */
+  maxDistinct?: number;
+}
+
+export const CONFIRM_DEFAULTS = {
+  ...CLUSTER_DEFAULTS,
+  threshold: 0.8,
+  maxDistinct: 2000,
+} as const satisfies Required<ConfirmOptions>;
+
+export type FingerprintsByPageId =
+  ReadonlyMap<string, Fingerprint> | ((pageId: string) => Fingerprint | undefined);
+
+/**
+ * Confirms a URL-pattern template with DOM fingerprints (features/04 §1, P1). Distinct
+ * fingerprints are linked when their Jaccard is ≥ `threshold`; each connected group is one
+ * layout. One layout → the same template object back, unchanged. Several → one sub-template
+ * per layout (`variant` 1, 2, …, largest first) with fresh seeded samples. Layouts with fewer
+ * than `minPages` pages are dropped, so stray pages leave the template and a pattern of one-off
+ * pages (`/about`-like, no repeated structure) drops out entirely.
+ *
+ * Pass fingerprints for every page you have a snapshot of. Pages without one can't be placed,
+ * so they stay with the largest layout. With no fingerprints the template is returned as is.
+ */
+export function confirmCluster(
+  template: Template,
+  fingerprints: FingerprintsByPageId,
+  options: ConfirmOptions = {},
+): Template[] {
+  const opts = { ...CONFIRM_DEFAULTS, ...options };
+  const fpOf =
+    typeof fingerprints === 'function' ? fingerprints : (id: string) => fingerprints.get(id);
+
+  // Pages with identical fingerprints are one node; most pages of a real template collapse here.
+  const nodes = new Map<string, { fp: Fingerprint; pageIds: string[] }>();
+  const unplaced: string[] = [];
+  for (const id of template.pageIds) {
+    const fp = fpOf(id);
+    if (!fp) {
+      unplaced.push(id);
+      continue;
+    }
+    const key = [...fp].sort().join('\n');
+    const node = nodes.get(key);
+    if (node) node.pageIds.push(id);
+    else nodes.set(key, { fp, pageIds: [id] });
+  }
+  if (nodes.size <= 1 || nodes.size > opts.maxDistinct) return [template];
+
+  // Union-find over distinct fingerprints: order-independent single-linkage grouping.
+  const list = [...nodes.values()];
+  const parent = list.map((_, i) => i);
+  const find = (i: number): number => {
+    while (parent[i] !== i) i = parent[i] = parent[parent[i]!]!;
+    return i;
+  };
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      if (find(i) !== find(j) && jaccard(list[i]!.fp, list[j]!.fp) >= opts.threshold) {
+        parent[find(j)] = find(i);
+      }
+    }
+  }
+  const byRoot = new Map<number, string[]>();
+  for (const [i, n] of list.entries()) {
+    const ids = byRoot.get(find(i)) ?? [];
+    ids.push(...n.pageIds);
+    byRoot.set(find(i), ids);
+  }
+  if (byRoot.size === 1) return [template];
+
+  const layouts = [...byRoot.values()]
+    .map((ids) => ids.sort())
+    .sort((a, b) => b.length - a.length || (a[0]! < b[0]! ? -1 : 1));
+  layouts[0]!.push(...unplaced);
+  layouts[0]!.sort();
+
+  const types = template.jsonldTypes.join(',');
+  const kept = layouts.filter((ids) => ids.length >= opts.minPages);
+  return kept.map((pageIds, i) => ({
+    pathPattern: template.pathPattern,
+    urlPattern: template.urlPattern,
+    jsonldTypes: [...template.jsonldTypes],
+    pageCount: pageIds.length,
+    pageIds,
+    samplePageIds: seededSample(
+      pageIds,
+      opts.sampleSize,
+      `${opts.seed}|${template.urlPattern}|${types}|v${i + 1}`,
+    ),
+    ...(kept.length > 1 ? { variant: i + 1 } : {}),
+  }));
+}
+
+/** `confirmCluster` over every template from `clusterUrls`, keeping their order. */
+export function confirmClusters(
+  templates: readonly Template[],
+  fingerprints: FingerprintsByPageId,
+  options: ConfirmOptions = {},
+): Template[] {
+  return templates.flatMap((t) => confirmCluster(t, fingerprints, options));
 }
 
 /**
