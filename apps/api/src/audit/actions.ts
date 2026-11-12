@@ -38,6 +38,9 @@ export const AUDIT_ACTIONS = [
   // `CUSTOMER.DISPUTE.CREATED` (audit only; freezing the buyer's keys is P2).
   'WEBHOOK_UNHANDLED',
   'DISPUTE_CREATED',
+  // SP-061 (ops/ledgerStatus.ts): one row per recorded ledger check (nightly or admin); a
+  // mismatch also writes an ALERT. `/admin/health` reads the latest.
+  'LEDGER_CHECKED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

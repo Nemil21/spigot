@@ -1,11 +1,14 @@
 import type pg from 'pg';
 import type { Config } from '../config.js';
 import { PayPalApiError } from '../paypal/errors.js';
+import { lastLedgerCheck, type LedgerCheckTrigger } from './ledgerStatus.js';
 
 /**
  * `GET /admin/health` (api.md §Ops; features/14 §Audit and ops; SP-043). Three dependency checks
  * (PayPal token, DB, Workflows) decide `status`; the rest are facts for the W14 tiles (last gate
- * hit per site, open top-ups, pending payout items). Each check has its own timeout, so one hung
+ * hit per site, open top-ups, pending payout items). The latest recorded ledger check (nightly or
+ * admin, SP-061) also counts: a mismatch keeps health degraded until a clean check. Each check has
+ * its own timeout, so one hung
  * dependency marks itself failed instead of hanging the endpoint. Failures carry an error code
  * only, never a message that could echo a credential.
  */
@@ -23,6 +26,14 @@ export interface WorkflowsCheck {
   /** `inproc`: not used. `workflows`: the Render keys are set (no live Render call yet). */
   detail: string;
   missing?: string[];
+}
+
+export interface LedgerStatusCheck extends CheckResult {
+  /** When the latest recorded check ran; `null` if none has yet (that alone is not degraded). */
+  lastCheckedAt: string | null;
+  trigger: LedgerCheckTrigger | null;
+  /** Mismatches the latest check found (`error: 'LEDGER_MISMATCH'` when > 0). */
+  mismatches: number | null;
 }
 
 export interface SiteGate {
@@ -43,6 +54,7 @@ export interface AdminHealth {
     paypal: CheckResult;
     db: CheckResult;
     workflows: WorkflowsCheck;
+    ledger: LedgerStatusCheck;
     /** The tile queries below (`DB_UNAVAILABLE` when the DB check already failed). */
     facts: CheckResult;
   };
@@ -126,13 +138,32 @@ export async function adminHealth(deps: HealthDeps): Promise<AdminHealth> {
     ? await timed(() => opsFacts(pool), timeoutMs)
     : { check: { ok: false, ms: 0, error: 'DB_UNAVAILABLE' } };
   const facts = tiles.check;
+  const ledger = db.ok
+    ? ledgerStatus(await timed(() => lastLedgerCheck(pool), timeoutMs))
+    : ledgerStatus({ check: { ok: false, ms: 0, error: 'DB_UNAVAILABLE' } });
 
   return {
-    status: paypal.ok && db.ok && workflows.ok && facts.ok ? 'ok' : 'degraded',
+    status: paypal.ok && db.ok && workflows.ok && ledger.ok && facts.ok ? 'ok' : 'degraded',
     checkedAt: new Date().toISOString(),
-    checks: { paypal, db, workflows, facts },
+    checks: { paypal, db, workflows, ledger, facts },
     ...(tiles.value ?? { gate: null, openTopups: null, pendingPayouts: null }),
   };
+}
+
+function ledgerStatus({
+  check,
+  value,
+}: {
+  check: CheckResult;
+  value?: Awaited<ReturnType<typeof lastLedgerCheck>>;
+}): LedgerStatusCheck {
+  if (!check.ok || !value) {
+    return { ...check, lastCheckedAt: null, trigger: null, mismatches: null };
+  }
+  const base = { ms: check.ms, lastCheckedAt: value.at.toISOString(), trigger: value.trigger };
+  return value.mismatches > 0
+    ? { ...base, ok: false, error: 'LEDGER_MISMATCH', mismatches: value.mismatches }
+    : { ...base, ok: true, mismatches: 0 };
 }
 
 async function opsFacts(
