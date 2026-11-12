@@ -46,6 +46,37 @@ The automation checks the API behind each screen, not the pixels. Before recordi
 - **Listing count drifts after `demo:reset`** (SP-038): 2,341 → 2,344, because records of listings `demo:mutate --new` added aren't marked removed when the site reset deletes them.
 - **Site slug is the host** (SP-035 / SP-008a): locally `localhost`, so the 402 and endpoint read `/v1/localhost/…`; the prompt card and scraper text assume `bluebonnet`.
 
-- README (SP-044) and Devpost draft (SP-045) still call the buyer agent "Claude Desktop" (README §Claude Desktop, architecture line, Devpost "Built with"). Switch them to Claude Code CLI, or say "any MCP client (Claude Code in the video)".
-- W11 "Connect Claude Desktop" snippet (SP-032) can stay as an option; consider adding the `claude mcp add` line next to it.
-- Seed / reset name Acme's key "Claude Desktop (demo)" (`DEMO_KEY_NAME`); harmless, but it shows in W11's keys table on camera.
+- ~~README (SP-044) and Devpost draft (SP-045) still call the buyer agent "Claude Desktop".~~ Done in SP-046: README, architecture diagram, Devpost text and Built With now say Claude Code.
+- W11 "Connect Claude Desktop" snippet (SP-032) can stay as an option; consider adding the `claude mcp add` line next to it. Until then keep that card out of frame.
+- Seed / reset name Acme's key "Claude Desktop (demo)" (`DEMO_KEY_NAME`); harmless, but it shows in W11's keys table on camera. Keep the keys table out of frame.
+
+## 6. Recording runbook (SP-046)
+
+Human-led, on the deployed Render services. Nothing here is automated, uploaded or submitted by an agent. Script and voiceover: [demo/video-script.md](demo/video-script.md); Devpost text: [devpost.md](devpost.md).
+
+**A. Deploy is up (after the 18:00 IST freeze).** [deploy.md §First deploy](deploy.md#first-deploy-human-after-the-freeze) steps 1–8, then `node scripts/smoke-deploy.mjs https://<spigot-api> --site https://<bluebonnet-rentals> --strict` passes. Note the two Render URLs: they fill every `[[fill]]` URL in the README and devpost.md.
+
+**B. Seed and warm up** (`spigot-api` → Shell; output stays in the Shell, it prints passwords and keys):
+
+1. `npm run seed:demo` (first time only), then `DEMO_MODE=true npm run demo:reset -- --yes` for a clean take. Note Acme's **new** key from the reset output without pasting it anywhere.
+2. `npm run sim:buyers -- --live` (the SIM earnings rows in W08 and the payout amount).
+3. From the laptop: `npm run sim:bots -- --target https://<bluebonnet-rentals> --backfill 7d` once, then `npm run sim:bots -- --target https://<bluebonnet-rentals>` left running for B2. `render.yaml` sets `SPIGOT_GATE_DEMO=1` on the demo site, so this traffic is counted as SIM.
+4. Claude Code on the laptop: [demo/claude-code-cli.md](demo/claude-code-cli.md) §1 with `https://<spigot-api>/mcp` and the key from step 1; `/mcp` lists 7 tools.
+
+**C. Two dry runs before recording** (the ticket's test plan). Either run `SPIGOT_API_BASE=https://<spigot-api> DEMO_SITE_URL=https://<bluebonnet-rentals> npm run demo:dry-run -- --runs 2 --topup wallet --agent sdk --out /tmp/dry-run.md` from the `spigot-api` Shell (export the two passwords with `read -rs` as in §2; `--agent sdk` because the Shell has no Claude Code), or walk [demo/dry-run-checklist.md](demo/dry-run-checklist.md) by hand with "Stack: Render" ticked. Either way, approve the $20 wallet top-up yourself in W11, and check in the sandbox web UI that the capture and the payout ids exist (checklist 5.3, 8.3). Paste the ids into the checklist. Fix or file every failure before recording. If the runs leave the SIM buyers drained, re-run `sim:buyers -- --live` (see §5, re-takes have nothing to pay out).
+
+**D. Record (≤ 3:00).**
+
+- `demo:reset` right before the take, then re-add the rotated key to Claude Code (`claude mcp remove spigot`, `claude mcp add …`).
+- Order of shots: record **B6 (Claude Code) and B7 (payout) first**, while there is something to pay out; then B2–B5; B1 and B8 are slides and site footage.
+- Hold the **PayPal sandbox approval page for 2 s** in B5.
+- Say which numbers are simulated: bot traffic, the other buyers, and the SIM part of the payout. Use the voiceover in [demo/video-script.md](demo/video-script.md#voiceover-final) and the take's real numbers ({N} records, {$X}, the batch id), never the spec's placeholders.
+- Off screen: API keys (W11 keys table, the Shell, `claude mcp add`), passwords, `.env`, W11's "Connect Claude Desktop" card, any browser tab or bookmark with a real brand. No copyrighted music.
+- Write down every PayPal id shown on screen (order, capture, payout batch, payout item) and confirm each exists in the sandbox web UI after the take.
+
+**E. Publish and submit (by 23:30 IST; hard deadline 01:30 IST Nov 13).**
+
+1. Edit to under 3:00; upload to YouTube as **Public** (not Unlisted); check it plays logged out.
+2. Replace `[[fill]]` in README.md and docs/devpost.md: the two Render URLs, the catalog URL, the video URL, screenshots. Commit through a PR as usual.
+3. Paste docs/devpost.md section by section into Devpost. Put the test-account passwords (from `seed:demo` on Render, and the sandbox Personal buyer) **only** in Devpost's private testing-instructions field. Tick sponsors Render and AG Grid only.
+4. Submit on Devpost, then open the public project page and check the video, the repo link and that no password is visible.

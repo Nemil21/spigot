@@ -7,13 +7,15 @@
 Spigot is our second, separate entry for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/) (our other entry is Holdfast). A small site owner installs a tiny gate in front of their site. Declared AI bots and scraping libraries get an HTTP 402 that points them at a paid API. Claude reads the site once and writes an extractor for each kind of record it finds ("Listing, 2,341 records"). The owner approves it and sets a price. Agents top up a prepaid balance with PayPal, pay per record from it, and the owner is paid out through PayPal Payouts.
 
 > [!IMPORTANT]
-> **Status of this README.** It was written early (ticket SP-044) while the code was still being built, so every table has a **Status** column that says what is merged on `main`. Anything marked `TODO(SP-046)` is filled in at submission: the deployed URLs, the video link, and which Render Workflows mode ran the demo. Search this file for `TODO` to find them. The build plan is in [`docs/spec/`](docs/spec/README.md); ticket status is in [`docs/tickets/INDEX.md`](docs/tickets/INDEX.md).
+> **Status at submission (Nov 12, 2026).** Every P0 ticket is merged on `main`, and so are most P1 tickets: auto top-up (SP-047a/b/c), claims and AI claims triage (SP-048a/b), refund of unused balance (SP-049), drift detection (SP-052a), PayPal webhooks (SP-059), card-fields top-up (SP-063) and Log in with PayPal (SP-058). **Not built:** claims re-fetch + MCP `report_bad_record` (SP-048c), the buyer usage/claims/refund screen W12 (SP-050), re-inference after drift (SP-052b) and the APIMatic SDK (SP-056). The tables below say which ticket backs each claim. The build plan is in [`docs/spec/`](docs/spec/README.md); ticket status is in [`docs/tickets/INDEX.md`](docs/tickets/INDEX.md).
 
-- **Live API and dashboard:** `TODO(SP-046)`: deployed Render URL
-- **Demo site (Bluebonnet Rentals, fictional):** `TODO(SP-046)`: deployed Render URL
-- **Public catalog page:** `TODO(SP-046)`: `https://<api-host>/c/<site slug>` (the slug `seed:demo` prints; see [Setup](#setup))
-- **Video:** `TODO(SP-046)`: public YouTube link
+- **Live API and dashboard:** [[fill]] deployed Render URL of `spigot-api` (expected `https://spigot-api.onrender.com`)
+- **Demo site (Bluebonnet Rentals, fictional):** [[fill]] deployed Render URL of `bluebonnet-rentals`
+- **Public catalog page:** [[fill]] `https://<api-host>/c/<site slug>`. The slug is the first label of the demo site's host, so `bluebonnet-rentals` if Render kept the service name (`seed:demo` prints it)
+- **Video (under 3 minutes):** [[fill]] public YouTube link
 - **Licence:** [MIT](LICENSE)
+
+[[fill]] Screenshots: W05 "I found 3 kinds of records", W08 earnings, W09 Paid out, W11 top-up (optional; the Devpost gallery needs them more than the README).
 
 ---
 
@@ -88,7 +90,7 @@ So the pitch isn't "now it's legal". It's "now it doesn't break when the site ch
                                                                  ▼
                       PayPal REST: Orders v2 (top-up, CAPTURE) · Vault (auto top-up, MIT) · Refunds (P1)
                                    Payouts (batched) · Webhooks (verify + reconcile)
- Buyer: Claude Desktop ──MCP──> /mcp      Python scraper ──HTML──> gate 402 ──> catalog page ──> sign up + top up
+ Buyer: Claude Code ──MCP──> /mcp         Python scraper ──HTML──> gate 402 ──> catalog page ──> sign up + top up
 ```
 
 </details>
@@ -101,13 +103,13 @@ Only the backend calls PayPal, over REST, with a fixed `PayPal-Request-Id` per c
 
 | PayPal API | How Spigot uses it | Money moment | Proven / status |
 |---|---|---|---|
-| **Orders v2, `intent: CAPTURE`** | Buyer tops up a prepaid balance (PayPal wallet or card), captured in one step | Money in | S1 proved Orders + capture with `AUTHORIZE`; `CAPTURE` is spike S7 (SP-003). Code: SP-018a, not merged yet |
-| **JS SDK v6** | "Top up with PayPal" button in the buyer portal (W11) | Money in | SP-032, not merged yet |
-| **Vault** (card and PayPal wallet) | Save the payment method on the first top-up (`store_in_vault: ON_SUCCESS`) | Saved for auto top-up | Card vault proven (S2); wallet vault proven with `AUTHORIZE` (Holdfast S7), with `CAPTURE` in S8 (SP-003). Wallet vault on top-ups is behind `PAYPAL_WALLET_VAULT` until S8b passes |
-| **Merchant-initiated (MIT) order from `vault_id`** | **Auto top-up:** when an agent runs low mid-session, charge the saved method with no buyer present (`stored_credential: MERCHANT, UNSCHEDULED, SUBSEQUENT`), within the buyer's monthly cap | Agent keeps going | Proven for `AUTHORIZE` (S2). P1: SP-047a/b/c, not merged yet |
-| **Payouts v1 (batched)** | One batch per payout run, one item per publisher whose payable is ≥ $10 (demo threshold $1, labelled); poll items to SUCCESS / UNCLAIMED / RETURNED | Money out | Proven (S4; $1,000 item SUCCESS in Holdfast S7). Code: SP-020, SP-021, not merged yet |
-| **Refunds** (partial, on the original capture) | Refund a buyer's unused balance to PayPal | Cash out | P1: spike S9, SP-049, not merged yet |
-| **Webhooks + `verify-webhook-signature`** | Verify and reconcile capture and payout events; polling covers us if a webhook is missed | Books stay right | Spike S11; SP-001c, not merged yet. `TODO(SP-046)`: say whether a webhook id was registered on the deploy |
+| **Orders v2, `intent: CAPTURE`** | Buyer tops up a prepaid balance (PayPal wallet or card), captured in one step | Money in | Card CAPTURE proven (S7a, [`spikes/spigot-results.md`](spikes/spigot-results.md)); wallet order create proven; wallet capture runs in the demo's sandbox top-up (spike S7b needed a person at the approval page). Merged: SP-018a, SP-018b |
+| **JS SDK v6** | "Top up with PayPal" button in the buyer portal (W11); card fields for a card top-up (P1) | Money in | Merged: SP-032, SP-063 |
+| **Vault** (card and PayPal wallet) | Save the payment method on the first top-up (`store_in_vault: ON_SUCCESS`) | Saved for auto top-up | Card vault on CAPTURE proven (S8a). Wallet vault on top-ups stays behind `PAYPAL_WALLET_VAULT` (off) until S8b passes, so auto top-up uses a vaulted card |
+| **Merchant-initiated (MIT) order from `vault_id`** | **Auto top-up:** when an agent runs low mid-session, charge the saved method with no buyer present (`stored_credential: MERCHANT, UNSCHEDULED, SUBSEQUENT`), within the buyer's monthly cap | Agent keeps going | MIT CAPTURE and its replay proven (S8a); mocked decline proven (S8c). Merged (P1): SP-047a/b/c |
+| **Payouts v1 (batched)** | One batch per payout run, one item per publisher whose payable is ≥ $10 (demo threshold $1, labelled); poll items to SUCCESS / UNCLAIMED / RETURNED | Money out | Proven (S10: batch to SUCCESS in about 33 s). Merged: SP-020, SP-021 |
+| **Refunds** (partial, on the original capture) | Refund a buyer's unused balance to PayPal | Cash out | Proven (S9). Merged (P1): SP-049 (API and sweep); the W12 refund button (SP-050) is not built |
+| **Webhooks + `verify-webhook-signature`** | Verify and reconcile capture and payout events; polling covers us if a webhook is missed | Books stay right | Call shape checked (S11). Merged (P1): SP-059. The webhook is registered on the sandbox app as a deploy step ([`docs/deploy.md`](docs/deploy.md) step 7); until `PAYPAL_WEBHOOK_ID` is set, deliveries get a 5xx and polling keeps the books right |
 | **`PayPal-Request-Id`** | On every call, derived from our own row id, so a crash and retry never pays twice | (invisible) | Proven (S3) |
 
 **Why not micropayments.** A record costs $0.0015. PayPal's standard fee is about 3.49% + $0.49 per capture, so capturing per call is uneconomic. Buyers fund a prepaid balance with PayPal instead (minimum $5), and each call is a ledger debit in micros (1 USD = 1,000,000 micros).
@@ -116,26 +118,26 @@ Only the backend calls PayPal, over REST, with a fixed `PayPal-Request-Id` per c
 
 **Production path: PayPal multiparty.** In the sandbox demo, Spigot is the merchant of record and pays publishers through Payouts. In production the publisher would be the merchant, onboarded through PayPal's partner (multiparty) flow, with Spigot's commission taken as `platform_fees`. That needs approved-partner status and isn't built.
 
-**Build aid.** We used the **APIMatic PayPal Context Plugin** while writing the PayPal client (`apps/api/src/paypal/*`, SP-001b/SP-001c). `TODO(SP-046)`: confirm it was used for that code, or remove this line.
+**Build aid.** The PayPal client (`apps/api/src/paypal/*`) was written against PayPal's REST reference and the call shapes proven in our sandbox spikes. We don't claim the APIMatic Context Plugin, because nothing in the repository shows it was used (see [Sponsor tools](#sponsor-tools)).
 
 ## AI used
 
 | Where | What the AI does | Guardrail | Status |
 |---|---|---|---|
-| **Schema agent** (Claude API, tool use) | Reads JSON-LD and a cleaned DOM outline of 3–5 sample pages per template, proposes record types and fields, writes the extractor, runs it on 20 samples, repairs it (≤ 2 rounds), flags PII | Output is a Zod-validated JSON spec of JSON-LD paths, CSS selectors and whitelisted transforms, **never code**. Page text is treated as data (SP-012a adds a prompt-injection test fixture). The owner approves before anything is sold | Template clustering + DOM outline merged (SP-010). Agent: SP-012a/SP-012b, not merged yet |
-| **Claims triage** (P1) | Reads a "junk record" claim with the record's version history and the current page, and recommends credit or reject | Only deterministic cases auto-credit; the AI recommendation is shown to the publisher, with a capped amount | SP-048b, not merged yet |
-| **Buyer agent: Claude Desktop over MCP** | Turns "3-bed rentals under $2k in Austin that changed today" into `list_datasets` → `describe_dataset` → `quote` → `search_records` / `get_changes`, and can top up within its cap | Spend caps, per-call max price and the auto top-up cap are enforced in code, not in the prompt. Records are returned as data; we never execute instructions found in them | SP-022a/SP-022b, not merged yet |
+| **Schema agent** (Claude API, tool use) | Reads JSON-LD and a cleaned DOM outline of 3–5 sample pages per template, proposes record types and fields, writes the extractor, runs it on 20 samples, repairs it (≤ 2 rounds), flags PII | Output is a Zod-validated JSON spec of JSON-LD paths, CSS selectors and whitelisted transforms, **never code**. Page text is treated as data (SP-012a adds a prompt-injection test fixture). The owner approves before anything is sold | Merged: SP-010 (clustering + DOM outline), SP-012a (agent), SP-012b (self-check and repair) |
+| **Claims triage** (P1) | Reads a "junk record" claim with the record's version history and the current page, and recommends credit or reject | Only deterministic cases auto-credit; the AI recommendation is shown to the publisher, with a capped amount | Merged: SP-048a, SP-048b. The targeted re-fetch for STALE / REMOVED claims (SP-048c) is not built |
+| **Buyer agent: Claude Code over MCP** | Turns "3-bed rentals under $2k in Austin that changed today" into `list_datasets` → `describe_dataset` → `quote` → `search_records` / `get_changes`, and can top up within its cap | Spend caps, per-call max price and the auto top-up cap are enforced in code, not in the prompt. Records are returned as data; we never execute instructions found in them | Merged: SP-022a, SP-022b. The demo runs the Claude Code CLI ([`docs/demo/claude-code-cli.md`](docs/demo/claude-code-cli.md)); any MCP client that speaks Streamable HTTP works |
 
-**Zero AI calls per page after approval.** Claude writes the extractor once per template. After the owner approves, plain code runs it on every page and every re-crawl, and no API request triggers a model call. That keeps the cost per record near zero and makes extraction deterministic and auditable. The model is set in `CLAUDE_MODEL`; `TODO(SP-046)`: record the model id used for the demo.
+**Zero AI calls per page after approval.** Claude writes the extractor once per template. After the owner approves, plain code runs it on every page and every re-crawl, and no API request triggers a model call. That keeps the cost per record near zero and makes extraction deterministic and auditable. The model is set in `CLAUDE_MODEL`; the demo deploy uses **`claude-opus-5-5`** (`render.yaml`, also the code default) with `SCHEMA_AGENT_MODE=live`.
 
 ## Sponsor tools
 
 | Sponsor | Used for | Evidence | Status |
 |---|---|---|---|
-| **Render** | API web service, demo-site web service (with a disk), paid Postgres (the free tier expires before judging ends on Dec 21) | `render.yaml` | SP-040, not merged yet |
-| **Render Workflows** | Crawl fan-out (`crawlSite → fetchPage ×N → extractPage → publishWatermark`) and `payoutRun`. The same task code also runs in-process (`WORKFLOWS_MODE=inproc`, the default) | `apps/workflows/` | SP-041a merged; SP-041b's `payoutRun` task merged and tested on FakePayPal. The Render check (same counts as `inproc`, kill-and-retry, payout run) is post-freeze and human-run: [docs/deploy.md §Render Workflows check](docs/deploy.md#render-workflows-check-sp-041b-post-freeze). `TODO(SP-046)`: say which mode ran the demo (`inproc` or `workflows`), and the measured connect → discovery-crawl time on Render (spec 03: < 4 min), or the time and the reason it missed |
-| **AG Grid** (Enterprise + AG Charts) | Publisher dashboard: bot traffic, schema-driven sample/records grid (columns generated from the approved schema), earnings by buyer and record type, ledger, payout items | `apps/web/` | SP-024a onward, not merged yet |
-| **APIMatic** | PayPal Context Plugin while coding the PayPal path; (P1) TypeScript/Python SDK generated from our `openapi.yaml` into `packages/sdk` | `packages/sdk/` (P1) | Plugin: see [PayPal APIs used](#paypal-apis-used). SDK: SP-056, not merged yet |
+| **Render** | API web service, demo-site web service (with a disk), paid Postgres (the free tier expires before judging ends on Dec 21) | `render.yaml`, [`docs/deploy.md`](docs/deploy.md) | Merged: SP-040 |
+| **Render Workflows** | Crawl fan-out (`crawlSite → fetchPage ×N → extractPage → publishWatermark`) and `payoutRun`. The same task code also runs in-process | `apps/workflows/`, the `spigot-workflows` service in `render.yaml` | Task code merged and tested (SP-041a, SP-041b). **The demo ran with `WORKFLOWS_MODE=inproc`** (the `render.yaml` default): the crawl and payout run use the same task code inside `spigot-api`, not dispatched to Render Workflows. Switching to `workflows` waits for the human-run check in [docs/deploy.md §Render Workflows check](docs/deploy.md#render-workflows-check-sp-041b-post-freeze) |
+| **AG Grid** (Enterprise + AG Charts) | Publisher dashboard: bot traffic, schema-driven sample/records grid (columns generated from the approved schema), earnings by buyer and record type, ledger, payout items | `apps/web/` | Merged: SP-024a/b, SP-025 to SP-031 |
+| **APIMatic** | Planned: a TypeScript/Python SDK generated from our `openapi.yaml` into `packages/sdk` | `packages/sdk/README.md` (placeholder) | **Not used in this submission.** The SDK (SP-056) isn't built, and we don't claim the Context Plugin. `/v1/openapi.yaml` is served (SP-023), ready for it |
 
 We don't use the other sponsor tools (Bryntum, Channel3, Zapier, Postman, Astropods). Elastic and KERNEL appear only under [What's next](#whats-next).
 
@@ -225,22 +227,20 @@ Create these in the PayPal Developer Dashboard → Sandbox → Accounts. Use **U
 2. **Publisher (a second, separate business account).** Its email goes in `DEMO_PUBLISHER_PAYOUT_EMAIL`. It must not be the merchant: paying yourself fails with `SELF_PAY_NOT_ALLOWED`.
 3. **Buyer (personal).** Logs in on PayPal's sandbox approval page when the demo buyer tops up with the PayPal wallet.
 
-### Claude Desktop
+### Use it from Claude Code (MCP)
 
-Create an API key for the buyer in the buyer portal (W11 shows this config with the key filled in), then add to Claude Desktop's `claude_desktop_config.json`:
+The demo's buyer agent is the **Claude Code CLI**, which speaks Streamable HTTP MCP directly. Create an API key for the buyer in the buyer portal (W11), or use the one `seed:demo` printed, then:
 
-```json
-{
-  "mcpServers": {
-    "spigot": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://<api-host>/mcp", "--header", "Authorization: Bearer <your sk_spg_ key>"]
-    }
-  }
-}
+```sh
+mkdir -p ~/spigot-demo && cd ~/spigot-demo
+read -rs SPIGOT_KEY             # paste the sk_spg_ key; nothing is echoed or saved to history
+claude mcp add --transport http spigot https://<api-host>/mcp \
+  --header "Authorization: Bearer $SPIGOT_KEY"
+unset SPIGOT_KEY
+claude mcp list                 # spigot … ✓ Connected
 ```
 
-Restart Claude Desktop and ask: *"Using Spigot, find 3-bedroom rentals under $2,000 in Austin on Bluebonnet Rentals that changed today. Quote first, then fetch."* Tools: `list_datasets`, `describe_dataset`, `quote`, `search_records`, `get_changes`, `get_balance`, `top_up`. More in `docs/demo/claude-desktop.md` (SP-039a).
+Start `claude` in that folder and ask: *"Using Spigot, find 3-bedroom rentals under $2,000 in Austin on Bluebonnet Rentals that changed today. Quote first, then fetch."* Tools: `list_datasets`, `describe_dataset`, `quote`, `search_records`, `get_changes`, `get_balance`, `top_up`. Full steps, including how to pre-approve the tools: [`docs/demo/claude-code-cli.md`](docs/demo/claude-code-cli.md). Other MCP clients work too; Claude Desktop needs the `mcp-remote` bridge ([`docs/demo/claude-desktop.md`](docs/demo/claude-desktop.md), and W11 shows that config).
 
 ### Demo scripts
 
@@ -260,30 +260,30 @@ Everything here is PayPal **sandbox**: no real money moves. Passwords are **neve
 
 | Account | For | Login |
 |---|---|---|
-| Demo publisher "Bluebonnet Rentals (demo)" | Dashboard: bot report, record types, dataset editor, earnings, payouts | `TODO(SP-046)`: email; password in Devpost |
-| Demo buyer "Acme Agents (demo)" | Buyer portal: top up, API keys, Claude Desktop config | `TODO(SP-046)`: email; password in Devpost |
-| Sandbox PayPal **personal** buyer | Approving a PayPal wallet top-up on PayPal's sandbox page | `TODO(SP-046)`: email; password in Devpost |
+| Demo publisher "Bluebonnet Rentals (demo)" | Dashboard (`/app`): bot report, record types, dataset editor, earnings, payouts | `owner@bluebonnet-rentals.example.com`; password in Devpost |
+| Demo buyer "Acme Agents (demo)" | Buyer portal (`/buyers`): top up, API keys, MCP config | `acme@acme-agents.example.com`; password in Devpost |
+| Sandbox PayPal **personal** buyer | Approving a PayPal wallet top-up on PayPal's sandbox page | Email and password in Devpost |
 | Sandbox card | Card top-up | A test card from the PayPal Developer Dashboard (e.g. Visa 4111 1111 1111 1111, any future expiry) |
 
 ## What's real and what's simulated
 
-Simulated items are always labelled **SIM** in the UI (a grey chip in every grid, and "incl. $X simulated" on KPI tiles). "Real" below means real code paths and, for money, real PayPal **sandbox** calls. The last column says whether that code is merged on `main` as of this README revision; nothing is claimed as working before it is.
+Simulated items are always labelled **SIM** in the UI (a grey chip in every grid, and "incl. $X simulated" on KPI tiles). "Real" below means real code paths and, for money, real PayPal **sandbox** calls. The last column names the merged tickets behind each row.
 
 | Item | Real or simulated | How it's labelled | Code on `main` |
 |---|---|---|---|
 | Demo site "Bluebonnet Rentals" | **Fictional site**, real server: 2,341 listings / 88 agents / 40 open houses from a fixed seed, JSON-LD, sitemap, ETags | "Not a real business" on the site's About page; this README | **Merged** (SP-004a, `apps/demo-site/`) |
-| Gate decisions (pass / 402) | **Real** classification of every request by the gate | – | SP-006a/SP-006b, not merged yet |
-| Background bot traffic | **Simulated** volume: real HTTP requests with bot User-Agents sent by our script, classified for real, counted as SIM | SIM chip; `X-Spigot-Sim: 1` | SP-037, not merged yet |
-| Crawl of the demo site | **Real**, run live (not seeded) | – | SP-009a1/a2/b, not merged yet |
-| AI proposal ("I found 3 kinds of records") | **Real** Claude call in the video. `--with-proposals` replays the last real proposal for retakes only | "replayed proposal" in the audit log | Clustering merged (SP-010); agent SP-012a, not merged yet |
-| Records and changes feed | **Real** output of the approved extractor; `demo:mutate` makes the site changes | – | SP-011, SP-013, SP-015, not merged yet |
-| Demo buyer's top-up | **Real** sandbox PayPal Orders v2 CAPTURE, approved on PayPal's page | – | SP-018a, SP-032, not merged yet |
-| Claude Desktop paid call | **Real** MCP call, real ledger charge of `records × price` | – | SP-022a, SP-016, not merged yet |
-| Background buyers (20) | **Simulated** buyers. Their balances come from real sandbox card top-ups (or ledger-only top-ups if rate-limited); their calls are real `/v1` calls backdated over a simulated week | SIM chip; "SIM (no PayPal)" for ledger-only top-ups | SP-035, SP-036, not merged yet |
-| Demo reset between takes | **Demo control.** Acme's balance goes to $0 through a `DEMO_RESET` ledger txn into platform revenue (memo "demo reset"); no ledger entry, API call or PayPal record is ever deleted | "Demo reset" in the ledger; `DEMO_RESET` in the audit log | SP-038, not merged yet |
-| Payout to the publisher | **Real** sandbox Payouts batch to the separate publisher account | Demo $1 threshold labelled | SP-020, SP-021, not merged yet |
+| Gate decisions (pass / 402) | **Real** classification of every request by the gate | – | Merged: SP-006a/SP-006b |
+| Background bot traffic | **Simulated** volume: real HTTP requests with bot User-Agents sent by our script, classified for real, counted as SIM | SIM chip; `X-Spigot-Sim: 1` | Merged: SP-037 |
+| Crawl of the demo site | **Real**, run live (not seeded) | – | Merged: SP-009a1/a2/b |
+| AI proposal ("I found 3 kinds of records") | **Real** Claude call in the video. `--with-proposals` replays the last real proposal for retakes only | "replayed proposal" in the audit log | Merged: SP-010, SP-012a, SP-012b |
+| Records and changes feed | **Real** output of the approved extractor; `demo:mutate` makes the site changes | – | Merged: SP-011, SP-013, SP-015 |
+| Demo buyer's top-up | **Real** sandbox PayPal Orders v2 CAPTURE, approved on PayPal's page | – | Merged: SP-018a, SP-032 |
+| Claude Code paid call (MCP) | **Real** MCP call, real ledger charge of `records × price` | – | Merged: SP-022a, SP-016 |
+| Background buyers (20) | **Simulated** buyers. Their balances come from real sandbox card top-ups (or ledger-only top-ups if rate-limited); their calls are real `/v1` calls backdated over a simulated week | SIM chip; "SIM (no PayPal)" for ledger-only top-ups | Merged: SP-035, SP-036 |
+| Demo reset between takes | **Demo control.** Acme's balance goes to $0 through a `DEMO_RESET` ledger txn into platform revenue (memo "demo reset"); no ledger entry, API call or PayPal record is ever deleted | "Demo reset" in the ledger; `DEMO_RESET` in the audit log | Merged: SP-038 |
+| Payout to the publisher | **Real** sandbox Payouts batch to the separate publisher account. Its amount includes the SIM buyers' earnings, and the video says so | Demo $1 threshold labelled | Merged: SP-020, SP-021 |
 
-`TODO(SP-046)`: re-check this table against `main` at the freeze and record the count of "SIM (no PayPal)" top-ups in the recording seed.
+How many SIM top-ups fell back to "SIM (no PayPal)" depends on PayPal's rate limit during the seed: `seed:demo` prints the count, and every such row is labelled in the audit log (W14) with no PayPal id.
 
 ## Honest limits
 
@@ -292,7 +292,7 @@ Simulated items are always labelled **SIM** in the UI (a grey chip in every grid
 - **We're merchant of record in the demo.** Production uses PayPal multiparty (partner onboarding) so the publisher is the merchant, with our fee as `platform_fees`. PayPal fees on top-ups and payouts come out of our commission in the demo.
 - **Holding prepaid balances** needs the PayPal partner route (stored-value rules) in production.
 - **The demo site is fictional;** simulated bot traffic and background buyers are labelled SIM.
-- **Buyer demand is unproven.** Scraper revenue proves demand for this data, but not yet willingness to pay the site owner directly. We planned to ask 2 small-site owners and 2 agent builders before recording; `TODO(SP-046)`: quote any answers that arrived, or leave this line as is.
+- **Buyer demand is unproven.** Scraper revenue proves demand for this data, but not yet willingness to pay the site owner directly. We planned to ask 2 small-site owners and 2 agent builders; none are quoted here, so treat demand from site owners as a hypothesis.
 - **Server-rendered sites only.** The crawler doesn't run JavaScript (Playwright rendering is P2).
 - **One site per publisher in the UI.**
 
