@@ -27,7 +27,10 @@ What this means:
 2. **Recommended: run 8 workers from the start until 18:00.** Every **D** ticket (everything on screen in the video) then merges by ~17:45, the spine is green at ~15:45, and all P0 code lands by ~19:30. The tickets still open at 18:00 are the ones the video can live without for an hour (self-check/repair polish, poller, OpenAPI, onboarding UI, settings, Workflows adapter, security tests, admin endpoints). Note the laptop limit (16 GB, several workers): keep `vitest --maxWorkers=2`, no dev servers left running. If 8 is too many, 6 workers is the floor that gets every **D** screen merged by ~21:00 at the cost of the video window.
 3. **If the human keeps 4 workers**, a decision is needed now: either move the code freeze to ~21:00 IST and compress deploy + video + Devpost into 21:00–23:30 (very tight; the video alone was budgeted at 2.5 h), or accept that P0 screens slip and the video shows the API/MCP loop over a thinner UI. Nothing is removed from the ticket set either way.
 4. **P1 does not fit today on any worker count we can run.** Even at 8 workers, P1 finishes after midnight. P1 tickets stay in the set, ordered, and are dispatched only when no P0 ticket is ready. The best value per hour is P1 #1 auto top-up (SP-047a, ready from Wave 4).
-5. **The spec's kill criterion is stale.** It said "loop working by Nov 11 18:00 PST", which is 07:30 IST today, one hour after we start. Proposed replacement: **16:00 IST** (2:30 PST), loop green on a laptop with one real sandbox top-up. If it isn't green, stopping Spigot is the human's call (the spec says to fold effort back into Holdfast).
+5. **The spec's kill criterion is stale, and its replacement depends on the worker decision.** The spec said "loop working by Nov 11 18:00 PST", which is 07:30 IST today, one hour after we start. The loop is the same in every case: on a laptop, crawl → AI proposal → approve → one real sandbox top-up → paid Claude Desktop call. The time depends on workers:
+   - **6 or 8 workers: kill checkpoint at 16:00 IST** (2:30 PST). The loop is projected green at ~15:45, which leaves 15 minutes of slack.
+   - **4 workers (the default on line 7): the loop is projected green at ~17:30.** A 16:00 checkpoint would fail by design, and a 17:30 one leaves 30 minutes before the freeze. Neither is a useful go/no-go. If the human stays at 4, take the go/no-go **now, at dispatch time**: the projection already shows no screens, no gate on the demo site and no seed by 18:00. Either commit to the later freeze in point 3 (the checkpoint then moves to ~17:30 as a pure loop check), or don't start Spigot.
+   - Either way, if the loop isn't green at its checkpoint, stopping Spigot is the human's call (the spec says to fold effort back into Holdfast).
 6. **Render deploy is after the freeze.** SP-040 lands the blueprint and smoke script before 18:00 so the deploy is one click; any surprise there comes out of the video window. Render Workflows (SP-041) is the riskiest P0 ticket and the in-process mode stays the demo default unless it is green.
 7. **Human-in-the-loop steps** (block workers if not ready): sandbox **publisher** business account (for payouts, see PayPal facts), sandbox Personal buyer for wallet approval (SP-003 S7b, SP-018, SP-032), `ANTHROPIC_API_KEY` for the one live schema-agent run (SP-012a), AG Grid licence key (SP-024), Render account (SP-040/041, after freeze), APIMatic account (SP-056), Log in with PayPal enabled on the sandbox app (SP-058), Claude Desktop on the recording machine (SP-039, SP-046).
 
@@ -483,7 +486,7 @@ Rules:
 | Start | 06:30 | 17:00 Nov 11 | Wave 1 dispatched; human sets up the publisher sandbox account and `.env`. |
 | Schema freeze | ~08:45 | 19:15 | SP-002 merged. |
 | CP1 | ~11:00 | 21:30 | SP-001b PayPal client + fake, SP-005 ledger, SP-009a crawler, SP-007a auth merged; SP-003 S7a/S7b/S8 results in. |
-| **Kill checkpoint** | **16:00** | **02:30 Nov 12** | Loop green locally with no hand-edited rows: crawl demo site → AI proposal → approve → ≥ 2,000 records → one real sandbox top-up → Claude Desktop `search_records` charged exactly. |
+| **Kill checkpoint** | **16:00** at 6–8 workers · ~17:30 at 4 (see time budget point 5) | **02:30 Nov 12** · ~04:00 | Loop green locally with no hand-edited rows: crawl demo site → AI proposal → approve → ≥ 2,000 records → one real sandbox top-up → Claude Desktop `search_records` charged exactly. At 4 workers the real go/no-go is taken at dispatch (point 5); the 17:30 check only confirms the loop. |
 | Code freeze | **18:00** | 04:30 | Merge what is green; open PRs that aren't green wait. |
 | Deploy | 18:00–19:30 | 04:30–06:00 | SP-040 blueprint on Render, migrate, seed, smoke. Auto-deploy off. |
 | Record | 19:30–21:30 | 06:00–08:00 | Two dry runs on Render, then record (SP-046). |
@@ -505,7 +508,7 @@ None of these removes a ticket; they change what the demo shows.
 | Topic | Decision | Ticket |
 |---|---|---|
 | Spec layout puts task code in `apps/api` but Workflows needs it too | Task functions stay in `apps/api/src/**`, exported as `@spigot/api/tasks`; `apps/workflows` is a thin Render entry. No `packages/core` | SP-001a, SP-041 |
-| Kill checkpoint date already passed at start | Moved to 16:00 IST Nov 12 | INDEX |
+| Kill checkpoint date already passed at start | 16:00 IST at 6–8 workers; at 4 workers, go/no-go at dispatch and a ~17:30 loop check | INDEX |
 | `/v1` service vs routes | Split so MCP doesn't wait for HTTP routes (cuts the critical path by 1.25 h) | SP-017a, SP-017b |
 | Webhooks priority | P1: feature 09 lists webhooks as P1 and pollers cover P0 (api.md) | SP-059 |
 | Where the demo reset sends a buyer's balance | A `DEMO_RESET` ledger txn into platform revenue; no entry is deleted | SP-038 |
