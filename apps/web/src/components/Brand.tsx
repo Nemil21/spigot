@@ -71,18 +71,30 @@ export function AuthBackdrop({ children }: { children: ReactNode }) {
           <span
             key={`tr${k}-${r}`}
             className="tile absolute border border-accent/15"
-            style={{ right: k * TILE, top: r * TILE, width: TILE, height: TILE }}
+            style={{
+              right: k * TILE,
+              top: r * TILE,
+              width: TILE,
+              height: TILE,
+              animationDelay: `${(k + r) * 18}ms`,
+            }}
           />
         ))}
         {BOTTOM_LEFT.map(([k, r]) => (
           <span
             key={`bl${k}-${r}`}
             className="tile absolute border border-accent/15"
-            style={{ left: k * TILE, bottom: r * TILE, width: TILE, height: TILE }}
+            style={{
+              left: k * TILE,
+              bottom: r * TILE,
+              width: TILE,
+              height: TILE,
+              animationDelay: `${(k + r) * 18}ms`,
+            }}
           />
         ))}
       </div>
-      {children}
+      <div className="page-in contents">{children}</div>
     </main>
   );
 }

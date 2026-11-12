@@ -189,7 +189,7 @@ export default function LandingPage() {
           aria-labelledby="hero-title"
           data-theme="dark"
           style={{ '--u': 'clamp(0.62px, calc(100vw / 1440), 1px)' } as CSSProperties}
-          className="relative flex min-h-[620px] flex-col overflow-hidden bg-[#070b23] bg-[url('/hero-bg.webp')] bg-cover bg-center text-white sm:h-[max(calc(900*var(--u)),100svh)]"
+          className="page-in relative flex min-h-[620px] flex-col overflow-hidden bg-[#070b23] bg-[url('/hero-bg.webp')] bg-cover bg-center text-white sm:h-[max(calc(900*var(--u)),100svh)]"
         >
           <nav
             aria-label="Main"

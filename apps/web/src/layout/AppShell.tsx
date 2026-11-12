@@ -121,7 +121,9 @@ export function AppShell<T extends { name: string; email: string }>({
       </nav>
       <main className="min-w-0 flex-1" aria-busy={session.status === 'loading' || undefined}>
         {session.status === 'ready' ? (
-          <Outlet context={{ session: session.session }} />
+          <div key={location.pathname} className="page-in">
+            <Outlet context={{ session: session.session }} />
+          </div>
         ) : session.status === 'error' ? (
           <div className="mx-auto max-w-3xl px-6 py-10">
             <ErrorBanner
