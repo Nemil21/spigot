@@ -317,6 +317,7 @@ describe.skipIf(!testDatabaseUrl)('SP-009b crawl API (Postgres + demo site)', ()
       status: 'SUCCEEDED',
       workflowRunId: `inproc:${runId}`,
       pagesTotal: done.pagesTotal,
+      aiCalls: 0, // W10's AI-calls column (SP-054)
     });
   }, 60_000);
 

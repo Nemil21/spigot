@@ -187,6 +187,8 @@ export interface CrawlRunView {
   recordsAdded: number;
   recordsUpdated: number;
   recordsRemoved: number;
+  /** Claude calls made for this run: the discovery run's schema proposals; 0 after approval (W10). */
+  aiCalls: number;
   error: string | null;
   startedAt: Date | null;
   finishedAt: Date | null;
@@ -197,7 +199,7 @@ export const RUN_VIEW_COLUMNS = `t.id, t.site_id AS "siteId", t.trigger, t.statu
   t.workflow_run_id AS "workflowRunId", t.pages_total AS "pagesTotal",
   t.pages_fetched AS "pagesFetched", t.pages_not_modified AS "pagesNotModified",
   t.pages_failed AS "pagesFailed", t.records_added AS "recordsAdded",
-  t.records_updated AS "recordsUpdated", t.records_removed AS "recordsRemoved", t.error,
+  t.records_updated AS "recordsUpdated", t.records_removed AS "recordsRemoved", t.ai_calls AS "aiCalls", t.error,
   t.started_at AS "startedAt", t.finished_at AS "finishedAt", t.created_at AS "createdAt"`;
 
 export const runsQuery = z.object({
