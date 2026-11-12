@@ -1,0 +1,24 @@
+{
+  "next": {
+    "periodStart": "2026-11-11T09:00:00.000Z",
+    "periodEnd": "2026-11-12T10:00:00.000Z",
+    "recordsSold": 8112,
+    "grossMicros": 515942901,
+    "commissionMicros": 103188580,
+    "simGrossMicros": 498000000,
+    "simRecords": 7900,
+    "roundingCarriedMicros": null
+  },
+  "items": {
+    "0d3f5b7a-2c4e-4f61-8a9b-1c2d3e4f5a6b": {
+      "periodStart": "2026-11-04T00:00:00.000Z",
+      "periodEnd": "2026-11-11T09:00:00.000Z",
+      "recordsSold": 7954,
+      "grossMicros": 497656789,
+      "commissionMicros": 99531357,
+      "simGrossMicros": 480000000,
+      "simRecords": 7600,
+      "roundingCarriedMicros": 4321
+    }
+  }
+}
