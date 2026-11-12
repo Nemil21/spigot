@@ -82,6 +82,11 @@ next to them.
 
 - `apps/api/src/sdk/sdk-readme.test.ts` (unit, runs in CI) runs both README examples, unchanged, as
   separate processes against a local stub server whose responses are checked against the API's own
-  Zod response schemas. It also checks that the README blocks match the example files.
+  Zod response schemas. It also runs
+  [`python/tests/check_client.py`](python/tests/check_client.py), which drives the Python client
+  through the same cases the TypeScript client is tested on: 402s with `code` and `top_up_url`
+  (keyed and keyless), `Idempotency-Key` / `max_price_micros`, `callId` / `replay`, a non-JSON
+  error, path encoding, and the changes, claims and top-up paths. It checks that the README blocks
+  match the example files.
 - `apps/api/src/sdk/sdk-smoke.db.test.ts` (db project) runs the TypeScript example and the client's
   idempotency, claim and 402 paths against the real API (`buildServer` on a local port, Postgres).

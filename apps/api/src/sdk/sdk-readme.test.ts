@@ -10,7 +10,9 @@ import {
   balanceResponse,
   changesResponse,
   insufficientBalance402Body,
+  payment402Body,
   recordsResponse,
+  topupResponse,
 } from '../routes/v1.schemas.js';
 
 /**
@@ -24,6 +26,8 @@ const ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
 const SDK = `${ROOT}packages/sdk/`;
 const TSX = `${ROOT}node_modules/.bin/tsx`;
 const KEY = 'sk_spg_readme_smoke_0000000000';
+/** With this key, `GET /v1/balance` answers a non-JSON 502 (a proxy error page). */
+const HTML_KEY = 'sk_spg_html_error_0000000000';
 const hasPython = spawnSync('python3', ['--version']).status === 0;
 
 interface Seen {
@@ -54,6 +58,27 @@ const page = recordsResponse.parse({
   next: null,
   charged: { records: 2, priceMicros: 3000 },
   balanceMicros: 19_997_000,
+});
+/** Keyless 402: the top-up link is only under `pay.topUpUrl`. */
+const keyless402 = payment402Body.parse({
+  error: { code: 'PAYMENT_REQUIRED', message: 'This dataset is paid.' },
+  site: 'bluebonnet',
+  datasets: [
+    {
+      slug: 'listings',
+      type: 'Listing',
+      records: 120,
+      perRecordMicros: 1500,
+      endpoint: 'http://x/v1/bluebonnet/datasets/listings/records',
+    },
+  ],
+  pay: {
+    method: 'prepaid_balance',
+    provider: 'PayPal',
+    topUpUrl: 'http://x/topup',
+    mcp: 'http://x/mcp',
+  },
+  terms: 'http://x/terms',
 });
 const short402 = insufficientBalance402Body.parse({
   error: { code: 'INSUFFICIENT_BALANCE', message: 'This call costs $0.0555; balance $0.0120.' },
@@ -98,7 +123,7 @@ describe('SP-056 SDK README examples against a local server', { timeout: 60_000 
       res.end(JSON.stringify(payload));
     };
     if (url.pathname === '/v1/bluebonnet/datasets/listings/records') {
-      if (req.headers.authorization !== `Bearer ${KEY}`) return json(402, short402);
+      if (req.headers.authorization !== `Bearer ${KEY}`) return json(402, keyless402);
       if (url.searchParams.get('max_price_micros') === '1') return json(402, short402);
       return json(200, page, {
         'Spigot-Charged-Micros': '3000',
@@ -121,6 +146,10 @@ describe('SP-056 SDK README examples against a local server', { timeout: 60_000 
       );
     }
     if (url.pathname === '/v1/balance') {
+      if (req.headers.authorization === `Bearer ${HTML_KEY}`) {
+        res.writeHead(502, { 'content-type': 'text/html' });
+        return res.end('<html>502 Bad Gateway</html>');
+      }
       return json(
         200,
         balanceResponse.parse({
@@ -132,6 +161,19 @@ describe('SP-056 SDK README examples against a local server', { timeout: 60_000 
             remainingThisMonthCents: 0,
             hasSavedMethod: false,
           },
+        }),
+      );
+    }
+    if (url.pathname === '/v1/topups' && req.method === 'POST') {
+      return json(
+        201,
+        topupResponse.parse({
+          topupId: 'tu-1',
+          status: 'AWAITING_APPROVAL',
+          method: 'PAYPAL_WALLET',
+          amountCents: (JSON.parse(body) as { amountCents: number }).amountCents,
+          orderId: 'ORDER-1',
+          approveUrl: 'http://paypal/approve',
         }),
       );
     }
@@ -195,6 +237,72 @@ describe('SP-056 SDK README examples against a local server', { timeout: 60_000 
     },
   );
 
+  it.skipIf(!hasPython)('the Python client: errors, idempotency, call meta and paths', async () => {
+    const { stdout } = await run('python3', ['tests/check_client.py'], {
+      env: {
+        ...env(),
+        SPIGOT_HTML_KEY: HTML_KEY,
+        PYTHONPATH: `${SDK}python`,
+        PYTHONDONTWRITEBYTECODE: '1',
+      },
+      cwd: `${SDK}python`,
+    });
+    expect(JSON.parse(stdout)).toEqual({
+      search: { callId: CALL_ID, replay: false, charged: { records: 2, priceMicros: 3000 } },
+      replay: { callId: CALL_ID, replay: true, charged: { records: 2, priceMicros: 3000 } },
+      short402: {
+        status: 402,
+        code: 'INSUFFICIENT_BALANCE',
+        message: 'This call costs $0.0555; balance $0.0120.',
+        top_up_url: 'http://x/topup?need=55500',
+      },
+      keyless402: {
+        status: 402,
+        code: 'PAYMENT_REQUIRED',
+        message: 'This dataset is paid.',
+        top_up_url: 'http://x/topup',
+      },
+      nonJson: {
+        status: 502,
+        code: 'HTTP_502',
+        message: '<html>502 Bad Gateway</html>',
+        top_up_url: null,
+      },
+      notFound: { status: 404, code: 'NOT_FOUND', message: 'nope', top_up_url: null },
+      changes: '42',
+      claim: 'OPEN',
+      topup: 'http://paypal/approve',
+    });
+
+    const req = (i: number) => seen[i]!;
+    expect(seen.map((s) => `${s.method} ${s.path}?${s.query}`)).toEqual([
+      'GET /v1/bluebonnet/datasets/listings/records?city%5Bin%5D=Austin%2CWaco&limit=2&max_price_micros=100000',
+      'GET /v1/bluebonnet/datasets/listings/records?',
+      'GET /v1/bluebonnet/datasets/listings/records?max_price_micros=1',
+      'GET /v1/bluebonnet/datasets/listings/records?',
+      'GET /v1/balance?',
+      'GET /v1/blue%20bonnet/datasets/list%2Fings/records/a%2Fb%3Fc?',
+      'GET /v1/bluebonnet/datasets/listings/changes?since=0&include=record',
+      'POST /v1/claims?',
+      'POST /v1/topups?',
+    ]);
+    expect(req(0).headers['idempotency-key']).toBe('once-1');
+    expect(req(1).headers['idempotency-key']).toBe('retry-1');
+    expect(req(2).headers['idempotency-key']).toBeUndefined();
+    expect(req(0).headers.authorization).toBe(`Bearer ${KEY}`);
+    expect(req(3).headers.authorization).toBeUndefined();
+    expect(req(4).headers.authorization).toBe(`Bearer ${HTML_KEY}`);
+    expect(JSON.parse(req(7).body)).toEqual({
+      callId: CALL_ID,
+      recordKey: 'l-3',
+      reason: 'STALE',
+      note: 'py',
+    });
+    expect(req(7).headers['content-type']).toBe('application/json');
+    expect(JSON.parse(req(8).body)).toEqual({ amountCents: 1000 });
+    expect(req(8).headers['idempotency-key']).toBe('top-1');
+  });
+
   it('the README code blocks are the example files', () => {
     const readme = readFileSync(`${SDK}README.md`, 'utf8');
     const block = (lang: string) =>
@@ -256,7 +364,11 @@ describe('SP-056 SDK README examples against a local server', { timeout: 60_000 
         .search('bluebonnet', 'listings')
         .catch((e: unknown) => e);
       expect(seen[0]!.headers.authorization).toBeUndefined();
-      expect(err).toMatchObject({ code: 'INSUFFICIENT_BALANCE', status: 402 });
+      expect(err).toMatchObject({
+        code: 'PAYMENT_REQUIRED',
+        status: 402,
+        topUpUrl: 'http://x/topup',
+      });
     });
 
     it('changes, balance and claims hit the documented paths', async () => {
