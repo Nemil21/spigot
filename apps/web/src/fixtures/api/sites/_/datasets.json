@@ -1,0 +1,84 @@
+{
+  "datasets": [
+    {
+      "id": "00000000-0000-4000-8000-0000000000d1",
+      "slug": "listings",
+      "typeName": "Listing",
+      "status": "LIVE",
+      "recordCount": 2341,
+      "staleSince": null,
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "visible": true,
+          "pii": false
+        },
+        {
+          "name": "price_usd",
+          "type": "integer",
+          "visible": true,
+          "pii": false
+        },
+        {
+          "name": "bedrooms",
+          "type": "integer",
+          "visible": true,
+          "pii": false
+        },
+        {
+          "name": "bathrooms",
+          "type": "number",
+          "visible": true,
+          "pii": false
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "visible": true,
+          "pii": false
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "visible": true,
+          "pii": false
+        },
+        {
+          "name": "available_on",
+          "type": "date",
+          "visible": true,
+          "pii": false
+        },
+        {
+          "name": "agent_phone",
+          "type": "string",
+          "visible": false,
+          "pii": true
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-0000000000d2",
+      "slug": "agents",
+      "typeName": "Agent",
+      "status": "LIVE_STALE",
+      "recordCount": 88,
+      "staleSince": "2026-11-12T08:40:00.000Z",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "visible": true,
+          "pii": false
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "visible": false,
+          "pii": true
+        }
+      ]
+    }
+  ]
+}

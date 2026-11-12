@@ -8,7 +8,6 @@ import { buyerNav, href, paths, publisherNav } from './routes';
 
 /** Every screen in SP-024a's list: path → the stub's `data-screen` and heading. */
 const SCREENS: [path: string, screen: string, title: string][] = [
-  ['/app/records', 'W07', 'Records'],
   ['/app/crawls', 'W10', 'Crawls'],
   ['/buyers/usage', 'W12', 'Usage and claims'],
 ];
@@ -36,6 +35,7 @@ const BUILT: [path: string, screen: string, title: string, landmark: string][] =
   ['/app/earnings', 'W08', 'Earnings', 'alert'],
   // SP-062; no admin API here, so the health and audit panels both error: use the search form.
   ['/app/admin/audit', 'W14', 'Admin / audit', 'search'],
+  ['/app/records', 'W07', 'Records', 'alert'], // SP-053 (no API here: its error banner)
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
