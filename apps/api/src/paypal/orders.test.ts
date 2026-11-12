@@ -48,7 +48,7 @@ describe('topupResultOf (normaliser)', () => {
       amountCents: 2000,
       currency: 'USD',
       feeCents: 119,
-      vault: { id: 'V1', kind: 'card', customerId: 'C1' },
+      vault: { id: 'V1', kind: 'card', customerId: 'C1', label: null },
       customId: 'tp-1',
       reconciled: false,
     });
@@ -58,11 +58,36 @@ describe('topupResultOf (normaliser)', () => {
     const vaulted = order('COMPLETED', [capture('COMPLETED')], {
       payment_source: { paypal: { attributes: { vault: { id: 'W1', status: 'VAULTED' } } } },
     });
-    expect(readOrder(vaulted).vault).toEqual({ id: 'W1', kind: 'paypal', customerId: null });
+    expect(readOrder(vaulted).vault).toEqual({
+      id: 'W1',
+      kind: 'paypal',
+      customerId: null,
+      label: 'PayPal',
+    });
     const approved = order('COMPLETED', [capture('COMPLETED')], {
       payment_source: { paypal: { attributes: { vault: { id: 'W1', status: 'APPROVED' } } } },
     });
     expect(readOrder(approved).vault).toBeNull();
+  });
+
+  it('labels the saved method for W11: card brand + last digits, wallet email (SP-063)', () => {
+    const vault = { attributes: { vault: { id: 'V1', status: 'VAULTED' } } };
+    const card = (extra: Record<string, unknown>) =>
+      readOrder(order('COMPLETED', [], { payment_source: { card: { ...vault, ...extra } } })).vault
+        ?.label;
+    expect(card({ brand: 'VISA', last_digits: '1111', type: 'CREDIT' })).toBe('Visa ••1111');
+    expect(card({ brand: 'MASTERCARD', last_digits: '4444' })).toBe('Mastercard ••4444');
+    expect(card({ brand: 'AMEX', last_digits: '8431' })).toBe('Amex ••8431');
+    expect(card({ brand: 'DINERS', last_digits: '0004' })).toBe('Diners ••0004');
+    expect(card({ last_digits: '1111' })).toBe('Card ••1111');
+    expect(card({ brand: 'VISA' })).toBeNull();
+    expect(card({ brand: 'VISA', last_digits: '<b>' })).toBeNull();
+    const wallet = readOrder(
+      order('COMPLETED', [], {
+        payment_source: { paypal: { email_address: 'sb-buyer@example.com', ...vault } },
+      }),
+    ).vault;
+    expect(wallet?.label).toBe('PayPal · sb-buyer@example.com');
   });
 
   it('PENDING capture → PENDING with the reason', () => {
@@ -150,6 +175,24 @@ describe('paymentSourceBody', () => {
       card: { ...card, attributes: { vault: { store_in_vault: 'ON_SUCCESS' } } },
     });
     expect(paymentSourceBody({ kind: 'card', card, vault: false })).toEqual({ card });
+    // SP-063 card fields: no number (the browser's submit() sends it), so the create replays.
+    expect(
+      paymentSourceBody({ kind: 'card_fields', returnUrl: 'r', cancelUrl: 'c', vault: true }),
+    ).toEqual({
+      card: {
+        attributes: {
+          verification: { method: 'SCA_WHEN_REQUIRED' },
+          vault: { store_in_vault: 'ON_SUCCESS' },
+        },
+        experience_context: { return_url: 'r', cancel_url: 'c' },
+      },
+    });
+    expect(paymentSourceBody({ kind: 'card_fields', returnUrl: 'r', cancelUrl: 'c' })).toEqual({
+      card: {
+        attributes: { verification: { method: 'SCA_WHEN_REQUIRED' } },
+        experience_context: { return_url: 'r', cancel_url: 'c' },
+      },
+    });
     const wallet = paymentSourceBody({ kind: 'wallet', returnUrl: 'r', cancelUrl: 'c' });
     expect(wallet).toEqual({
       paypal: {

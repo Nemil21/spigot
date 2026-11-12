@@ -75,13 +75,47 @@ export function readCapture(raw: unknown): CaptureView {
 export function vaultOf(order: unknown): VaultRef | null {
   const ps = obj(obj(order).payment_source);
   for (const kind of ['card', 'paypal'] as const) {
-    const vault = obj(obj(obj(ps[kind]).attributes).vault);
+    const source = obj(ps[kind]);
+    const vault = obj(obj(source.attributes).vault);
     const id = str(vault.id);
     if (id && str(vault.status) === 'VAULTED') {
-      return { id, kind, customerId: str(obj(vault.customer).id) };
+      return {
+        id,
+        kind,
+        customerId: str(obj(vault.customer).id),
+        label: methodLabel(kind, source),
+      };
     }
   }
   return null;
+}
+
+/** `VISA` + `1111` → `Visa ••1111`; a wallet → `PayPal · <email>` (screens.md §W11). */
+export function methodLabel(
+  kind: 'card' | 'paypal',
+  source: Record<string, unknown>,
+): string | null {
+  if (kind === 'paypal') {
+    const email = str(source.email_address);
+    return email ? `PayPal · ${email}` : 'PayPal';
+  }
+  const last = str(source.last_digits);
+  if (!last || !/^\d{2,4}$/.test(last)) return null;
+  const brand = str(source.brand);
+  return `${brand ? brandName(brand) : 'Card'} ••${last}`;
+}
+
+const BRANDS: Record<string, string> = {
+  VISA: 'Visa',
+  MASTERCARD: 'Mastercard',
+  MASTER_CARD: 'Mastercard',
+  AMEX: 'Amex',
+  DISCOVER: 'Discover',
+};
+
+function brandName(brand: string): string {
+  const upper = brand.toUpperCase();
+  return BRANDS[upper] ?? upper.charAt(0) + upper.slice(1).toLowerCase().replace(/_/g, ' ');
 }
 
 /** The buyer approval link: `rel=payer-action` (with a payment_source) or `rel=approve`. */
@@ -237,6 +271,17 @@ export function paymentSourceBody(source: TopupSource): Json | undefined {
           ...(source.vault === false
             ? {}
             : { attributes: { vault: { store_in_vault: 'ON_SUCCESS' } } }),
+        },
+      };
+    case 'card_fields':
+      // No number: the browser's card-fields `submit(orderId)` attaches the card (Holdfast S7).
+      return {
+        card: {
+          attributes: {
+            verification: { method: 'SCA_WHEN_REQUIRED' },
+            ...(source.vault ? { vault: { store_in_vault: 'ON_SUCCESS' } } : {}),
+          },
+          experience_context: { return_url: source.returnUrl, cancel_url: source.cancelUrl },
         },
       };
     case 'card_vault':

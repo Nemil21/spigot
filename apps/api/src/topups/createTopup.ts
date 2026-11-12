@@ -19,8 +19,8 @@ export const MAX_TOPUP_CENTS = 50_000;
 
 export const createTopupBody = z.object({
   amountCents: z.number().int().min(MIN_TOPUP_CENTS).max(MAX_TOPUP_CENTS),
-  // `CARD` (JS SDK card fields) is P1 (SP-063); P0 card top-ups are SIM-only (SP-018b).
-  method: z.literal('PAYPAL_WALLET'),
+  // `CARD`: JS SDK v6 card fields in W11 (SP-063). The server never sees the card number.
+  method: z.enum(['PAYPAL_WALLET', 'CARD']),
   saveForAutoTopup: z.boolean().default(false),
 });
 
@@ -37,7 +37,10 @@ export interface CreatedTopup {
   topup: TopupRow;
   /** PayPal's buyer approval link (`rel=payer-action`), while the order awaits approval. */
   approveUrl: string | null;
-  /** Wallet vault attributes were sent (`saveForAutoTopup` and `PAYPAL_WALLET_VAULT=on`). */
+  /**
+   * Vault attributes were sent: a card with `saveForAutoTopup` (card vault is proven, S2 / S7
+   * step 1), a wallet with `saveForAutoTopup` and `PAYPAL_WALLET_VAULT=on`.
+   */
   vaultRequested: boolean;
   /** Set only if PayPal captured at create (not expected for a wallet order). */
   capture?: CaptureOutcome;
@@ -45,8 +48,13 @@ export interface CreatedTopup {
 
 /**
  * `POST /api/buyer/topups` (features/08 §Manual top-up 2): insert `topups` CREATED (its `id` is
- * the order-create `PayPal-Request-Id` and `custom_id`), create the CAPTURE-intent wallet order,
- * then CREATED → AWAITING_APPROVAL with the order id.
+ * the order-create `PayPal-Request-Id` and `custom_id`), create the CAPTURE-intent order, then
+ * CREATED → AWAITING_APPROVAL with the order id.
+ *
+ * `PAYPAL_WALLET` sends the wallet source (approval in PayPal's window). `CARD` (SP-063, features/08
+ * §Manual top-up 7) sends a card source with **no number**: W11's JS SDK v6 card fields
+ * `submit(orderId)` hands the card to PayPal, then the browser calls the capture endpoint, which
+ * credits and saves the vaulted card (`vault_kind=CARD`, label "Visa ••1111").
  *
  * Idempotent per `(buyer, Idempotency-Key)`: a double click (even two racing requests) gets the
  * same row. A row still CREATED / AWAITING_APPROVAL re-sends the create with the same request id,
@@ -55,7 +63,8 @@ export interface CreatedTopup {
  */
 export async function createTopup(deps: TopupDeps, input: CreateTopupInput): Promise<CreatedTopup> {
   const { db, config } = deps;
-  const vaultRequested = input.saveForAutoTopup && config.PAYPAL_WALLET_VAULT === 'on';
+  const vaultRequested =
+    input.saveForAutoTopup && (input.method === 'CARD' || config.PAYPAL_WALLET_VAULT === 'on');
   const actor = { actorType: 'BUYER' as const, actorId: input.buyerId };
 
   let topup = await db.tx(async (tx) => {
@@ -115,7 +124,11 @@ export async function createTopup(deps: TopupDeps, input: CreateTopupInput): Pro
     deps.pp.createTopupOrder({
       topupId: row.id,
       amountCents: row.amountCents,
-      source: { kind: 'wallet', ...walletUrls(config), vault: vaultRequested, brandName: 'Spigot' },
+      source:
+        row.method === 'CARD'
+          ? // 3DS (SCA_WHEN_REQUIRED) returns here if PayPal needs a redirect; it captures too.
+            { kind: 'card_fields', ...walletUrls(config), vault: vaultRequested }
+          : { kind: 'wallet', ...walletUrls(config), vault: vaultRequested, brandName: 'Spigot' },
     }),
   );
 
@@ -129,7 +142,7 @@ export async function createTopup(deps: TopupDeps, input: CreateTopupInput): Pro
     return { topup: current, approveUrl: result.approveUrl, vaultRequested };
   }
 
-  // Wallet orders don't capture at create; handle the other answers the same way capture does.
+  // Wallet and card-fields orders don't capture at create; handle any other answer as capture does.
   if ((result.status === 'COMPLETED' || result.status === 'PENDING') && !row.paypalOrderId) {
     await db.pool.query(
       `UPDATE topups SET paypal_order_id = $2 WHERE id = $1 AND paypal_order_id IS NULL`,

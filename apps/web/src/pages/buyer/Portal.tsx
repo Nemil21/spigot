@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router';
 import { api as defaultApi, type ApiClient } from '../../api/client';
 import { ErrorBanner, SkeletonText } from '../../components';
+import { CardFieldsTopUp, type SavedMethod } from '../../components/CardFieldsTopUp';
 import {
   ApiKeysTable,
   type ApiKeyRow,
   type RevealedKey,
 } from '../../components/buyer/ApiKeysTable';
 import { BalanceHero } from '../../components/buyer/BalanceHero';
+import type { LoadCardFieldsSdk } from '../../components/buyer/cardFieldsSdk';
 import { ClaudeConfig } from '../../components/buyer/ClaudeConfig';
 import { PayPalTopUp } from '../../components/buyer/PayPalTopUp';
 import type { LoadPayPalSdk, PayPalConfig } from '../../components/buyer/paypalSdk';
@@ -27,6 +29,8 @@ type Load = { status: 'loading' } | { status: 'error'; error: unknown } | { stat
 export interface BuyerPortalProps {
   client?: ApiClient;
   loadSdk?: LoadPayPalSdk;
+  /** The JS SDK v6 card-fields loader (SP-063); tests pass a fake. */
+  loadCardSdk?: LoadCardFieldsSdk;
   /** The origin for the MCP URL in the Claude Desktop snippet (default: this page's). */
   origin?: string;
 }
@@ -36,13 +40,19 @@ export interface BuyerPortalProps {
  * keys, the Claude Desktop config and the top-ups table. Also renders `/buyers/topup/:id?ok=1`,
  * where `/topups/return` lands after an approval link opened outside this page.
  */
-export function BuyerPortal({ client = defaultApi, loadSdk, origin }: BuyerPortalProps) {
+export function BuyerPortal({
+  client = defaultApi,
+  loadSdk,
+  loadCardSdk,
+  origin,
+}: BuyerPortalProps) {
   const { topupId: returnedTopupId } = useParams();
   const [params] = useSearchParams();
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [data, setData] = useState<PortalData | null>(null);
   const [revealed, setRevealed] = useState<RevealedKey | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [savedMethod, setSavedMethod] = useState<SavedMethod | null>(null);
   const topupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,6 +76,18 @@ export function BuyerPortal({ client = defaultApi, loadSdk, origin }: BuyerPorta
     };
   }, [client, attempt]);
 
+  // The saved method line (SP-063) is extra: if it can't load, the rest of W11 still works.
+  const refreshSavedMethod = useCallback(() => {
+    client.get<{ savedMethod: SavedMethod | null }>('/api/buyer/payment-method').then(
+      (m) => setSavedMethod(m.savedMethod ?? null),
+      () => undefined,
+    );
+  }, [client]);
+
+  useEffect(() => {
+    refreshSavedMethod();
+  }, [refreshSavedMethod, attempt]);
+
   const refreshTopups = useCallback(() => {
     client.get<{ topups: TopupRowView[] }>('/api/buyer/topups').then(
       (t) => setData((d) => (d ? { ...d, topups: t.topups } : d)),
@@ -78,9 +100,13 @@ export function BuyerPortal({ client = defaultApi, loadSdk, origin }: BuyerPorta
     setData((d) => (d ? { ...d, keys: k.keys } : d));
   }, [client]);
 
-  const onCompleted = useCallback(({ balanceMicros }: { balanceMicros: number }) => {
-    setData((d) => (d ? { ...d, balanceMicros } : d));
-  }, []);
+  const onCompleted = useCallback(
+    ({ balanceMicros }: { balanceMicros: number }) => {
+      setData((d) => (d ? { ...d, balanceMicros } : d));
+      refreshSavedMethod();
+    },
+    [refreshSavedMethod],
+  );
 
   async function createKey(name: string) {
     const created = await client.post<ApiKeyRow & { key: string }>('/api/buyer/keys', {
@@ -152,15 +178,26 @@ export function BuyerPortal({ client = defaultApi, loadSdk, origin }: BuyerPorta
           {/* P1 slot (SP-047b): auto top-up card — threshold, amount, monthly cap, saved method,
               remaining this month, and the cap-reached state (autoTopupCapReachedMessage). */}
         </div>
-        <div ref={topupRef}>
+        <div ref={topupRef} className="space-y-4">
           {ready ? (
-            <PayPalTopUp
-              config={data.paypal}
-              client={client}
-              onCompleted={onCompleted}
-              onChanged={refreshTopups}
-              {...(loadSdk ? { loadSdk } : {})}
-            />
+            <>
+              <PayPalTopUp
+                config={data.paypal}
+                client={client}
+                onCompleted={onCompleted}
+                onChanged={refreshTopups}
+                {...(loadSdk ? { loadSdk } : {})}
+              />
+              {/* SP-063: no PayPal account, or the wallet approval failed → card fields. */}
+              <CardFieldsTopUp
+                config={data.paypal}
+                savedMethod={savedMethod}
+                client={client}
+                onCompleted={onCompleted}
+                onChanged={refreshTopups}
+                {...(loadCardSdk ? { loadSdk: loadCardSdk } : {})}
+              />
+            </>
           ) : (
             <CardSkeleton />
           )}

@@ -226,7 +226,8 @@ describe.skipIf(!testDatabaseUrl)('SP-018a top-up core (Postgres + FakePayPal)',
       { amountCents: 499, method: 'PAYPAL_WALLET' },
       { amountCents: 50_001, method: 'PAYPAL_WALLET' },
       { amountCents: 20.5, method: 'PAYPAL_WALLET' },
-      { amountCents: 2000, method: 'CARD' },
+      { amountCents: 2000, method: 'VAULT_MIT' },
+      { amountCents: 2000, method: 'card' },
     ]) {
       const res = await startTopup(buyer.cookie, body);
       expect(res.status, JSON.stringify(body)).toBe(400);

@@ -19,6 +19,8 @@ import {
 /**
  * Buyer top-ups (api.md §Buyer portal endpoints; features/08 §Manual top-up; SP-018a):
  * - `POST /api/buyer/topups` (Idempotency-Key required) → `201 { topupId, status, orderId, approveUrl }`
+ *   `method: 'CARD'` (SP-063) answers the same `AWAITING_APPROVAL` + `orderId`: W11's card fields
+ *   `submit(orderId)`, then call capture (which credits and vaults the card)
  * - `POST /api/buyer/topups/:id/capture` → `{ topupId, status: 'COMPLETED', balanceMicros, captureId }`
  *   (capture `PENDING` → `{ status: 'AWAITING_APPROVAL', pendingReason }`, no credit)
  * - `GET /api/buyer/topups` → the buyer's top-ups, newest first

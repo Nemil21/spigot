@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { createApiClient, type FetchLike } from '../../api/client';
+import type { LoadCardFieldsSdk } from '../../components/buyer/cardFieldsSdk';
 import { claudeDesktopConfig } from '../../components/buyer/ClaudeConfig';
 import type {
   LoadPayPalSdk,
@@ -29,6 +30,7 @@ interface ApiState {
   paypal: { clientId: string | null; environment: 'sandbox' | 'production' };
   capture: () => Response;
   failLoad?: boolean;
+  savedMethod?: { kind: 'CARD' | 'PAYPAL'; label: string } | null;
 }
 
 /** A fake API: answers the portal's endpoints from `state` and records every call. */
@@ -59,6 +61,8 @@ function fakeApi(over: Partial<ApiState> = {}) {
     if (method === 'GET' && url === '/api/buyer/topups') return json(200, { topups: state.topups });
     if (method === 'GET' && url === '/api/buyer/keys') return json(200, { keys: state.keys });
     if (method === 'GET' && url === '/api/buyer/paypal-config') return json(200, state.paypal);
+    if (method === 'GET' && url === '/api/buyer/payment-method')
+      return json(200, { savedMethod: state.savedMethod ?? null });
     if (method === 'POST' && url === '/api/buyer/topups') {
       return json(201, { topupId: TOPUP_ID, status: 'AWAITING_APPROVAL', orderId: ORDER_ID });
     }
@@ -116,12 +120,27 @@ function fakeSdk(outcome: 'approve' | 'cancel' | 'manual' = 'approve') {
   return { loadSdk, started, approve: (orderId: string) => options!.onApprove({ orderId }) };
 }
 
+/** SP-063's card fields, not offered here: these tests drive the PayPal button. */
+const noCardFields: LoadCardFieldsSdk = async () => ({
+  isCardFieldsEligible: async () => false,
+  createSession: () => {
+    throw new Error('not eligible');
+  },
+});
+
 function renderPortal(
   client: ReturnType<typeof fakeApi>['client'],
   loadSdk: LoadPayPalSdk,
   entry = '/buyers',
 ) {
-  const element = <BuyerPortal client={client} loadSdk={loadSdk} origin="https://spigot.example" />;
+  const element = (
+    <BuyerPortal
+      client={client}
+      loadSdk={loadSdk}
+      loadCardSdk={noCardFields}
+      origin="https://spigot.example"
+    />
+  );
   const router = createMemoryRouter(
     [
       { path: '/buyers', element },
@@ -337,6 +356,14 @@ describe('W11 buyer portal', () => {
     api.state.failLoad = false;
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(balanceText()).toHaveTextContent('$0.00'));
+  });
+  it('shows the saved card from /api/buyer/payment-method next to the card top-up (SP-063)', async () => {
+    const api = fakeApi({ savedMethod: { kind: 'CARD', label: 'Visa ••1111' } });
+    renderPortal(api.client, fakeSdk('approve').loadSdk);
+    expect(await screen.findByRole('heading', { name: 'Top up with a card' })).toBeInTheDocument();
+    expect(await screen.findByTestId('saved-method')).toHaveTextContent(
+      'Saved for auto top-up: Visa ••1111',
+    );
   });
 });
 
