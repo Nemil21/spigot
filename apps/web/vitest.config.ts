@@ -24,6 +24,8 @@ export default defineConfig({
     // The root vitest.config.ts runs this as the `web` project (`npm test`).
     name: 'web',
     include: ['src/**/*.test.{ts,tsx}'],
+    // `*.db.test.ts` need Postgres and run in the root `db` project (e.g. pages/login.db.test.ts).
+    exclude: ['src/**/*.db.test.ts'],
     environment: 'jsdom',
     setupFiles: ['src/test/setup.ts'],
   },

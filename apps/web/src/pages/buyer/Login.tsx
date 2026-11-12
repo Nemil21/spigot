@@ -1,6 +1,15 @@
-import { ComingSoon } from '../ComingSoon';
+import { LoginForm } from '../../components/LoginForm';
+import { paths } from '../../routes';
 
-// Stub (SP-024a). SP-024b replaces this file; keep the default export.
+/** Buyer portal login (features/14 §Auth): `POST /api/buyer/login`, then the portal. */
 export default function LoginPage() {
-  return <ComingSoon title="Buyer log in" screen="Buyer login" />;
+  return (
+    <LoginForm
+      endpoint="/api/buyer/login"
+      home={paths.buyerPortal}
+      title="Log in for agents"
+      subtitle="Your balance, API keys and Claude Desktop config."
+      signUp={{ to: paths.buyerSignUp, label: 'Create a buyer account' }}
+    />
+  );
 }

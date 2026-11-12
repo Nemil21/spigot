@@ -1,13 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import publisherMe from './fixtures/api/auth/me.json';
+import buyerMe from './fixtures/api/buyer/me.json';
 import { routes } from './router';
 import { buyerNav, href, paths, publisherNav } from './routes';
 
 /** Every screen in SP-024a's list: path → the stub's `data-screen` and heading. */
 const SCREENS: [path: string, screen: string, title: string][] = [
   ['/', 'W01', 'Spigot'],
-  ['/app/login', 'Publisher login', 'Log in'],
   ['/app/signup', 'W02', 'Sign up'],
   ['/app/connect', 'W02', 'Connect your site'],
   ['/app/install', 'W03', 'Install the gate'],
@@ -23,9 +24,25 @@ const SCREENS: [path: string, screen: string, title: string][] = [
   ['/buyers', 'W11', 'Balance and keys'],
   ['/buyers/topup/tp_1?ok=1', 'W11', 'Balance and keys'],
   ['/buyers/usage', 'W12', 'Usage and claims'],
-  ['/buyers/login', 'Buyer login', 'Buyer log in'],
   ['/buyers/signup', 'W11', 'Buyer sign up'],
 ];
+
+/** The real login pages (SP-024b), no longer stubs. */
+const LOGINS: [path: string, title: string][] = [
+  ['/app/login', 'Log in'],
+  ['/buyers/login', 'Log in for agents'],
+];
+
+// The shells check the session first (SP-024b): answer as a signed-in publisher and buyer.
+const SESSIONS: Record<string, unknown> = { '/api/auth/me': publisherMe, '/api/buyer/me': buyerMe };
+beforeEach(() => {
+  vi.stubGlobal('fetch', async (input: string) =>
+    input in SESSIONS
+      ? new Response(JSON.stringify(SESSIONS[input]), { status: 200 })
+      : new Response('{}', { status: 404 }),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
 
 async function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
@@ -41,8 +58,13 @@ describe('router', () => {
     expect(screen.getByText('Coming soon')).toBeInTheDocument();
   });
 
+  it.each(LOGINS)('%s renders the login form', async (path, title) => {
+    expect(await renderAt(path)).toHaveTextContent(title);
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument();
+  });
+
   it('covers every path in the paths table', () => {
-    const tested = new Set(SCREENS.map(([p]) => p.split('?')[0]));
+    const tested = new Set([...SCREENS, ...LOGINS].map(([p]) => p.split('?')[0]));
     for (const [name, p] of Object.entries(paths)) {
       const concrete = p.replace(':datasetId', 'ds_123').replace(':topupId', 'tp_1');
       expect(tested, name).toContain(concrete);
