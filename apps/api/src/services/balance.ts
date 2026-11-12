@@ -1,5 +1,6 @@
 // `GET /v1/balance` and MCP `get_balance` (api.md; SP-017a). Read-only.
 import type { Queryable } from '../db/pool.js';
+import { VAULT_MIT_CAP_STATUSES } from '../topups/autoTopup.js';
 
 export interface AutoTopupStatus {
   enabled: boolean;
@@ -16,17 +17,8 @@ export interface BuyerBalance {
   autoTopup: AutoTopupStatus;
 }
 
-/**
- * Vault MIT top-ups that count against the monthly cap: everything not known to have failed
- * (an in-flight CREATED one counts, so the figure never over-promises).
- */
-const CAP_STATUSES = [
-  'CREATED',
-  'AWAITING_APPROVAL',
-  'COMPLETED',
-  'PARTIALLY_REFUNDED',
-  'REFUNDED',
-];
+/** Vault MIT top-ups that count against the monthly cap: the same rule as `reserveVaultTopup`. */
+const CAP_STATUSES = VAULT_MIT_CAP_STATUSES;
 
 export async function balance(deps: { db: Queryable }, buyerId: string): Promise<BuyerBalance> {
   const { rows } = await deps.db.query<{

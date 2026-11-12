@@ -2,7 +2,9 @@
 // through SP-017a's `paidRead` with `channel: 'MCP'` (so `actor_type=MCP_CLIENT` in the audit),
 // the same quotes, caps, 402s and idempotency as `/v1`.
 import { z } from 'zod';
+import { autoTopupDoneMessage } from '@spigot/shared';
 import { paidRead, type PaidReadParams } from '../../services/paidRead.js';
+import { topupPayPal } from '../../topups/deps.js';
 import { guard, ok, paidSummary, paymentResult } from '../results.js';
 import {
   callerOf,
@@ -56,9 +58,17 @@ async function read(
       channel: 'MCP',
       baseUrl: deps.baseUrl,
       ...(deps.now ? { now: deps.now } : {}),
+      ...(deps.config ? { autoTopup: { pp: topupPayPal(deps.config), config: deps.config } } : {}),
     },
     { ...params, ...(key !== undefined ? { idempotencyKey: key } : {}) },
   );
+}
+
+/** "Topped up $20 from your saved PayPal method." first, when this call auto topped up (SP-047a). */
+function withAutoTopup(res: { autoTopupCents?: number }, summary: string): string {
+  return res.autoTopupCents !== undefined
+    ? `${autoTopupDoneMessage({ amountCents: res.autoTopupCents })} ${summary}`
+    : summary;
 }
 
 const register: ToolModule = (server, deps) => {
@@ -128,7 +138,7 @@ const register: ToolModule = (server, deps) => {
             ? { more: `More match: call again with cursor "${body.next}" for the next page.` }
             : {}),
         });
-        return ok(summary, { ...body, callId: res.callId, replay: res.replay });
+        return ok(withAutoTopup(res, summary), { ...body, callId: res.callId, replay: res.replay });
       }),
   );
 
@@ -202,7 +212,7 @@ const register: ToolModule = (server, deps) => {
             ? `More changes: call again with since "${body.next}".`
             : `Next time, pass since "${body.next}".`,
         });
-        return ok(summary, { ...body, callId: res.callId, replay: res.replay });
+        return ok(withAutoTopup(res, summary), { ...body, callId: res.callId, replay: res.replay });
       }),
   );
 };

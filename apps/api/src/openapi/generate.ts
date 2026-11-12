@@ -159,7 +159,7 @@ const gone = (only: readonly ErrorCode[]) =>
 
 const payment402 = (paid: boolean): ResponseConfig => ({
   description: paid
-    ? 'Payment needed; nothing was charged. `PAYMENT_REQUIRED`: no API key sent (the body lists the datasets and how to pay). `INSUFFICIENT_BALANCE`: the call costs more than your balance (body has the quote and `topUpUrl`). `PRICE_ABOVE_MAX`: the call costs more than `max_price_micros` (body has the quote).'
+    ? "Payment needed; nothing was charged. `PAYMENT_REQUIRED`: no API key sent (the body lists the datasets and how to pay). `INSUFFICIENT_BALANCE`: the call costs more than your balance (body has the quote and `topUpUrl`). `PRICE_ABOVE_MAX`: the call costs more than `max_price_micros` (body has the quote). With auto top-up on: `AUTO_TOPUP_CAP_REACHED` (this month's cap is used up) or `TOPUP_FAILED` (PayPal declined the saved method; auto top-up is now off)."
     : 'No API key sent.',
   headers: headers(PAYMENT_402_HEADERS, { 'Spigot-Price': z.string().optional() }),
   content: json(
@@ -173,6 +173,7 @@ const paidHeaders = headers(PAID_RESPONSE_HEADERS, {
   'Spigot-Records': int,
   'Spigot-Call-Id': z.string().optional(),
   'Spigot-Replay': z.enum(['true']).optional(),
+  'Spigot-Auto-Topup': int.optional(),
 });
 
 // ── Paths ───────────────────────────────────────────────────────────────────────────────────

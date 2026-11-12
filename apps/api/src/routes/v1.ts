@@ -25,6 +25,7 @@ import {
 } from '../services/paidRead.js';
 import type { Headers402 } from '../services/payment402.js';
 import { quote } from '../services/quote.js';
+import { topupPayPal } from '../topups/deps.js';
 import {
   changesQuery,
   datasetParams,
@@ -91,6 +92,7 @@ function sendPaid(reply: FastifyReply, r: PaidReadResult): FastifyReply {
   } else {
     send402(reply, r.headers);
   }
+  if (r.autoTopupCents !== undefined) reply.header('Spigot-Auto-Topup', String(r.autoTopupCents));
   return reply.code(r.status).send(r.body);
 }
 
@@ -123,6 +125,7 @@ const v1Routes: FastifyPluginAsync = async (app) => {
       apiKeyId: key.id,
       channel: 'REST',
       baseUrl,
+      autoTopup: { pp: topupPayPal(app.config), config: app.config },
     };
     const r = await paidRead(ctx, {
       ...params,
