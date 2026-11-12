@@ -62,7 +62,7 @@ Only these are left, all known only after deploy, recording and upload. Search f
 
 - `[[fill]] APP_URL`: Render URL of `spigot-api` (dashboard `/app`, buyer portal `/buyers`).
 - `[[fill]] DEMO_SITE_URL`: Render URL of `bluebonnet-rentals`.
-- `[[fill]] CATALOG_URL`: `<APP_URL>/c/<site slug>`; the slug is `bluebonnet-rentals` if Render kept the service name.
+- `[[fill]] CATALOG_URL`: `<APP_URL>/c/bluebonnet` (`seed:demo` always uses the slug `bluebonnet`).
 - `[[fill]] VIDEO_URL`: the public YouTube link.
 - `[[fill]] screenshots` for the Devpost image gallery (suggested: W05 proposal cards, W06 publish, W11 top-up with the PayPal button, Claude Code terminal with the charge, W08 earnings, W09 Paid out). No real brands, no keys on screen.
 

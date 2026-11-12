@@ -38,7 +38,7 @@ export function ApiKeysTable({
   onRevoke: (id: string) => Promise<void>;
   onDismissReveal: () => void;
 }) {
-  const [name, setName] = useState('Claude Desktop');
+  const [name, setName] = useState('Claude Code');
   const [creating, setCreating] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
