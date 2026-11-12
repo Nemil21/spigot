@@ -191,6 +191,21 @@ export const balanceResponse = z.object({
   }),
 });
 
+/** `POST /v1/topups` and MCP `top_up` (`services/agentTopUp.ts`; documented by SP-023). */
+export const topupResponse = z.object({
+  topupId: z.string(),
+  status: z
+    .string()
+    .describe('`AWAITING_APPROVAL` for a new link; a replay returns the final status.'),
+  amountCents: z.number().int(),
+  orderId: z.string().nullable().describe('The PayPal order id.'),
+  approveUrl: z
+    .string()
+    .nullable()
+    .describe('PayPal approval link for a human to open; `null` once the top-up has finished.'),
+  balanceMicros: z.number().int().optional().describe('Your balance, once `COMPLETED`.'),
+});
+
 /** The 402 body shared with the gate (api.md §The 402 contract). */
 export const payment402Body = z.object({
   error: z.object({ code: z.enum(ERROR_CODES), message: z.string() }),

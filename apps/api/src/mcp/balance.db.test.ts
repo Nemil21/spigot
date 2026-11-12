@@ -13,6 +13,7 @@ import { testDatabaseUrl } from '../db/test-db.js';
 import { FakePayPal } from '../paypal/index.js';
 import { cases } from '../security/tenancy/v1-topups.cases.js';
 import { buildServer } from '../server.js';
+import { topupResponse } from '../routes/v1.schemas.js';
 import { REQUIRED_ENV } from '../test/env.js';
 import { balanceOf, setTopupPayPal, topupById } from '../topups/index.js';
 
@@ -425,6 +426,7 @@ describe.skipIf(!testDatabaseUrl)(
         const b = await buyer(['topup']);
         const res = await post(b.key, { amountCents: 2000 }, 'rest-1');
         expect(res.status).toBe(200);
+        topupResponse.strict().parse(res.body); // the openapi.yaml contract (SP-023)
         expect(res.body).toMatchObject({
           status: 'AWAITING_APPROVAL',
           amountCents: 2000,
@@ -446,6 +448,7 @@ describe.skipIf(!testDatabaseUrl)(
         await request(app.server).get(`/topups/return?token=${res.body.orderId}`);
         const done = await post(b.key, { amountCents: 2000 }, 'rest-1');
         expect(done.body).toMatchObject({ status: 'COMPLETED', balanceMicros: 20_000_000 });
+        topupResponse.strict().parse(done.body);
         expect(await topupTxns(res.body.topupId)).toHaveLength(1);
       });
 
