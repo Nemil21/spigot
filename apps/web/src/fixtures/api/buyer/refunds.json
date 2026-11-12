@@ -1,0 +1,15 @@
+{
+  "refunds": [
+    {
+      "refundId": "00000000-0000-4000-8000-0000000f0001",
+      "topupId": "00000000-0000-4000-8000-0000000b0001",
+      "amountCents": 500,
+      "status": "COMPLETED",
+      "paypalRefundId": "1JU08902781691411",
+      "errorCode": null,
+      "createdAt": "2026-11-11T18:00:00.000Z",
+      "updatedAt": "2026-11-11T18:00:02.000Z"
+    }
+  ],
+  "available": { "balanceCents": 1994, "refundableCents": 1500, "allowedCents": 1500 }
+}

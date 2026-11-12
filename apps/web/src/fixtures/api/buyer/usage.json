@@ -1,0 +1,59 @@
+{
+  "rows": [
+    {
+      "id": "00000000-0000-4000-8000-0000000c0003",
+      "time": "2026-11-12T14:05:12.000Z",
+      "dataset": {
+        "id": "00000000-0000-4000-8000-0000000d0001",
+        "site": "bluebonnet",
+        "slug": "listings"
+      },
+      "endpoint": "records.search",
+      "channel": "MCP",
+      "status": "PARTIALLY_CREDITED",
+      "records": 37,
+      "changes": null,
+      "chargedMicros": 55500,
+      "creditedMicros": 1500,
+      "replayable": true,
+      "isSimulated": false
+    },
+    {
+      "id": "00000000-0000-4000-8000-0000000c0002",
+      "time": "2026-11-12T13:41:00.000Z",
+      "dataset": {
+        "id": "00000000-0000-4000-8000-0000000d0001",
+        "site": "bluebonnet",
+        "slug": "listings"
+      },
+      "endpoint": "changes.list",
+      "channel": "REST",
+      "status": "CHARGED",
+      "records": null,
+      "changes": 28,
+      "chargedMicros": 14000,
+      "creditedMicros": 0,
+      "replayable": false,
+      "isSimulated": false
+    },
+    {
+      "id": "00000000-0000-4000-8000-0000000c0001",
+      "time": "2026-11-12T12:10:30.000Z",
+      "dataset": {
+        "id": "00000000-0000-4000-8000-0000000d0001",
+        "site": "bluebonnet",
+        "slug": "listings"
+      },
+      "endpoint": "records.search",
+      "channel": "REST",
+      "status": "NOT_CHARGED",
+      "records": 0,
+      "changes": null,
+      "chargedMicros": 0,
+      "creditedMicros": 0,
+      "replayable": true,
+      "isSimulated": false
+    }
+  ],
+  "nextCursor": null
+}

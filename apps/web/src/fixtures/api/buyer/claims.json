@@ -1,0 +1,34 @@
+{
+  "claims": [
+    {
+      "id": "00000000-0000-4000-8000-0000000a0002",
+      "status": "OPEN",
+      "reason": "WRONG_VALUE",
+      "note": "Rent is $1,950 on the site",
+      "callId": "00000000-0000-4000-8000-0000000c0003",
+      "site": "bluebonnet",
+      "dataset": "listings",
+      "recordKey": "listings/3br-mueller-2210",
+      "amountMicros": 1500,
+      "creditMicros": 0,
+      "decidedBy": null,
+      "createdAt": "2026-11-12T14:09:00.000Z",
+      "updatedAt": "2026-11-12T14:09:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-0000000a0001",
+      "status": "AUTO_CREDITED",
+      "reason": "STALE",
+      "note": "Listing says leased on site",
+      "callId": "00000000-0000-4000-8000-0000000c0003",
+      "site": "bluebonnet",
+      "dataset": "listings",
+      "recordKey": "listings/2br-east-cesar-chavez-4471",
+      "amountMicros": 1500,
+      "creditMicros": 1500,
+      "decidedBy": "AUTO",
+      "createdAt": "2026-11-12T14:07:00.000Z",
+      "updatedAt": "2026-11-12T14:07:01.000Z"
+    }
+  ]
+}
