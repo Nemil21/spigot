@@ -3,12 +3,37 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Publisher dashboard, buyer portal and landing (React + Vite). Placeholder until SP-024a.",
+  "description": "Spigot web app (SP-024a): React + Vite + Tailwind, AG Grid / AG Charts Enterprise. Built to dist/ and served same-origin by @spigot/api (apps/api/src/routes/web.ts).",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json"
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --maxWorkers=2"
   },
   "dependencies": {
-    "@spigot/shared": "0.0.0"
+    "@paypal/paypal-js": "^11.3.0",
+    "@spigot/shared": "0.0.0",
+    "ag-charts-community": "~14.3.0",
+    "ag-charts-enterprise": "~14.3.0",
+    "ag-charts-react": "~14.3.0",
+    "ag-grid-community": "~36.3.0",
+    "ag-grid-enterprise": "~36.3.0",
+    "ag-grid-react": "~36.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^7.18.5"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.1.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.9",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "jsdom": "^31.0.0",
+    "tailwindcss": "^4.3.5",
+    "vite": "^8.3.8"
   }
 }

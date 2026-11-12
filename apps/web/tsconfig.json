@@ -3,10 +3,17 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "customConditions": ["source"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    // Browser only: no Node types, so a Node global or built-in in shared code fails here.
-    "types": [],
+    "jsx": "react-jsx",
+    // Browser only: vite/client and no Node types, so a Node global or built-in in app code (or in
+    // @spigot/shared, resolved to its sources via `source`) fails here.
+    "types": ["vite/client"],
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests run in Node (vitest) and use node:fs etc.; vitest type-strips them.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"]
 }
