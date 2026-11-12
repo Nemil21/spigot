@@ -4,6 +4,7 @@ import autoload from '@fastify/autoload';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Config } from './config.js';
 import { registerErrorHandler } from './http/errors.js';
+import { loggerOptions } from './http/redact.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -23,6 +24,8 @@ export interface BuildServerOptions {
   /** Directory of route plugins. Tests point this at a fixture directory. */
   routesDir?: string;
   logger?: boolean;
+  /** Where log lines go (default stdout). Tests pass a stream to inspect them (SP-007a). */
+  logStream?: NodeJS.WritableStream;
 }
 
 /**
@@ -37,7 +40,8 @@ export async function buildServer(
   opts: BuildServerOptions = {},
 ): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: opts.logger === false ? false : { level: config.LOG_LEVEL },
+    // Redacted logging (SP-007a): keys, emails and PayPal tokens never reach a log line.
+    logger: opts.logger === false ? false : loggerOptions(config.LOG_LEVEL, opts.logStream),
     // Render terminates TLS one hop in front: trust exactly that hop in production and none
     // elsewhere, so a client-sent X-Forwarded-For can't spoof req.ip (rate limits, gate, logs).
     trustProxy:

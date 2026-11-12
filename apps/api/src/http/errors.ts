@@ -7,7 +7,7 @@ import { ERROR_STATUS, errorEnvelope, type ErrorCode } from '@spigot/shared';
  * `ApiError` anywhere in a handler or hook; the error handler turns it, Zod errors and Fastify's
  * own 4xx errors into the envelope. Anything else is a 500 with no internal detail.
  * The HTTP status always comes from `ERROR_STATUS` (@spigot/shared), so code and status agree.
- * SP-007a extends this (auth / CSRF / rate limits).
+ * `headers` are set on the error response (e.g. `Retry-After` on a 429 from `http/rateLimit.ts`).
  */
 export class ApiError extends Error {
   readonly status: number;
@@ -16,6 +16,7 @@ export class ApiError extends Error {
     readonly code: ErrorCode,
     message: string,
     readonly details?: Record<string, unknown>,
+    readonly headers?: Record<string, string | number>,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -24,6 +25,7 @@ export class ApiError extends Error {
 }
 
 export function sendError(reply: FastifyReply, err: ApiError): FastifyReply {
+  if (err.headers) reply.headers(err.headers);
   return reply.code(err.status).send(errorEnvelope(err.code, err.message, err.details));
 }
 
