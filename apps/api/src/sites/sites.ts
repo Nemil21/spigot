@@ -7,6 +7,7 @@ import { isUniqueViolation } from '../auth/credentials.js';
 import { crawlerUserAgent } from '../crawl/deps.js';
 import { normalizeOnOrigin } from '../crawl/normalizeUrl.js';
 import {
+  SAFE_FETCH_DEFAULTS,
   safeFetch,
   SafeFetchError,
   type Resolver,
@@ -42,7 +43,9 @@ export interface SitesDeps {
 
 export const PROBE_TIMEOUT_MS = 5_000;
 const ROBOTS_MAX_BYTES = 512 * 1024;
-const SITEMAP_MAX_XML_BYTES = 50 * 1024 * 1024;
+// Same decompressed-size cap as the crawler (crawl/sitemap.ts `decodeBody`), so a sitemap that passes
+// connect also passes the discovery crawl.
+const SITEMAP_MAX_XML_BYTES = SAFE_FETCH_DEFAULTS.maxBytes;
 
 export const MESSAGES = {
   unreachable: "We couldn't reach that site",

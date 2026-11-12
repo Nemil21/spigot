@@ -1,6 +1,13 @@
+import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { crawlKeyHash, deriveCrawlKey } from '../crawl/crawlKey.js';
-import { SafeFetchError, type SafeFetchOptions, type SafeResponse } from '../crawl/safeFetch.js';
+import {
+  SAFE_FETCH_DEFAULTS,
+  SafeFetchError,
+  type SafeFetchOptions,
+  type SafeResponse,
+} from '../crawl/safeFetch.js';
+import { readSitemap } from '../crawl/sitemap.js';
 import { ApiError } from '../http/errors.js';
 import { generateSiteSecrets, sha256Hex, verifyBodyMatches } from './keys.js';
 import {
@@ -150,6 +157,26 @@ describe('probeOrigin', () => {
       `${ORIGIN}/sitemap.xml`,
     ]);
     expect(MAX_ROBOTS_SITEMAPS).toBe(3);
+  });
+  it('gzipped sitemaps: same decompressed-size cap as the crawler (readSitemap)', async () => {
+    const gz = (xml: string) => ({
+      ...res('', 200),
+      body: gzipSync(Buffer.from(xml)),
+    });
+    const filler = `<!--${'x'.repeat(SAFE_FETCH_DEFAULTS.maxBytes)}-->`;
+    for (const [xml, accepted] of [
+      [URLSET, true],
+      [URLSET.replace('<urlset>', `<urlset>${filler}`), false],
+    ] as const) {
+      const d = deps({ [`${ORIGIN}/sitemap.xml`]: gz(xml) });
+      const probe = await codeOf(probeOrigin(ORIGIN, undefined, d));
+      expect(probe === null, `probe accepted=${accepted}`).toBe(accepted);
+      const crawl = await readSitemap({ origin: ORIGIN }, { fetch: d.fetch }).then(
+        () => true,
+        () => false,
+      );
+      expect(crawl, `crawler accepted=${accepted}`).toBe(accepted);
+    }
   });
   it('prefers a robots.txt Sitemap: line on the origin, ignores off-origin ones', async () => {
     const robots = `User-agent: *\nSitemap: https://evil.test/s.xml\nsitemap:  /maps/index.xml\n`;
