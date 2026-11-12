@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import type { PillTone } from '../../components';
-import { LABEL } from '../../theme/label';
+import { AuthBackdrop, Logo } from '../../components/Brand';
 
 /**
  * Building blocks shared by the onboarding screens (W02 sign up + connect, W03 install + verify;
@@ -45,18 +45,23 @@ export function OnboardingLayout({
   wide?: boolean;
 }) {
   return (
-    <main className="min-h-screen bg-canvas px-4 py-10 sm:py-16">
+    <AuthBackdrop>
       <div className={`mx-auto w-full ${wide ? 'max-w-3xl' : 'max-w-md'}`}>
-        <p className="mb-8 text-center text-lg font-semibold tracking-tight text-accent">Spigot</p>
+        <p className="mb-6 flex justify-center">
+          <Logo />
+        </p>
         {children}
       </div>
-    </main>
+    </AuthBackdrop>
   );
 }
 
-export const cardClass = 'rounded-lg border border-line bg-surface p-6 sm:p-7';
-export const primaryButton = `h-10 rounded-md bg-accent px-4 ${LABEL} text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-60`;
-export const secondaryButton = `h-8 rounded-md border border-border bg-surface px-3 ${LABEL} text-ink transition-colors hover:bg-surface-2 disabled:opacity-60`;
+export const cardClass =
+  'rounded-[22px] border border-white/10 bg-surface/85 p-8 shadow-card backdrop-blur-xl';
+export const primaryButton =
+  'rounded-md bg-accent px-3 py-2 font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60';
+export const secondaryButton =
+  'rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-60';
 
 export function TextField({
   id,
@@ -82,7 +87,7 @@ export function TextField({
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy || undefined}
-        className="mt-1.5 h-10 w-full rounded-md border border-border bg-surface px-3 text-ink shadow-sm transition-colors placeholder:text-muted hover:border-muted focus:outline-2 focus:outline-focus aria-[invalid=true]:border-danger"
+        className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-2 focus:outline-focus"
         {...input}
       />
       {hint && (
@@ -131,16 +136,7 @@ export function Pill({
 }
 
 /** Copy `text` to the clipboard; the label flips to "Copied" for 2 s. */
-export function CopyButton({
-  text,
-  label = 'Copy',
-  onDark = false,
-}: {
-  text: string;
-  label?: string;
-  /** Sits on a dark code block. */
-  onDark?: boolean;
-}) {
+export function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
@@ -155,16 +151,7 @@ export function CopyButton({
     }
   }
   return (
-    <button
-      type="button"
-      onClick={copy}
-      aria-label={label}
-      className={
-        onDark
-          ? `h-7 shrink-0 rounded-sm border border-white/15 bg-white/5 px-2.5 ${LABEL} text-white/85 transition-colors hover:bg-white/15`
-          : secondaryButton
-      }
-    >
+    <button type="button" onClick={copy} aria-label={label} className={secondaryButton}>
       {copied ? 'Copied' : 'Copy'}
     </button>
   );
@@ -173,11 +160,11 @@ export function CopyButton({
 /** A monospace block with a copy button. */
 export function CodeBlock({ code, copyLabel }: { code: string; copyLabel: string }) {
   return (
-    <div className="mt-2 flex items-start gap-3 rounded-lg bg-ink p-3.5 pl-4 dark:border dark:border-line dark:bg-canvas">
-      <pre className="min-w-0 flex-1 overflow-x-auto whitespace-pre py-1 [color-scheme:dark] font-mono text-[13px] leading-6 text-white/90 dark:text-ink">
+    <div className="mt-2 flex items-start gap-2 rounded-md bg-surface-2 p-3">
+      <pre className="min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-sm text-ink">
         {code}
       </pre>
-      <CopyButton text={code} label={copyLabel} onDark />
+      <CopyButton text={code} label={copyLabel} />
     </div>
   );
 }

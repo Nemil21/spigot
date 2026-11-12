@@ -18,15 +18,15 @@ export function Kpi({
 }) {
   return (
     <div
-      className="flex min-w-0 flex-col rounded-lg border border-line bg-surface p-4"
+      className="min-w-0 rounded-lg border border-line bg-surface p-4 shadow-card"
       aria-busy={loading || undefined}
     >
-      <p className="label text-2xs text-muted">{label}</p>
+      <p className="text-xs font-medium text-muted">{label}</p>
       {/* text-xl at 1024 px so five tiles fit the W04 row; text-2xl from 1280 px. */}
-      <p className="mt-2.5 text-xl font-medium tracking-tight text-ink tabular-nums xl:text-2xl">
+      <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-light tracking-tight text-ink tabular-nums xl:text-3xl">
         {loading ? <Skeleton className="h-7 w-28" /> : value}
       </p>
-      {hint && !loading && <p className="mt-1.5 text-xs text-muted">{hint}</p>}
+      {hint && !loading && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );
 }

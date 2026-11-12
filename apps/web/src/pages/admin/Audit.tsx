@@ -11,7 +11,6 @@ import {
   SkeletonText,
   errorMessage,
 } from '../../components';
-import * as ui from '../../components/buyer/ui';
 import { AuditGrid } from './AuditGrid';
 import {
   SEARCH_FIELDS,
@@ -117,7 +116,7 @@ export function AuditScreen({ client = defaultApi }: AuditScreenProps) {
   if (forbidden) {
     return (
       <Frame>
-        <div role="alert" className={`${ui.panel} ${ui.panelBody} text-body`}>
+        <div role="alert" className="rounded-md border border-line bg-surface p-5 text-body">
           <p className="font-medium text-ink">Admins only.</p>
           <p className="mt-1 text-sm">
             This screen is for Spigot operators. Sign in with an email listed in{' '}
@@ -132,20 +131,13 @@ export function AuditScreen({ client = defaultApi }: AuditScreenProps) {
     <Frame>
       <HealthSection health={health} onRefresh={() => setHealthAttempt((n) => n + 1)} />
 
-      <section aria-label="Operations" className="grid items-start gap-6 md:grid-cols-2">
+      <section aria-label="Operations" className="grid gap-4 md:grid-cols-2">
         <LedgerCheck client={client} />
         <RunPayout client={client} onDone={refreshAll} />
       </section>
 
-      <section aria-label="Audit events" className={ui.panel}>
-        <div className={ui.panelHead}>
-          <div>
-            <h2 className={ui.panelTitle}>Audit events</h2>
-            <p className={ui.panelDesc}>
-              Search by a PayPal order, capture, refund or payout id, or by publisher or buyer.
-            </p>
-          </div>
-        </div>
+      <section aria-label="Audit events" className="space-y-3">
+        <h2 className="text-lg font-semibold text-ink">Audit events</h2>
         <SearchForm
           initial={search}
           onSearch={(s) => {
@@ -158,52 +150,44 @@ export function AuditScreen({ client = defaultApi }: AuditScreenProps) {
           }}
         />
         {audit.status === 'error' ? (
-          <div className={ui.panelBody}>
-            <ErrorBanner error={audit.error} onRetry={() => setAuditAttempt((n) => n + 1)} />
-          </div>
+          <ErrorBanner error={audit.error} onRetry={() => setAuditAttempt((n) => n + 1)} />
         ) : audit.status === 'loading' ? (
-          <div aria-busy="true" className={ui.panelBody}>
+          <div
+            aria-busy="true"
+            className="rounded-lg border border-line bg-surface p-5 shadow-card"
+          >
             <SkeletonText lines={4} />
           </div>
         ) : audit.value.events.length === 0 ? (
-          <div className={ui.panelBody}>
-            {Object.keys(search).length ? (
-              <EmptyState
-                message="No audit events match this search."
-                action={{ label: 'Clear search', onClick: () => setParams(new URLSearchParams()) }}
-              />
-            ) : (
-              <EmptyState
-                message="No audit events yet. Run seed:demo or connect a site."
-                action={{ label: 'Reload', onClick: () => setAuditAttempt((n) => n + 1) }}
-              />
-            )}
-          </div>
+          Object.keys(search).length ? (
+            <EmptyState
+              message="No audit events match this search."
+              action={{ label: 'Clear search', onClick: () => setParams(new URLSearchParams()) }}
+            />
+          ) : (
+            <EmptyState
+              message="No audit events yet. Run seed:demo or connect a site."
+              action={{ label: 'Reload', onClick: () => setAuditAttempt((n) => n + 1) }}
+            />
+          )
         ) : (
           <>
-            <p
-              className={`border-b border-line px-5 py-2.5 tabular-nums sm:px-6 ${ui.statLabel}`}
-              data-audit-count=""
-            >
+            <p className="text-sm text-muted" data-audit-count="">
               {formatCount(audit.value.events.length)} event
               {audit.value.events.length === 1 ? '' : 's'}
               {audit.value.next ? ' shown, newest first' : ', newest first'}
             </p>
             <AuditGrid events={audit.value.events} />
-            {(moreError !== null || audit.value.next) && (
-              <div className="space-y-3 border-t border-line px-5 py-4 sm:px-6">
-                {moreError !== null && <ErrorBanner error={moreError} onRetry={loadMore} />}
-                {audit.value.next && (
-                  <button
-                    type="button"
-                    onClick={loadMore}
-                    disabled={moreBusy}
-                    className={ui.btnSecondary}
-                  >
-                    {moreBusy ? 'Loading…' : 'Load older events'}
-                  </button>
-                )}
-              </div>
+            {moreError !== null && <ErrorBanner error={moreError} onRetry={loadMore} />}
+            {audit.value.next && (
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={moreBusy}
+                className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-60"
+              >
+                {moreBusy ? 'Loading…' : 'Load older events'}
+              </button>
             )}
           </>
         )}
@@ -240,11 +224,14 @@ function SearchForm({
       role="search"
       aria-label="Search audit events"
       onSubmit={submit}
-      className="flex flex-wrap items-end gap-3 border-b border-line bg-surface-2/40 px-5 py-4 sm:px-6"
+      className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-4 shadow-card"
     >
       {SEARCH_FIELDS.map((f) => (
-        <label key={f.key} className="flex min-w-48 flex-1 flex-col">
-          <span className={ui.statLabel}>{f.label}</span>
+        <label
+          key={f.key}
+          className="flex min-w-48 flex-1 flex-col gap-1 text-xs font-medium text-muted"
+        >
+          {f.label}
           <input
             type="search"
             name={f.key}
@@ -253,12 +240,15 @@ function SearchForm({
             spellCheck={false}
             autoComplete="off"
             onChange={(e) => setValues((v) => ({ ...v, [f.key as SearchKey]: e.target.value }))}
-            className={`${ui.input} font-mono placeholder:font-sans`}
+            className="rounded-md border border-line bg-surface px-2.5 py-1.5 font-mono text-sm text-ink placeholder:font-sans placeholder:text-muted"
           />
         </label>
       ))}
       <div className="flex gap-2">
-        <button type="submit" className={ui.btnPrimary}>
+        <button
+          type="submit"
+          className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong"
+        >
           Search
         </button>
         <button
@@ -268,7 +258,7 @@ function SearchForm({
             setError(null);
             onSearch({});
           }}
-          className={ui.btnSecondary}
+          className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-2"
         >
           Clear
         </button>
@@ -309,9 +299,9 @@ function Tile({
       aria-label={label}
       data-tone={loading ? undefined : tone}
       aria-busy={loading || undefined}
-      className="min-w-0 bg-surface px-5 py-4"
+      className="min-w-0 rounded-lg border border-line bg-surface p-4 shadow-card"
     >
-      <p className={`flex items-center gap-2 ${ui.statLabel}`}>
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted">
         {!loading && (
           <span
             className={`inline-block size-2 rounded-full ${TONE[tone]}`}
@@ -321,10 +311,10 @@ function Tile({
         )}
         {label}
       </p>
-      <p className="mt-2.5 text-[22px] font-medium leading-tight tracking-[-0.02em] text-ink tabular-nums">
+      <p className="mt-1 text-lg font-semibold text-ink tabular-nums">
         {loading ? <Skeleton className="h-6 w-24" /> : value}
       </p>
-      {hint && !loading && <p className="mt-1.5 text-xs leading-relaxed text-muted">{hint}</p>}
+      {hint && !loading && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
@@ -345,40 +335,32 @@ function HealthSection({
   onRefresh: () => void;
 }) {
   const header = (
-    <div className={`${ui.panelHead} items-center`}>
-      <div>
-        <h2 className={ui.panelTitle}>Health</h2>
-        <p className={ui.panelDesc}>PayPal, Workflows, the gate and money still in flight.</p>
-      </div>
-      <button type="button" onClick={onRefresh} className={ui.btnSecondary}>
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-lg font-semibold text-ink">Health</h2>
+      <button
+        type="button"
+        onClick={onRefresh}
+        className="rounded-md border border-line px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-2"
+      >
         Refresh
       </button>
     </div>
   );
-  // Hairline grid: the 1px gaps show the line colour between tiles at every breakpoint.
-  const strip =
-    'grid gap-px bg-line sm:grid-cols-2 lg:grid-cols-5 sm:[&>*:last-child]:col-span-2 lg:[&>*:last-child]:col-span-1';
 
   if (health.status === 'error') {
     return (
-      <section aria-label="Health" className={ui.panel}>
+      <section aria-label="Health" className="space-y-3">
         {header}
-        <div className={ui.panelBody}>
-          <ErrorBanner
-            error={health.error}
-            title="Health checks didn't load."
-            onRetry={onRefresh}
-          />
-        </div>
+        <ErrorBanner error={health.error} title="Health checks didn't load." onRetry={onRefresh} />
       </section>
     );
   }
 
   if (health.status === 'loading') {
     return (
-      <section aria-label="Health" aria-busy="true" className={ui.panel}>
+      <section aria-label="Health" aria-busy="true" className="space-y-3">
         {header}
-        <div className={strip}>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {TILE_LABELS.map((l) => (
             <Tile key={l} label={l} tone="ok" value={null} loading />
           ))}
@@ -395,25 +377,19 @@ function HealthSection({
   const payouts = h.pendingPayouts;
 
   return (
-    <section aria-label="Health" className={ui.panel} data-health={h.status}>
+    <section aria-label="Health" className="space-y-3" data-health={h.status}>
       {header}
       {h.status === 'ok' ? (
-        <p
-          role="status"
-          className="border-b border-line bg-positive-tint px-5 py-2.5 text-sm text-positive sm:px-6"
-        >
+        <p role="status" className="rounded-md bg-positive-tint px-4 py-3 text-sm text-positive">
           Healthy. PayPal, the database and Workflows answered. Checked {formatAt(h.checkedAt)}.
         </p>
       ) : (
-        <p
-          role="alert"
-          className="border-b border-line bg-danger-tint px-5 py-2.5 text-sm text-danger sm:px-6"
-        >
+        <p role="alert" className="rounded-md bg-danger-tint px-4 py-3 text-sm text-danger">
           Degraded: {failed.length ? failed.join('; ') : 'a dependency check failed'}. Checked{' '}
           {formatAt(h.checkedAt)}.
         </p>
       )}
-      <div className={strip}>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Tile
           label="PayPal token"
           tone={paypal.ok ? 'ok' : 'bad'}
@@ -513,51 +489,52 @@ function LedgerCheck({ client }: { client: ApiClient }) {
   const balanced = result !== null && result.sumMicros === 0 && result.mismatches.length === 0;
 
   return (
-    <div className={ui.panel}>
-      <div className={`${ui.panelHead} items-center`}>
-        <div className="min-w-0 flex-1">
-          <h2 className={ui.panelTitle}>Ledger check</h2>
-          <p className={ui.panelDesc}>
+    <div className="space-y-3 rounded-lg border border-line bg-surface p-5 shadow-card">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-ink">Ledger check</h2>
+          <p className="text-sm text-muted">
             Recomputes every account from its entries. Double entry means the sum is 0.
           </p>
         </div>
-        <button type="button" onClick={run} disabled={busy} className={ui.btnPrimary}>
+        <button
+          type="button"
+          onClick={run}
+          disabled={busy}
+          className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60"
+        >
           {busy ? 'Checking…' : 'Ledger check'}
         </button>
       </div>
-      {(error !== null || result) && (
-        <div className={`${ui.panelBody} space-y-3`}>
-          {error !== null && (
-            <p role="alert" className="text-sm text-danger">
-              {errorMessage(error)}
-            </p>
-          )}
-          {result && (
-            <div
-              role={balanced ? 'status' : 'alert'}
-              data-ledger={balanced ? 'balanced' : 'mismatch'}
-              className={balanced ? ui.notice.positive : ui.notice.danger}
-            >
-              <p className="font-medium">
-                Sum = <span data-sum-micros="">{formatCount(result.sumMicros)}</span> micros (
-                <Money micros={result.sumMicros} />) across {formatCount(result.accountsChecked)}{' '}
-                account{result.accountsChecked === 1 ? '' : 's'}.{' '}
-                {balanced
-                  ? 'The ledger balances.'
-                  : `${formatCount(result.mismatches.length)} mismatch${result.mismatches.length === 1 ? '' : 'es'}.`}
-              </p>
-              {!balanced && result.mismatches.length > 0 && (
-                <ul className="mt-2 list-disc space-y-0.5 pl-5">
-                  {result.mismatches.map((m, i) => (
-                    <li key={i}>
-                      {m.check}
-                      {typeof m.accountId === 'string' ? ` ${m.accountId}` : ''}: expected{' '}
-                      {formatCount(m.expectedMicros)}, found {formatCount(m.actualMicros)} micros
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+      {error !== null && (
+        <p role="alert" className="text-sm text-danger">
+          {errorMessage(error)}
+        </p>
+      )}
+      {result && (
+        <div
+          role={balanced ? 'status' : 'alert'}
+          data-ledger={balanced ? 'balanced' : 'mismatch'}
+          className={`rounded-md px-4 py-3 text-sm ${balanced ? 'bg-positive-tint text-positive' : 'bg-danger-tint text-danger'}`}
+        >
+          <p className="font-medium">
+            Sum = <span data-sum-micros="">{formatCount(result.sumMicros)}</span> micros (
+            <Money micros={result.sumMicros} />) across {formatCount(result.accountsChecked)}{' '}
+            account{result.accountsChecked === 1 ? '' : 's'}.{' '}
+            {balanced
+              ? 'The ledger balances.'
+              : `${formatCount(result.mismatches.length)} mismatch${result.mismatches.length === 1 ? '' : 'es'}.`}
+          </p>
+          {!balanced && result.mismatches.length > 0 && (
+            <ul className="mt-2 list-disc space-y-0.5 pl-5">
+              {result.mismatches.map((m, i) => (
+                <li key={i}>
+                  {m.check}
+                  {typeof m.accountId === 'string' ? ` ${m.accountId}` : ''}: expected{' '}
+                  {formatCount(m.expectedMicros)}, found {formatCount(m.actualMicros)} micros
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
@@ -604,18 +581,14 @@ function RunPayout({ client, onDone }: { client: ApiClient; onDone: () => void }
   const failed = result?.outcome === 'FAILED' || result?.outcome === 'NEEDS_RECONCILE';
 
   return (
-    <div className={ui.panel}>
-      <div className={`${ui.panelHead} items-center`}>
-        <div className="min-w-0 flex-1">
-          <h2 className={`${ui.panelTitle} flex flex-wrap items-center gap-2`}>
-            Run payout now
-            <span
-              className={`rounded-sm bg-warning-tint px-1.5 py-0.5 text-warning ${ui.caption} text-[10px]`}
-            >
-              Demo control
-            </span>
-          </h2>
-          <p className={ui.panelDesc}>
+    <div className="space-y-3 rounded-lg border border-line bg-surface p-5 shadow-card">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-warning">
+            Demo control
+          </p>
+          <h2 className="text-base font-semibold text-ink">Run payout now</h2>
+          <p className="text-sm text-muted">
             Pays every publisher over the $1 demo threshold via PayPal Payouts.
           </p>
         </div>
@@ -628,60 +601,59 @@ function RunPayout({ client, onDone }: { client: ApiClient; onDone: () => void }
               setError(null);
               setConfirming(true);
             }}
-            className={ui.btnPrimary}
+            className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong"
           >
             Run payout now
           </button>
         )}
       </div>
-      {(confirming || error !== null || result) && (
-        <div className={`${ui.panelBody} space-y-3`}>
-          {confirming && (
-            <div className={`flex flex-wrap items-center gap-2 ${ui.notice.warning}`}>
-              <span className="flex-1">
-                This sends a PayPal sandbox payout batch now. Continue?
-              </span>
-              <button type="button" onClick={confirm} disabled={busy} className={ui.btnPrimary}>
-                {busy ? 'Sending…' : 'Pay out via PayPal'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                disabled={busy}
-                className={ui.btnSecondary}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-          {error !== null && (
-            <p role="alert" className="text-sm text-danger">
-              {errorMessage(error)}
+      {confirming && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-warning-tint px-4 py-3 text-sm text-warning">
+          <span className="flex-1">This sends a PayPal sandbox payout batch now. Continue?</span>
+          <button
+            type="button"
+            onClick={confirm}
+            disabled={busy}
+            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60"
+          >
+            {busy ? 'Sending…' : 'Pay out via PayPal'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            disabled={busy}
+            className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink disabled:opacity-60"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+      {error !== null && (
+        <p role="alert" className="text-sm text-danger">
+          {errorMessage(error)}
+        </p>
+      )}
+      {result && (
+        <div
+          role={failed ? 'alert' : 'status'}
+          data-outcome={result.outcome}
+          className={`rounded-md px-4 py-3 text-sm ${failed ? 'bg-danger-tint text-danger' : 'bg-info-tint text-info'}`}
+        >
+          <p>{runOutcomeLine(result)}</p>
+          {result.paypalBatchId && (
+            <p className="mt-1">
+              Batch <PayPalId id={result.paypalBatchId} label="PayPal payout batch id" />
             </p>
           )}
-          {result && (
-            <div
-              role={failed ? 'alert' : 'status'}
-              data-outcome={result.outcome}
-              className={failed ? ui.notice.danger : ui.notice.info}
-            >
-              <p>{runOutcomeLine(result)}</p>
-              {result.paypalBatchId && (
-                <p className="mt-1">
-                  Batch <PayPalId id={result.paypalBatchId} label="PayPal payout batch id" />
-                </p>
-              )}
-              {result.items.length > 0 && (
-                <ul className="mt-1 space-y-0.5">
-                  {result.items.map((i) => (
-                    <li key={i.id}>
-                      <code className="font-mono text-xs">{i.publisherId.slice(0, 8)}…</code>{' '}
-                      <Money cents={i.netCents} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          {result.items.length > 0 && (
+            <ul className="mt-1 space-y-0.5">
+              {result.items.map((i) => (
+                <li key={i.id}>
+                  <code className="font-mono text-xs">{i.publisherId.slice(0, 8)}…</code>{' '}
+                  <Money cents={i.netCents} />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
@@ -691,15 +663,13 @@ function RunPayout({ client, onDone }: { client: ApiClient; onDone: () => void }
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-[1120px] space-y-6" data-screen="W14">
-      <header>
-        <h1 className={ui.pageTitle}>
-          Admin / <span className={ui.accentWord}>audit</span>
-        </h1>
-        <p className={ui.pageLede}>
+    <div className="mx-auto max-w-6xl space-y-6 px-6 py-8" data-screen="W14">
+      <div>
+        <h1 className="text-2xl font-semibold text-ink">Admin / audit</h1>
+        <p className="text-sm text-muted">
           Find any money event by its PayPal id and prove the ledger balances.
         </p>
-      </header>
+      </div>
       {children}
     </div>
   );

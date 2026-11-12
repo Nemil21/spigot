@@ -1,14 +1,9 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { paths } from '../routes';
-import LandingPage, {
-  SAMPLE_RESPONSE,
-  STAT_SOURCE_URL,
-  STEPS,
-  sampleRequest,
-} from './Landing';
+import LandingPage, { STAT_SOURCE_URL, STEPS, sampleRequest } from './Landing';
 
 function setup() {
   const router = createMemoryRouter(
@@ -27,14 +22,9 @@ describe('W01 Landing (SP-057)', () => {
   it('shows the hero, pitch line and sourced stat', () => {
     setup();
     expect(
-      screen.getByRole('heading', {
-        level: 1,
-        name: 'Turn your site into a paid API for AI agents',
-      }),
+      screen.getByRole('heading', { level: 1, name: 'Make AI bots pay for your site.' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('Scrapers pay Bright Data. Spigot makes them pay you.'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View demo' })).toHaveAttribute('href', paths.login);
     expect(screen.getByText('1 AI bot for every 31 human visits')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Source: TollBit/ })).toHaveAttribute(
       'href',
@@ -60,7 +50,7 @@ describe('W01 Landing (SP-057)', () => {
 
   it('lists the 4 how-it-works steps in order', () => {
     setup();
-    const how = screen.getByRole('region', { name: 'How it works' });
+    const how = screen.getByRole('list', { name: 'How it works' });
     const steps = within(how)
       .getAllByRole('heading', { level: 3 })
       .map((h) => h.textContent);
@@ -80,40 +70,19 @@ describe('W01 Landing (SP-057)', () => {
     expect(screen.getAllByText('$1.50 / 1,000 records').length).toBeGreaterThan(0);
   });
 
-  it('gives agents an MCP config and sample JSON that parse', () => {
+  it('shows agents a paid REST call and what it charged', () => {
     setup();
-    const agents = screen.getByRole('region', { name: 'For agents' });
-    expect(
-      within(agents).getByRole('heading', { level: 3, name: 'Claude Desktop (MCP)' }),
-    ).toBeInTheDocument();
-    expect(agents).toHaveTextContent('Add to claude_desktop_config.json with your API key.');
-    const config = JSON.parse(within(agents).getByLabelText('MCP config').textContent ?? '');
-    expect(config.mcpServers.spigot.args).toContain(`${window.location.origin}/mcp`);
-    const sample = JSON.parse(
-      within(agents).getByLabelText('Sample JSON response').textContent ?? '',
-    );
-    expect(sample).toEqual(JSON.parse(SAMPLE_RESPONSE));
-    expect(sample.charged).toEqual({ records: 37, priceMicros: 55500 });
+    const agents = screen.getByRole('region', { name: 'Typed records, not HTML.' });
+    expect(within(agents).getByLabelText('Sample request').textContent).toBe(sampleRequest());
     expect(within(agents).getByText('$0.0555 charged')).toBeInTheDocument();
   });
 
-  it('switches the agent code card between MCP and REST tabs', async () => {
+  it('has pricing and a footer', () => {
     setup();
-    const agents = screen.getByRole('region', { name: 'For agents' });
-    const rest = within(agents).getByRole('tab', { name: 'REST API' });
-    expect(within(agents).getByRole('tab', { name: 'Claude Desktop (MCP)' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    expect(within(agents).getByLabelText('Sample request')).not.toBeVisible();
-    await userEvent.click(rest);
-    expect(rest).toHaveAttribute('aria-selected', 'true');
-    expect(within(agents).getByLabelText('Sample request')).toBeVisible();
-    expect(within(agents).getByLabelText('MCP config')).not.toBeVisible();
-    await userEvent.keyboard('{ArrowLeft}');
-    expect(within(agents).getByRole('tab', { name: 'Claude Desktop (MCP)' })).toHaveFocus();
-    await userEvent.keyboard('{End}');
-    expect(rest).toHaveAttribute('aria-selected', 'true');
+    const pricing = screen.getByRole('region', { name: 'You set the price. Spigot takes 20%.' });
+    expect(within(pricing).getByText('20%')).toBeInTheDocument();
+    expect(within(pricing).getByText('$5')).toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('© 2026 Spigot');
   });
 
   it('builds the sample request on this origin with bracket filters', () => {
@@ -121,5 +90,52 @@ describe('W01 Landing (SP-057)', () => {
       '"https://spigot.example/v1/bluebonnet/datasets/listings/records?city=Austin&bedrooms[gte]=3&limit=50"',
     );
     expect(sampleRequest('https://spigot.example')).toMatch(/^curl -g /);
+  });
+
+  describe('nav auth', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
+
+    it('says Sign in when nobody is signed in', async () => {
+      vi.stubGlobal('fetch', async () => json(401, { error: { code: 'UNAUTHENTICATED' } }));
+      setup();
+      expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute(
+        'href',
+        paths.login,
+      );
+    });
+
+    it('says Sign out when signed in, and signing out logs out and flips back', async () => {
+      const posts: string[] = [];
+      vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+        if (init?.method === 'POST') {
+          posts.push(url);
+          return json(200, { ok: true });
+        }
+        return json(200, {
+          publisher: {
+            id: 'p1',
+            name: 'Pub',
+            email: 'p@x.example',
+            payoutEmail: 'p@x.example',
+            isDemo: false,
+          },
+          buyer: null,
+          isAdmin: false,
+        });
+      });
+      setup();
+      await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+      expect(posts).toEqual(['/api/auth/logout']);
+      expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+    });
+  });
+
+  it('the logo goes home', () => {
+    setup();
+    expect(screen.getAllByRole('link', { name: /Spigot/ })[0]).toHaveAttribute(
+      'href',
+      paths.landing,
+    );
   });
 });

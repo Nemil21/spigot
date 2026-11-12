@@ -18,7 +18,7 @@ const BUYER_PAGES: [path: string, title: string][] = [
 
 /** Screens that replaced their stub: path → `data-screen`, heading and a landmark of the real page. */
 const BUILT: [path: string, screen: string, title: string, landmark: string][] = [
-  ['/', 'W01', 'Turn your site into a paid API for AI agents', 'main'], // SP-057
+  ['/', 'W01', 'Make AI bots pay for your site.', 'main'], // SP-057
   ['/app/settings', 'W16', 'Settings', 'tablist'], // SP-034
   // SP-031; this test has no payouts API, so W09 shows its inline error banner.
   ['/app/payouts', 'W09', 'Payouts', 'alert'],

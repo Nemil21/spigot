@@ -19,8 +19,6 @@ import {
   type PublisherPayouts,
   type RunResult,
 } from './payouts/model';
-import { PAGE, PageHeader, Panel } from './Panel';
-import { LABEL } from '../theme/label';
 
 export const EVENTS_URL = '/api/publishers/me/events';
 /** While an item is Sent (PENDING) the page re-reads every 15 s, in case an SSE event is missed. */
@@ -181,12 +179,12 @@ export function PayoutsScreen({
       <section
         aria-label="Next payout"
         aria-busy={!ready || undefined}
-        className="flex flex-wrap items-stretch justify-between gap-5 rounded-lg border border-line bg-surface p-5 sm:p-6"
+        className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] border border-accent/30 bg-gradient-to-r from-accent/18 to-positive/6 p-7 shadow-card"
       >
         <div className="min-w-0">
           {ready ? (
             <p
-              className="text-balance text-lg font-semibold tracking-tight text-ink tabular-nums sm:text-xl"
+              className="font-[family-name:var(--font-display)] text-2xl tracking-tight text-ink tabular-nums"
               data-next-payout=""
             >
               {nextPayoutLine(data.next)}
@@ -194,14 +192,11 @@ export function PayoutsScreen({
           ) : (
             <Skeleton className="h-6 w-96 max-w-full" />
           )}
-          <p className="mt-2 max-w-[70ch] text-sm leading-6 text-body">
+          <p className="mt-1 text-sm text-muted">
             Paid out via PayPal every Monday once you have{' '}
             {ready ? formatCents(data.next.thresholdCents) : '…'} payable. Change the PayPal email
             in{' '}
-            <Link
-              to={paths.settings}
-              className="font-medium text-accent underline-offset-2 hover:underline"
-            >
+            <Link to={paths.settings} className="text-accent hover:underline">
               Settings
             </Link>
             ; it applies to the next batch.
@@ -213,12 +208,14 @@ export function PayoutsScreen({
           )}
         </div>
         {ready && data.isDemo && (
-          <div className="flex flex-col items-start justify-center gap-2 rounded-lg border border-dashed border-warning/50 bg-warning-tint/40 px-4 py-3 sm:items-end">
-            <span className={`${LABEL} text-warning`}>Demo control</span>
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-warning">
+              Demo control
+            </span>
             <button
               type="button"
               onClick={openRun}
-              className={`h-8 rounded-md bg-accent px-3.5 ${LABEL} text-on-accent transition-colors hover:bg-accent-strong`}
+              className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong"
             >
               Run payout now
             </button>
@@ -229,7 +226,7 @@ export function PayoutsScreen({
       {notice && (
         <p
           role={notice.tone === 'danger' ? 'alert' : 'status'}
-          className={`rounded-lg px-4 py-3 text-sm ${
+          className={`rounded-md px-4 py-3 text-sm ${
             notice.tone === 'danger' ? 'bg-danger-tint text-danger' : 'bg-info-tint text-info'
           }`}
         >
@@ -240,7 +237,7 @@ export function PayoutsScreen({
       {ready && newest && <StatusBanner item={newest} />}
 
       {!ready ? (
-        <div aria-busy="true" className="rounded-lg border border-line bg-surface p-5">
+        <div aria-busy="true" className="rounded-lg border border-line bg-surface p-5 shadow-card">
           <SkeletonText lines={4} />
         </div>
       ) : data.batches.length === 0 ? (
@@ -249,17 +246,11 @@ export function PayoutsScreen({
           action={{ label: 'See earnings', to: paths.earnings }}
         />
       ) : (
-        <Panel
-          title="PayPal payouts"
-          description="One row per weekly batch. Open a batch for its PayPal item, or its statement."
-          flush
-        >
-          <PayoutsGrid
-            batches={data.batches}
-            statements={statements?.items ?? {}}
-            onOpenStatement={openStatement}
-          />
-        </Panel>
+        <PayoutsGrid
+          batches={data.batches}
+          statements={statements?.items ?? {}}
+          onOpenStatement={openStatement}
+        />
       )}
 
       {running && data && (
@@ -286,7 +277,7 @@ export function PayoutsScreen({
 function StatusBanner({ item }: { item: PayoutItem }) {
   if (item.status === 'PENDING') {
     return (
-      <p role="status" className="rounded-lg bg-info-tint px-4 py-3 text-sm text-info">
+      <p role="status" className="rounded-md bg-info-tint px-4 py-3 text-sm text-info">
         <Money cents={item.netCents} /> sent via PayPal. Checking with PayPal; this flips to Paid
         out when it lands.
       </p>
@@ -295,7 +286,7 @@ function StatusBanner({ item }: { item: PayoutItem }) {
   if (item.status === 'UNCLAIMED') {
     const email = item.receiverEmail ?? 'your payout email';
     return (
-      <p role="alert" className="rounded-lg bg-warning-tint px-4 py-3 text-sm text-warning">
+      <p role="alert" className="rounded-md bg-warning-tint px-4 py-3 text-sm text-warning">
         {payoutUnclaimedMessage({ amountCents: item.netCents, payoutEmail: email })} Log in to
         PayPal with {email} to claim it.
       </p>
@@ -303,7 +294,7 @@ function StatusBanner({ item }: { item: PayoutItem }) {
   }
   if (item.status === 'FAILED' || item.status === 'RETURNED') {
     return (
-      <p role="alert" className="rounded-lg bg-danger-tint px-4 py-3 text-sm text-danger">
+      <p role="alert" className="rounded-md bg-danger-tint px-4 py-3 text-sm text-danger">
         {failureReason(item.errorCode)} <Money cents={item.netCents} /> is back in your payable
         balance; retrying next batch.
       </p>
@@ -314,8 +305,8 @@ function StatusBanner({ item }: { item: PayoutItem }) {
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className={PAGE} data-screen="W09">
-      <PageHeader title="Payouts" description="Your earnings, sent to you via PayPal Payouts." />
+    <div className="mx-auto max-w-6xl space-y-4 px-6 py-8" data-screen="W09">
+      <h1 className="text-2xl font-semibold text-ink">Payouts</h1>
       {children}
     </div>
   );

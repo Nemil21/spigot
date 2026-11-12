@@ -1,10 +1,8 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api as defaultApi, ApiError, type ApiClient } from '../api/client';
-import { buttonClass } from './Button';
 import { errorMessage } from './ErrorBanner';
-import { inputClass } from './Field';
-import { IconAlert, SpigotMark } from './icons';
+import { AuthBackdrop, Logo } from './Brand';
 
 export interface LoginFormProps {
   /** `/api/auth/login` (publishers) or `/api/buyer/login` (buyers), SP-007a. */
@@ -65,25 +63,21 @@ export function LoginForm({
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center bg-canvas px-4 py-10 sm:justify-center sm:py-16">
-      <div className="w-full max-w-[380px]">
-        <Link
-          to="/"
-          className="mx-auto mb-8 flex w-fit items-center gap-2 rounded-md text-md font-semibold tracking-tight text-ink"
-        >
-          <SpigotMark size={24} className="text-accent" />
-          Spigot
-        </Link>
+    <AuthBackdrop>
+      <div className="w-full max-w-sm">
+        <p className="mb-6 flex justify-center">
+          <Logo />
+        </p>
         <form
           onSubmit={onSubmit}
           noValidate
-          className="rounded-xl border border-line bg-surface p-6 shadow-raised sm:p-8"
+          className="rounded-[22px] border border-white/10 bg-surface/85 p-8 shadow-card backdrop-blur-xl"
           aria-describedby={error ? 'login-error' : undefined}
         >
           <h1 className="text-xl font-semibold text-ink">{title}</h1>
-          <p className="mt-1.5 text-base text-muted">{subtitle}</p>
+          <p className="mt-1 text-sm text-muted">{subtitle}</p>
 
-          <label className="mt-7 block text-sm font-medium text-ink" htmlFor="login-email">
+          <label className="mt-6 block text-sm font-medium text-ink" htmlFor="login-email">
             Email
           </label>
           <input
@@ -94,8 +88,7 @@ export function LoginForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            aria-invalid={error ? true : undefined}
-            className={`mt-1.5 ${inputClass}`}
+            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-2 focus:outline-focus"
           />
 
           <label className="mt-4 block text-sm font-medium text-ink" htmlFor="login-password">
@@ -109,17 +102,15 @@ export function LoginForm({
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            aria-invalid={error ? true : undefined}
-            className={`mt-1.5 ${inputClass}`}
+            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-2 focus:outline-focus"
           />
 
           {error && (
             <p
               id="login-error"
               role="alert"
-              className="mt-4 flex gap-2 rounded-md border border-danger/25 bg-danger-tint px-3 py-2.5 text-sm text-ink"
+              className="mt-4 rounded-md bg-danger-tint px-3 py-2 text-sm text-danger"
             >
-              <IconAlert size={15} className="mt-0.5 text-danger" />
               {error}
             </p>
           )}
@@ -127,22 +118,19 @@ export function LoginForm({
           <button
             type="submit"
             disabled={submitting}
-            className={buttonClass({ size: 'lg', className: 'mt-6 w-full' })}
+            className="mt-6 w-full rounded-md bg-accent px-3 py-2 font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60"
           >
             {submitting ? 'Logging in…' : 'Log in'}
           </button>
           {alternative}
         </form>
-        <p className="mt-6 text-center text-sm text-muted">
+        <p className="mt-4 text-center text-sm text-muted">
           New here?{' '}
-          <Link
-            className="font-medium text-accent underline-offset-4 hover:underline"
-            to={signUp.to}
-          >
+          <Link className="font-medium text-accent hover:underline" to={signUp.to}>
             {signUp.label}
           </Link>
         </p>
       </div>
-    </main>
+    </AuthBackdrop>
   );
 }

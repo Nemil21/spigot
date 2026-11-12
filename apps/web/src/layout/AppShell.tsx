@@ -1,28 +1,10 @@
-import { useEffect, useId, useRef, useState, type ComponentType } from 'react';
-import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
+import { useEffect, useId, useRef, useState } from 'react';
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { api } from '../api/client';
 import { ErrorBanner } from '../components/ErrorBanner';
-import {
-  IconActivity,
-  IconClose,
-  IconCrawls,
-  IconEarnings,
-  IconLogout,
-  IconMenu,
-  IconMoon,
-  IconOverview,
-  IconPayouts,
-  IconRecords,
-  IconSettings,
-  IconShield,
-  IconSun,
-  IconWallet,
-  SpigotMark,
-  type IconProps,
-} from '../components/icons';
-import { Page } from '../components/Page';
 import { Skeleton, SkeletonText } from '../components/Skeleton';
-import { paths, type NavItem } from '../routes';
+import { Logo } from '../components/Brand';
+import type { NavItem } from '../routes';
 import { setThemeMode, useThemeMode } from '../theme/mode';
 import type { SessionState } from './session';
 
@@ -38,33 +20,10 @@ export interface AppShellProps<T extends { name: string; email: string }> {
   badge?: (session: T) => string | null;
 }
 
-/** Nav icons by destination; anything unlisted gets the overview grid. */
-const NAV_ICON: Record<string, ComponentType<IconProps>> = {
-  [paths.overview]: IconOverview,
-  [paths.recordTypes]: IconRecords,
-  [paths.recordsBrowser]: IconRecords,
-  [paths.earnings]: IconEarnings,
-  [paths.payouts]: IconPayouts,
-  [paths.crawls]: IconCrawls,
-  [paths.settings]: IconSettings,
-  [paths.adminAudit]: IconShield,
-  [paths.buyerPortal]: IconWallet,
-  [paths.buyerUsage]: IconActivity,
-};
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return (
-    (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '')
-  ).toUpperCase();
-}
-
 /**
  * Left-nav shell shared by the publisher dashboard and the buyer portal. Pages render only once
  * the session is known, so they never fire API calls that would 401; signed-out visitors go to the
  * login page with `?next=` set to where they were.
- *
- * ≥ 1024 px: a fixed sidebar. Below that: a top bar whose menu button opens the same nav.
  */
 export function AppShell<T extends { name: string; email: string }>({
   area,
@@ -78,15 +37,11 @@ export function AppShell<T extends { name: string; email: string }>({
   const location = useLocation();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
+  // Below 1024 px the sidebar collapses to a top bar whose button opens the same nav.
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
-
   const menuButton = useRef<HTMLButtonElement>(null);
-
-  // A nav click on a phone closes the menu.
   useEffect(() => setMenuOpen(false), [location.pathname]);
-
-  // Escape closes the open menu and puts focus back on its toggle.
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -113,155 +68,119 @@ export function AppShell<T extends { name: string; email: string }>({
     }
   }
 
-  const badgeText = session.status === 'ready' ? (badge?.(session.session) ?? null) : null;
-
   return (
-    <div className="min-h-screen bg-canvas text-body lg:flex">
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:text-ink focus:shadow-overlay"
-      >
-        Skip to content
-      </a>
+    <div className="page-band min-h-screen bg-canvas text-body lg:flex">
       <nav
         aria-label={area}
-        className="sticky top-0 z-30 flex flex-col border-b border-line bg-surface lg:h-screen lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0"
+        className="sticky top-0 z-30 flex flex-col border-b border-white/8 bg-surface/90 backdrop-blur-xl lg:top-4 lg:m-4 lg:mr-0 lg:h-[calc(100vh-2rem)] lg:w-58 lg:shrink-0 lg:rounded-[20px] lg:border lg:bg-surface/80 lg:p-3 lg:pt-5"
       >
-        <div className="flex h-14 items-center justify-between gap-2 px-4 lg:px-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <Link
-              to={nav[0]?.to ?? '/'}
-              className="flex min-w-0 items-center gap-2 rounded-sm text-md font-semibold tracking-tight text-ink"
-            >
-              <SpigotMark size={22} className="text-accent" />
-              <span className="truncate">{brand}</span>
-            </Link>
-            <span className="label shrink-0 rounded-xs bg-accent-tint px-1.5 py-0.5 text-2xs text-accent-strong">
-              {area}
-            </span>
-          </div>
+        <div className="flex h-14 items-center justify-between px-4 lg:mb-6 lg:h-auto lg:px-2">
+          <Logo suffix={brand === 'Spigot' ? undefined : 'for agents'} />
           <button
             ref={menuButton}
             type="button"
-            className="grid size-8 place-items-center rounded-sm text-body hover:bg-surface-2 hover:text-ink lg:hidden"
+            className="grid size-9 place-items-center rounded-md text-body hover:bg-white/8 hover:text-ink lg:hidden"
             aria-expanded={menuOpen}
             aria-controls={menuId}
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setMenuOpen((o) => !o)}
           >
-            {menuOpen ? <IconClose /> : <IconMenu />}
+            <svg
+              aria-hidden="true"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+            >
+              <path d={menuOpen ? 'M6 6l12 12M18 6 6 18' : 'M4 7h16M4 12h16M4 17h16'} />
+            </svg>
           </button>
         </div>
-
         <div
           id={menuId}
-          className={`${menuOpen ? 'flex' : 'hidden'} max-h-[calc(100vh-3.5rem)] flex-1 flex-col overflow-y-auto border-t border-line lg:flex lg:max-h-none lg:border-t-0`}
+          className={`${menuOpen ? 'flex' : 'hidden'} max-h-[calc(100vh-3.5rem)] flex-1 flex-col overflow-y-auto px-3 pb-3 lg:flex lg:max-h-none lg:overflow-visible lg:px-0 lg:pb-0`}
         >
-          <ul className="space-y-0.5 px-2 py-3 lg:py-2">
-            {nav.map((item) => {
-              const Icon = NAV_ICON[item.to] ?? IconOverview;
-              return (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) =>
-                      `label group relative flex h-9 items-center gap-2.5 rounded-sm px-2.5 text-xs transition-colors duration-150 ${
-                        isActive
-                          ? 'bg-surface-2 text-ink before:absolute before:inset-y-2 before:-left-2 before:w-0.5 before:rounded-full before:bg-accent'
-                          : 'text-body hover:bg-surface-2/70 hover:text-ink'
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <Icon
-                          className={isActive ? 'text-accent' : 'text-muted group-hover:text-body'}
-                        />
-                        {item.label}
-                      </>
-                    )}
-                  </NavLink>
-                </li>
-              );
-            })}
+          <p className="mb-2 px-3 text-[11px] font-medium tracking-[0.1em] text-muted uppercase">
+            {area}
+          </p>
+          <ul className="space-y-0.5">
+            {nav.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-[10px] border px-3 py-2.5 text-sm ${isActive ? 'border-white/10 bg-white/8 font-medium text-ink [&>svg]:text-accent' : 'border-transparent text-body hover:bg-white/5 [&>svg]:opacity-60'}`
+                  }
+                >
+                  <NavIcon label={item.label} />
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
           </ul>
-
-          <div className="mt-auto border-t border-line p-3">
+          <div className="mt-auto space-y-3 rounded-[14px] border border-white/8 bg-white/4 p-3 text-sm">
             {session.status === 'ready' ? (
-              <div className="flex min-w-0 items-center gap-2.5 px-1">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <span
                   aria-hidden="true"
-                  className="grid size-8 shrink-0 place-items-center rounded-sm bg-ink font-mono text-2xs font-medium text-canvas"
+                  className="grid size-8.5 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-sim text-xs font-semibold text-on-accent"
                 >
                   {initials(session.session.name)}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-ink">{session.session.name}</p>
+                  <p className="truncate font-medium text-ink">{session.session.name}</p>
                   <p className="truncate text-xs text-muted">{session.session.email}</p>
                 </div>
               </div>
             ) : (
-              <div aria-hidden="true" className="flex items-center gap-2.5 px-1">
-                <Skeleton className="size-8" />
-                <span className="block">
-                  <Skeleton className="block h-3.5 w-28" />
-                  <Skeleton className="mt-1.5 block h-3 w-36" />
-                </span>
+              <div aria-hidden="true">
+                <Skeleton className="block h-4 w-28" />
+                <Skeleton className="mt-1 block h-3 w-36" />
               </div>
             )}
-            {badgeText && (
-              <p className="label mt-2.5 ml-1 inline-flex h-5 items-center rounded-xs border border-border px-1.5 text-2xs text-muted">
-                {badgeText}
+            {session.status === 'ready' && badge?.(session.session) && (
+              <p className="inline-block rounded-full bg-accent-tint px-2.5 py-0.5 text-xs font-medium text-accent">
+                {badge(session.session)}
               </p>
             )}
-            <div className="mt-3 flex items-center gap-1">
+            <div className="flex items-center justify-between border-t border-white/8 pt-3 text-xs">
               <ThemeToggle />
               <button
                 type="button"
                 onClick={logout}
                 disabled={loggingOut || session.status !== 'ready'}
-                className="label flex h-8 flex-1 items-center gap-2 rounded-sm px-2 text-2xs text-body transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-55"
+                className="text-muted hover:text-ink disabled:opacity-60"
               >
-                <IconLogout className="text-muted" />
                 Log out
               </button>
             </div>
           </div>
         </div>
       </nav>
-
-      <main
-        id="main"
-        tabIndex={-1}
-        className="min-w-0 flex-1 outline-none"
-        aria-busy={session.status === 'loading' || undefined}
-      >
+      <main className="min-w-0 flex-1" aria-busy={session.status === 'loading' || undefined}>
         {session.status === 'ready' ? (
-          <Outlet context={{ session: session.session }} />
+          <div key={location.pathname} className="page-in">
+            <Outlet context={{ session: session.session }} />
+          </div>
         ) : session.status === 'error' ? (
-          <Page width="narrow">
+          <div className="mx-auto max-w-3xl px-6 py-10">
             <ErrorBanner
               title="We couldn't load your account."
               error={session.error}
               onRetry={session.retry}
             />
-          </Page>
+          </div>
         ) : (
-          <Page>
-            <div>
-              <Skeleton className="block h-7 w-48" />
-              <Skeleton className="mt-3 block h-4 w-80 max-w-full" />
+          <div className="mx-auto max-w-3xl px-6 py-10">
+            <Skeleton className="block h-7 w-48" />
+            <div className="mt-6">
+              <SkeletonText lines={4} />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {Array.from({ length: 4 }, (_, i) => (
-                <Skeleton key={i} className="block h-[88px] w-full rounded-lg" />
-              ))}
-            </div>
-            <div className="rounded-lg border border-line bg-surface p-5">
-              <SkeletonText lines={5} />
-            </div>
-          </Page>
+          </div>
         )}
       </main>
     </div>
@@ -276,10 +195,51 @@ function ThemeToggle() {
       type="button"
       onClick={() => setThemeMode(next)}
       aria-label={`Switch to ${next} theme`}
-      title={`Switch to ${next} theme`}
-      className="grid size-8 shrink-0 place-items-center rounded-sm text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+      className="block text-muted hover:text-ink"
     >
-      {mode === 'dark' ? <IconSun /> : <IconMoon />}
+      {mode === 'dark' ? 'Light theme' : 'Dark theme'}
     </button>
+  );
+}
+
+function initials(name: string | null | undefined): string {
+  return (name ?? '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
+}
+
+/** Line icons for the nav, keyed by label (Figma sidebar). Unknown labels get none. */
+const ICON_PATHS: Record<string, string> = {
+  Overview: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
+  'Record types': 'm12 2 9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5',
+  Records: 'M3 4h18v16H3zM3 10h18M3 15h18M9 4v16',
+  Earnings: 'm3 17 6-6 4 4 8-8M15 7h6v6',
+  Payouts: 'M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15v13H5a2 2 0 0 1-2-2V5',
+  Crawls: 'M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5',
+  Settings: 'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1',
+  'Balance and keys': 'M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15v13H5a2 2 0 0 1-2-2V5',
+  Usage: 'M22 12h-4l-3 9L9 3l-3 9H2',
+};
+
+function NavIcon({ label }: { label: string }) {
+  const d = ICON_PATHS[label];
+  if (!d) return null;
+  return (
+    <svg
+      aria-hidden="true"
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={d} />
+    </svg>
   );
 }

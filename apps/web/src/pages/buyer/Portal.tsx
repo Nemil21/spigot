@@ -16,7 +16,6 @@ import { ClaudeConfig } from '../../components/buyer/ClaudeConfig';
 import { PayPalTopUp } from '../../components/buyer/PayPalTopUp';
 import type { LoadPayPalSdk, PayPalConfig } from '../../components/buyer/paypalSdk';
 import { TopupsTable, type TopupRowView } from '../../components/buyer/TopupsTable';
-import * as ui from '../../components/buyer/ui';
 import { AutoTopupCard } from './AutoTopupCard';
 
 interface PortalData {
@@ -147,9 +146,11 @@ export function BuyerPortal({
       {returnedTopupId && params.get('ok') === '1' && ready && (
         <p
           role="status"
-          className={
-            returned && returned.status === 'COMPLETED' ? ui.notice.positive : ui.notice.info
-          }
+          className={`rounded-md px-4 py-3 text-sm ${
+            returned && returned.status === 'COMPLETED'
+              ? 'bg-positive-tint text-positive'
+              : 'bg-info-tint text-info'
+          }`}
         >
           {returned && returned.status === 'COMPLETED'
             ? `${formatCents(returned.amountCents)} added via PayPal.`
@@ -159,33 +160,32 @@ export function BuyerPortal({
         </p>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-12">
-        <div className="space-y-6 lg:col-span-5">
-          <BalanceHero balanceMicros={ready ? data.balanceMicros : null}>
-            {isEmpty && (
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-body">
-                  Your balance is empty. Add funds so your agent can pay for data, call by call.
-                </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    topupRef.current?.scrollIntoView({ behavior: smoothScroll(), block: 'center' })
-                  }
-                  className={ui.btnPrimary}
-                >
-                  {TOP_UP_WITH_PAYPAL}
-                </button>
-              </div>
-            )}
-          </BalanceHero>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <BalanceHero balanceMicros={ready ? data.balanceMicros : null} />
+          {isEmpty && (
+            <div className="rounded-lg border border-dashed border-border bg-surface px-5 py-4">
+              <p className="text-body">
+                Your balance is empty. Add funds so your agent can pay for data, call by call.
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  topupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }
+                className="mt-3 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong"
+              >
+                {TOP_UP_WITH_PAYPAL}
+              </button>
+            </div>
+          )}
           {/* SP-047b: threshold, amount, monthly cap, saved method, remaining this month,
               and the cap-reached / declined banners (W15). */}
           <AutoTopupCard client={client} reloadToken={autoTopupReload} />
         </div>
-        <div ref={topupRef} className="lg:col-span-7">
+        <div ref={topupRef} className="space-y-4">
           {ready ? (
-            <div className={`${ui.panel} divide-y divide-line`}>
+            <>
               <PayPalTopUp
                 config={data.paypal}
                 client={client}
@@ -202,7 +202,7 @@ export function BuyerPortal({
                 onChanged={refreshTopups}
                 {...(loadCardSdk ? { loadSdk: loadCardSdk } : {})}
               />
-            </div>
+            </>
           ) : (
             <CardSkeleton />
           )}
@@ -235,22 +235,10 @@ export function BuyerPortal({
   );
 }
 
-const smoothScroll = (): ScrollBehavior =>
-  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    ? 'auto'
-    : 'smooth';
-
 function PortalFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto max-w-[1120px] space-y-6">
-      <header>
-        <h1 className={ui.pageTitle}>
-          Balance and <span className={ui.accentWord}>keys</span>
-        </h1>
-        <p className={ui.pageLede}>
-          Fund your agent with PayPal, issue API keys and connect Claude.
-        </p>
-      </header>
+    <div className="mx-auto max-w-5xl space-y-4 px-6 py-8">
+      <h1 className="text-2xl font-semibold text-ink">Balance and keys</h1>
       {children}
     </div>
   );
@@ -258,7 +246,7 @@ function PortalFrame({ children }: { children: ReactNode }) {
 
 function CardSkeleton() {
   return (
-    <div aria-busy="true" className={`${ui.panel} ${ui.panelBody}`}>
+    <div aria-busy="true" className="rounded-lg border border-line bg-surface p-5 shadow-card">
       <SkeletonText lines={3} />
     </div>
   );
