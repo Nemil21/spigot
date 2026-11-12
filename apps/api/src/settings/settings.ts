@@ -8,7 +8,7 @@ import {
 import { audit } from '../audit/audit.js';
 import { emailField, nameField } from '../auth/credentials.js';
 import type { PublisherAccount } from '../auth/publisherAuth.js';
-import { crawlKeyHash, deriveCrawlKey } from '../crawl/crawlKey.js';
+import { crawlKeyHash, deriveCrawlKey, sentCrawlKeyVersionSql } from '../crawl/crawlKey.js';
 import type { Db } from '../db/index.js';
 import { bumpPolicyVersion, DEFAULT_DECISIONS, isValidRegex } from '../gate/policy.js';
 import { ApiError } from '../http/errors.js';
@@ -28,7 +28,9 @@ import { generateGateKey, sha256Hex } from '../sites/keys.js';
  * - **Keys**: rotate the gate key (new random `gk_…`, old hash replaced: the installed gate gets
  *   401s and fails open until the owner sets the new key) or the crawl key (bump
  *   `crawl_key_version`, store the new derived key's hash, bump the policy so the gate swaps
- *   `crawlKeySha256` on its next refresh). The new key is returned once and never stored.
+ *   `crawlKeySha256` on its next refresh). The new key is returned once and never stored. The
+ *   crawler keeps sending the key the gate still holds until the gate has pulled the new policy
+ *   (crawl/crawlKey.ts `sentCrawlKeyVersionSql`), so it is never 402-ed in between.
  *
  * Every change is audited in its own transaction; publisher and site ids come from the session.
  */
@@ -233,9 +235,11 @@ export async function rotateSiteKey(
   return db.tx(async (tx) => {
     const site = await forPublisher(publisherId).get<{
       crawl_key_version: number;
+      sent_version: number;
       policy_version: number;
     }>(tx, 'sites', siteId, {
-      columns: 't.crawl_key_version, t.policy_version',
+      columns: `t.crawl_key_version, ${sentCrawlKeyVersionSql('t')} AS sent_version,
+                t.policy_version`,
       forUpdate: true,
     });
 
@@ -252,13 +256,16 @@ export async function rotateSiteKey(
     } else {
       const version = site.crawl_key_version + 1;
       key = deriveCrawlKey(siteId, crawlSecret, version);
-      await tx.query(
-        `UPDATE sites SET crawl_key_version = $2, crawl_key_hash = $3, updated_at = now()
-          WHERE id = $1`,
-        [siteId, version, crawlKeyHash(key)],
-      );
       // The gate holds the crawl key's hash in its policy: a new ETag makes it re-read.
       policyVersion = await bumpPolicyVersion(tx, siteId);
+      // Until the gate pulls `policyVersion`, the crawler keeps sending the key the gate holds
+      // now: the one it was sending before this rotation (unchanged by a second rotation in a row).
+      await tx.query(
+        `UPDATE sites SET crawl_key_version = $2, crawl_key_hash = $3, crawl_key_prev_version = $4,
+                          crawl_key_rotated_policy_version = $5, updated_at = now()
+          WHERE id = $1`,
+        [siteId, version, crawlKeyHash(key), site.sent_version, policyVersion],
+      );
       data = { kind, crawlKeyVersion: version, policyVersion };
     }
     await audit(tx, {

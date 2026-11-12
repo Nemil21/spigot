@@ -596,8 +596,9 @@ const KEY_COPY: Record<
     env: 'SPIGOT_CRAWL_KEY',
     what: 'Our crawler sends it so your gate lets it through.',
     confirm:
-      'The old key stops being recognised. Your gate picks up the new one by itself within 60 seconds.',
-    after: 'Nothing to change on your server: your gate picks it up within 60 seconds.',
+      'Your gate picks up the new key by itself within 60 seconds; from then on the old key is no longer recognised. Our crawler switches over once your gate has it, so it is never turned away in between.',
+    after:
+      'Nothing to change on your server: your gate picks it up within 60 seconds, and our crawler switches to it then.',
   },
 };
 

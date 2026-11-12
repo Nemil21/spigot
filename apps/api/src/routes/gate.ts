@@ -37,6 +37,13 @@ const gateRoutes: FastifyPluginAsync = async (app) => {
     const site = requireGateSite(req);
     const etag = etagOf(site.policyVersion);
     reply.header('etag', etag).header('cache-control', 'no-cache');
+    // SP-034: the gate now holds this version (served now, or a 304 for the one it has), so the
+    // crawler may switch to a rotated crawl key whose hash it carries (crawl/crawlKey.ts).
+    await app.db.pool.query(
+      `UPDATE sites SET gate_policy_version_seen = $2
+        WHERE id = $1 AND (gate_policy_version_seen IS NULL OR gate_policy_version_seen < $2)`,
+      [site.id, site.policyVersion],
+    );
     if (matchesEtag(req.headers['if-none-match'], etag)) return reply.code(304).send();
     return buildGatePolicy(app.db.pool, { appBaseUrl: app.config.APP_BASE_URL }, site);
   });

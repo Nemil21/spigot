@@ -141,7 +141,10 @@ describe.skipIf(!testDatabaseUrl)('SP-034 W16 settings (Postgres)', { timeout: 3
   }
 
   /** A publisher (through signup) with one READY site; the site row is a fixture with fresh keys. */
-  async function newSite(gatedPaths: string[] = ['^/listings/']): Promise<Site> {
+  async function newSite(
+    gatedPaths: string[] = ['^/listings/'],
+    decisions: Record<string, string> = {},
+  ): Promise<Site> {
     const { publisherId, cookie } = await newPublisher();
     const id = randomUUID();
     const slug = `site-${id.slice(0, 8)}`;
@@ -165,6 +168,7 @@ describe.skipIf(!testDatabaseUrl)('SP-034 W16 settings (Postgres)', { timeout: 3
           AI_AGENT: 'QUOTE',
           SCRAPER_TOOL: 'QUOTE',
           UNKNOWN: 'PASS',
+          ...decisions,
           gated_paths: gatedPaths,
         }),
       ],
@@ -352,15 +356,13 @@ describe.skipIf(!testDatabaseUrl)('SP-034 W16 settings (Postgres)', { timeout: 3
 
   // -------------------------------------------------------------------------------------------
   describe('POST /api/sites/:id/keys/rotate', () => {
+    type Seen = { path: string; key?: string; decision: string; botName: string };
+
     /**
-     * A stub origin for the crawler: every request goes through the gate's `classify` with the
-     * gate's current policy (what the middleware would decide), and the decision is recorded.
+     * A stub origin behind the gate: every request goes through the gate's `classify` with the
+     * gate's current policy, as the middleware would, and a QUOTE is answered with a 402.
      */
-    function gatedOrigin(
-      site: Site,
-      gate: PolicyRefresher,
-      seen: { path: string; key?: string; decision: string; botName: string }[],
-    ) {
+    function gatedOrigin(site: Site, gate: PolicyRefresher, seen: Seen[]) {
       return async (
         url: string,
         opts: { headers?: Record<string, string> },
@@ -376,15 +378,21 @@ describe.skipIf(!testDatabaseUrl)('SP-034 W16 settings (Postgres)', { timeout: 3
           decision: r.decision,
           botName: r.botName,
         });
-        const body =
-          u.pathname === '/sitemap.xml'
+        const quoted = r.decision === 'QUOTE';
+        const body = quoted
+          ? '{"error":{"code":"PAYMENT_REQUIRED"}}'
+          : u.pathname === '/sitemap.xml'
             ? `<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${site.origin}/listings/1</loc></url></urlset>`
             : '<html><body>listing</body></html>';
         return {
           url,
-          status: 200,
+          status: quoted ? 402 : 200,
           headers: {
-            'content-type': u.pathname === '/sitemap.xml' ? 'application/xml' : 'text/html',
+            'content-type': quoted
+              ? 'application/json'
+              : u.pathname === '/sitemap.xml'
+                ? 'application/xml'
+                : 'text/html',
           },
           body: Buffer.from(body),
           redirects: [],
@@ -393,15 +401,40 @@ describe.skipIf(!testDatabaseUrl)('SP-034 W16 settings (Postgres)', { timeout: 3
       };
     }
 
-    it('AC: crawl key → next crawl sends the new key, counted SPIGOT_CRAWLER after the refresh; the old key is not recognised', async () => {
-      const site = await newSite(['^/listings/']);
+    /** A real crawl of `site` (sitemap + /listings/1) through `gatedOrigin`. */
+    async function crawlThroughGate(site: Site, gate: PolicyRefresher) {
+      clearCrawlHooks();
+      resetHostQueues();
+      const seen: Seen[] = [];
+      const result = await crawlSite(
+        { siteId: site.id, trigger: 'MANUAL' },
+        {
+          db: createDb(pool),
+          crawlSecret: SECRET,
+          allowLocal: false,
+          appBaseUrl: 'http://spigot.test',
+          minGapMs: 0,
+          sleep: async () => {},
+          fetch: gatedOrigin(site, gate, seen),
+        },
+      );
+      const { rows } = await pool.query<{ pages_failed: number }>(
+        'SELECT pages_failed FROM crawl_runs WHERE id = $1',
+        [result.runId],
+      );
+      return { result, seen, pagesFailed: rows[0]!.pages_failed };
+    }
+
+    const crawlerUa = 'SpigotCrawler/1.0 (+http://spigot.test/crawler)';
+
+    it('AC: crawl key → the crawl after the gate refresh sends the new key, counted SPIGOT_CRAWLER; the old key is not recognised; no 402 in between', async () => {
+      // "Other bots" quoted: our crawler with a key the gate doesn't know would be 402-ed.
+      const site = await newSite(['^/listings/'], { UNKNOWN: 'QUOTE' });
       const gate = await startGate(site);
       const v1 = gate.current!.policy.policyVersion;
       const oldKey = deriveCrawlKey(site.id, SECRET);
       const crawlBot = (key: string) =>
-        ask(gate, 'SpigotCrawler/1.0 (+http://spigot.test/crawler)', '/listings/1', {
-          'x-spigot-key': key,
-        });
+        ask(gate, crawlerUa, '/listings/1', { 'x-spigot-key': key });
       expect(crawlBot(oldKey).decision).toBe('SPIGOT_CRAWLER');
 
       const res = await rotate(site.id, site.cookie, 'crawl');
@@ -418,34 +451,34 @@ describe.skipIf(!testDatabaseUrl)('SP-034 W16 settings (Postgres)', { timeout: 3
       expect(newKey).toMatch(/^ck_/);
       expect(newKey).not.toBe(oldKey);
       expect(newKey).toBe(deriveCrawlKey(site.id, SECRET, 2));
-      const row = await siteRow(site.id);
-      expect(row).toMatchObject({ crawl_key_version: 2, crawl_key_hash: crawlKeyHash(newKey) });
+      expect(await siteRow(site.id)).toMatchObject({
+        crawl_key_version: 2,
+        crawl_key_hash: crawlKeyHash(newKey),
+      });
+      // The gate hasn't refreshed yet: the new key means nothing to it (it would be 402-ed).
+      expect(crawlBot(newKey)).toMatchObject({ decision: 'QUOTE', category: 'UNKNOWN' });
 
-      // The gate picks up the new hash on its next refresh (≤ 60 s).
+      // A crawl before the gate's refresh keeps sending the key the gate still holds.
+      const before = await crawlThroughGate(site, gate);
+      expect(before.result.status).toBe('SUCCEEDED');
+      expect(before.pagesFailed).toBe(0);
+      expect(before.seen.map((x) => x.path)).toEqual(['/sitemap.xml', '/listings/1']);
+      for (const x of before.seen) {
+        expect(x).toMatchObject({ key: oldKey, decision: 'SPIGOT_CRAWLER' });
+      }
+
+      // The gate picks up the new hash on its next refresh (≤ 60 s)…
       await nextTick(gate, v1 + 1);
       expect(gate.current!.policy.wire.crawlKeySha256).toBe(crawlKeyHash(newKey));
       expect(crawlBot(oldKey).decision).not.toBe('SPIGOT_CRAWLER');
 
-      // The next real crawl derives the key for the new version.
-      clearCrawlHooks();
-      resetHostQueues();
-      const seen: { path: string; key?: string; decision: string; botName: string }[] = [];
-      const result = await crawlSite(
-        { siteId: site.id, trigger: 'MANUAL' },
-        {
-          db: createDb(pool),
-          crawlSecret: SECRET,
-          allowLocal: false,
-          appBaseUrl: 'http://spigot.test',
-          minGapMs: 0,
-          sleep: async () => {},
-          fetch: gatedOrigin(site, gate, seen),
-        },
-      );
-      expect(result.status).toBe('SUCCEEDED');
-      expect(seen.map((s) => s.path)).toEqual(['/sitemap.xml', '/listings/1']);
-      for (const s of seen) {
-        expect(s).toMatchObject({
+      // …and the next crawl sends the new key, counted as our crawler.
+      const after = await crawlThroughGate(site, gate);
+      expect(after.result.status).toBe('SUCCEEDED');
+      expect(after.pagesFailed).toBe(0);
+      expect(after.seen.map((x) => x.path)).toEqual(['/sitemap.xml', '/listings/1']);
+      for (const x of after.seen) {
+        expect(x).toMatchObject({
           key: newKey,
           decision: 'SPIGOT_CRAWLER',
           botName: 'SpigotCrawler',
@@ -455,6 +488,36 @@ describe.skipIf(!testDatabaseUrl)('SP-034 W16 settings (Postgres)', { timeout: 3
       const [a] = await auditRows(site.id, 'SITE_KEY_ROTATED');
       expect(a!.data).toEqual({ kind: 'crawl', crawlKeyVersion: 2, policyVersion: v1 + 1 });
       expect(JSON.stringify(a!.data)).not.toContain(newKey);
+    });
+
+    it('two rotations before the gate refreshes: the crawler keeps the key the gate holds, then jumps to the latest', async () => {
+      const site = await newSite(['^/listings/'], { UNKNOWN: 'QUOTE' });
+      const gate = await startGate(site);
+      const v1 = gate.current!.policy.policyVersion;
+      expect((await rotate(site.id, site.cookie, 'crawl')).status).toBe(200);
+      const second = await rotate(site.id, site.cookie, 'crawl');
+      expect(second.body.key).toBe(deriveCrawlKey(site.id, SECRET, 3));
+
+      const before = await crawlThroughGate(site, gate);
+      expect(before.pagesFailed).toBe(0);
+      for (const x of before.seen) {
+        expect(x).toMatchObject({
+          key: deriveCrawlKey(site.id, SECRET, 1),
+          decision: 'SPIGOT_CRAWLER',
+        });
+      }
+
+      await nextTick(gate, v1 + 2);
+      const after = await crawlThroughGate(site, gate);
+      expect(after.pagesFailed).toBe(0);
+      for (const x of after.seen) {
+        expect(x).toMatchObject({ key: second.body.key, decision: 'SPIGOT_CRAWLER' });
+      }
+      // Version 2 was never recognised by the gate and is not now.
+      expect(
+        ask(gate, crawlerUa, '/listings/1', { 'x-spigot-key': deriveCrawlKey(site.id, SECRET, 2) })
+          .decision,
+      ).toBe('QUOTE');
     });
 
     it('gate key → the new key pulls the policy, the old one gets 401', async () => {

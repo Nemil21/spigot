@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { transition, type Tx } from '../db/index.js';
-import { deriveCrawlKey } from './crawlKey.js';
+import { deriveCrawlKey, sentCrawlKeyVersionSql } from './crawlKey.js';
 import {
   CRAWL_DEFAULTS,
   crawlerUserAgent,
@@ -113,7 +113,7 @@ export async function fetchPage(
 
   const { rows } = await db.pool.query<PageRow>(
     `SELECT p.id, p.url, p.etag, p.content_hash, p.removed_at,
-            s.id AS site_id, s.crawl_key_version, s.origin, s.last_gate_seen_at, r.status AS run_status
+            s.id AS site_id, ${sentCrawlKeyVersionSql('s')} AS crawl_key_version, s.origin, s.last_gate_seen_at, r.status AS run_status
        FROM pages p
        JOIN sites s ON s.id = p.site_id
        JOIN crawl_runs r ON r.id = $2 AND r.site_id = s.id

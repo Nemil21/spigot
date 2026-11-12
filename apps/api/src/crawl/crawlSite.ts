@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import PQueue from 'p-queue';
 import { notify, transition, type Db } from '../db/index.js';
-import { deriveCrawlKey } from './crawlKey.js';
+import { deriveCrawlKey, sentCrawlKeyVersionSql } from './crawlKey.js';
 import { CRAWL_DEFAULTS, crawlerUserAgent, defaultCrawlDeps, type CrawlDeps } from './deps.js';
 import { fetchPage, type FetchPageResult } from './fetchPage.js';
 import { emitDiscoveryDone, emitPageChanged, emitRunFinished } from './hooks.js';
@@ -264,7 +264,11 @@ async function runCrawl(runId: string, siteId: string, deps: CrawlDeps): Promise
     origin: string;
     sitemap_url: string | null;
     crawl_key_version: number;
-  }>('SELECT origin, sitemap_url, crawl_key_version FROM sites WHERE id = $1', [siteId]);
+  }>(
+    `SELECT origin, sitemap_url, ${sentCrawlKeyVersionSql('s')} AS crawl_key_version
+       FROM sites s WHERE id = $1`,
+    [siteId],
+  );
   const site = siteRows[0]!;
 
   let sitemap;
