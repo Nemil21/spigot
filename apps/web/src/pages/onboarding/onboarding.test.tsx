@@ -56,7 +56,7 @@ function routeFetch(routes: Record<string, (init: RequestInit) => Response | Pro
   return vi.fn<FetchLike>(async (url, init) => {
     const key = `${init.method ?? 'GET'} ${url}`;
     const handler = routes[key];
-    if (!handler) return apiError(500, 'INTERNAL', `unexpected ${key}`);
+    if (!handler) return apiError(500, 'INTERNAL_ERROR', `unexpected ${key}`);
     return handler(init);
   });
 }
@@ -420,7 +420,7 @@ describe('W03 install + verify', () => {
               },
         );
       }
-      return apiError(500, 'INTERNAL', url);
+      return apiError(500, 'INTERNAL_ERROR', url);
     });
     renderAt(
       <InstallVerify
@@ -473,6 +473,34 @@ describe('W03 first crawl', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Start first crawl' }));
     await waitFor(() => expect(FakeEventSource.last?.url).toBe('/api/crawl-runs/live-1/events'));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('a failed start keeps its own reason on screen (no run yet)', async () => {
+    w03('fx-onboard-verified', {
+      'POST /api/sites/fx-onboard-verified/crawl': () =>
+        apiError(500, 'INTERNAL_ERROR', 'Spigot had a problem starting the crawl.'),
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Start first crawl' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Spigot had a problem starting the crawl.');
+    // Let any follow-up read settle: the reason must still be there, not the plain button.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByRole('alert')).toHaveTextContent('Spigot had a problem starting the crawl.');
+    expect(screen.getByRole('button', { name: 'Retry crawl' })).toBeInTheDocument();
+  });
+
+  it('a failed retry shows the new reason, not the old run error', async () => {
+    w03('fx-onboard-failed', {
+      'POST /api/sites/fx-onboard-failed/crawl': () =>
+        apiError(429, 'RATE_LIMITED', 'Too many crawl requests. Try again in a minute.'),
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry crawl' }));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Too many crawl requests.'),
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByRole('alert')).toHaveTextContent('Too many crawl requests.');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Your site returned 429');
   });
 
   it('crawling: progress bar from the run, then live SSE progress, then done → W05', async () => {
@@ -538,7 +566,7 @@ describe('W03 first crawl', () => {
     let n = 0;
     const fetch = vi.fn<FetchLike>(async () =>
       ++n === 1
-        ? apiError(503, 'INTERNAL', 'Try again soon.')
+        ? apiError(503, 'INTERNAL_ERROR', 'Try again soon.')
         : json(200, { ...connected, id: 's1', lastGateSeenAt: null }),
     );
     renderAt(

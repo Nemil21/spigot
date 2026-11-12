@@ -320,29 +320,31 @@ function Steps({
       pagesFailed: 0,
       error: null,
     });
+    let next: CrawlState;
     try {
       const { crawlRunId } = await client.post<{ crawlRunId: string }>(
         `${sitePath}/crawl`,
         { trigger: 'MANUAL' },
         { idempotencyKey: `w03-crawl-${crypto.randomUUID()}` },
       );
-      setCrawl({ kind: 'live', run: pending(crawlRunId) });
+      next = { kind: 'live', run: pending(crawlRunId) };
     } catch (err) {
       const liveId =
         err instanceof ApiError && err.code === 'CRAWL_IN_PROGRESS'
           ? (err.details.crawlRunId as string | undefined)
           : undefined;
-      setCrawl(
-        liveId
-          ? { kind: 'live', run: pending(liveId) }
-          : {
-              kind: 'failed',
-              run: prev.kind === 'failed' ? prev.run : null,
-              reason: errorMessage(err),
-            },
-      );
+      next = liveId
+        ? { kind: 'live', run: pending(liveId) }
+        : {
+            kind: 'failed',
+            run: prev.kind === 'failed' ? prev.run : null,
+            reason: errorMessage(err),
+          };
     }
-    void loadRuns();
+    crawlRef.current = next;
+    setCrawl(next);
+    // Fill in the run's counters; a failed request keeps its own reason on screen.
+    if (next.kind === 'live') void loadRuns();
   }
 
   const gateSeen = !!gate?.lastSeenAt;
