@@ -15,6 +15,7 @@ import type {
 } from '@modelcontextprotocol/sdk/types.js';
 import type { FastifyBaseLogger } from 'fastify';
 import type { ApiKeyScope } from '../auth/apiKeys.js';
+import type { Config } from '../config.js';
 import type { Db } from '../db/tx.js';
 import { ApiError } from '../http/errors.js';
 
@@ -24,6 +25,8 @@ export interface ToolDeps {
   /** `APP_BASE_URL`, for 402 links and terms URLs. */
   baseUrl: string;
   log: FastifyBaseLogger;
+  /** The app's validated config, for tools that call PayPal (`top_up`, SP-022b). */
+  config?: Config;
   /** Clock for the auto idempotency key's minute bucket (tests). */
   now?: () => Date;
 }
