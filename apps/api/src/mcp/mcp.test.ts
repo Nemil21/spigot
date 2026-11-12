@@ -1,8 +1,10 @@
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../http/errors.js';
 import { fromApiError, paidSummary } from './results.js';
-import { requestIds } from './server.js';
-import { idempotencyKeyFor, loadToolModules, type Caller } from './tools.js';
+import { createMcpServer, requestIds } from './server.js';
+import { idempotencyKeyFor, loadToolModules, type Caller, type ToolDeps } from './tools.js';
 import { matchCatalog } from './tools/catalog.js';
 
 const caller = (over: Partial<Caller> = {}): Caller => ({
@@ -106,5 +108,30 @@ describe('tool registry', () => {
     const modules = await loadToolModules();
     expect(modules.length).toBeGreaterThanOrEqual(2);
     for (const m of modules) expect(typeof m).toBe('function');
+  });
+});
+
+describe('tool annotations', () => {
+  it('marks the paid tools as not read-only and not idempotent, the free ones as read-only', async () => {
+    const server = createMcpServer(await loadToolModules(), {} as ToolDeps);
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverSide);
+    const client = new Client({ name: 'annotations', version: '1' });
+    await client.connect(clientSide);
+    const { tools } = await client.listTools();
+    const byName = Object.fromEntries(tools.map((t) => [t.name, t.annotations ?? {}]));
+    // Paid: a host must ask before spending the user's balance (no auto-approve).
+    for (const paid of ['search_records', 'get_changes']) {
+      expect(byName[paid]).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+      });
+    }
+    for (const free of ['list_datasets', 'describe_dataset', 'quote']) {
+      expect(byName[free]).toMatchObject({ readOnlyHint: true });
+    }
+    await client.close();
+    await server.close();
   });
 });

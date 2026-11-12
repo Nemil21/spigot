@@ -84,7 +84,14 @@ const register: ToolModule = (server, deps) => {
         idempotencyKey: idempotencyKeyInput,
       },
       outputSchema: recordsOutput,
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      // Not read-only: it debits the balance, so hosts must not auto-approve it. Not idempotent
+      // either: a retry without `idempotencyKey` is a new JSON-RPC id and a new charge.
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
     },
     async (args, extra) =>
       guard(deps.log, 'search_records', async () => {
@@ -150,7 +157,14 @@ const register: ToolModule = (server, deps) => {
         idempotencyKey: idempotencyKeyInput,
       },
       outputSchema: changesOutput,
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      // Not read-only: it debits the balance, so hosts must not auto-approve it. Not idempotent
+      // either: a retry without `idempotencyKey` is a new JSON-RPC id and a new charge.
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
     },
     async (args, extra) =>
       guard(deps.log, 'get_changes', async () => {
