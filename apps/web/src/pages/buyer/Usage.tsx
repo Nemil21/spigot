@@ -27,6 +27,13 @@ export interface UsageScreenProps {
 
 type Cell = ICellRendererParams<UsageRow>;
 
+/** Calls grid rows fit a two-line Charged cell ("$0.0555" over "$0.0015 credited"). */
+const GRID_ROW_PX = 52;
+const AUTO_HEIGHT_ROWS = 15;
+/** Cells centre vertically so one-line cells line up with the two-line Charged cell. */
+const CELL = { display: 'flex', alignItems: 'center' } as const;
+const CELL_END = { ...CELL, justifyContent: 'flex-end' } as const;
+
 /**
  * W12 Buyer usage & claims (screens.md §W12; features/07, 10; SP-050). Every call (time,
  * dataset, endpoint, records, charged, channel, replay flag) in AG Grid with "Load more" paging;
@@ -34,12 +41,6 @@ type Cell = ICellRendererParams<UsageRow>;
  * PayPal" with the allowed amount. States: empty, claim auto-credited, claim pending the
  * publisher, refund requested / completed.
  */
-/** Calls grid rows fit a two-line Charged cell ("$0.0555" over "$0.0015 credited"). */
-const GRID_ROW_PX = 52;
-const AUTO_HEIGHT_ROWS = 15;
-/** Cells centre vertically so one-line cells line up with the two-line Charged cell. */
-const CELL = { display: 'flex', alignItems: 'center' } as const;
-const CELL_END = { ...CELL, justifyContent: 'flex-end' } as const;
 
 export function UsageScreen({
   client = defaultApi,

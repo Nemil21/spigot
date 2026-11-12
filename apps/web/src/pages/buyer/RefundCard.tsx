@@ -183,7 +183,7 @@ export function RefundCard({
                       setAmount(e.target.value);
                       setSubmitError(null);
                     }}
-                    className={`${ui.input} w-32`}
+                    className={`${ui.input} max-w-32`}
                   />
                 </label>
                 <button type="submit" disabled={submitting} className={ui.btnPrimary}>
