@@ -200,6 +200,13 @@ describe('shared states', () => {
     expect(screen.getByRole('button', { name: 'Send' })).toHaveAttribute('type', 'submit');
   });
 
+  it('Button shows a shortcut hint without changing its accessible name', () => {
+    render(<Button shortcut="S">Settings</Button>);
+    const button = screen.getByRole('button', { name: 'Settings' });
+    expect(button).toHaveAttribute('aria-keyshortcuts', 'S');
+    expect(button.querySelector('kbd')).toHaveTextContent('S');
+  });
+
   it('Skeleton is hidden from assistive tech', () => {
     const { container } = render(<Skeleton />);
     expect(container.firstChild).toHaveAttribute('aria-hidden', 'true');

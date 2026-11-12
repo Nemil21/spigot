@@ -13,7 +13,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 
 const WIDTH = {
   narrow: 'max-w-3xl',
-  default: 'max-w-6xl',
+  default: 'max-w-[1120px]',
   wide: 'max-w-7xl',
   full: 'max-w-none',
 } as const;
@@ -81,7 +81,7 @@ export function Section({
       {(title || actions) && (
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            {title && <h2 className="text-md font-semibold text-ink">{title}</h2>}
+            {title && <h2 className="text-lg font-semibold text-ink">{title}</h2>}
             {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -93,7 +93,7 @@ export function Section({
 }
 
 /**
- * A surface: hairline border, soft shadow, 10 px radius. `padded={false}` for a card that holds a
+ * A surface: hairline border, 6 px radius, no lift. The header title is a mono label. `padded={false}` for a card that holds a
  * grid or a list edge to edge. Give it a `title` for a header row with a divider.
  */
 export function Card({
@@ -111,14 +111,11 @@ export function Card({
   padded?: boolean;
 }) {
   return (
-    <div
-      className={`min-w-0 rounded-lg border border-line bg-surface shadow-card ${className}`}
-      {...rest}
-    >
+    <div className={`min-w-0 rounded-lg border border-line bg-surface ${className}`} {...rest}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
           <div className="min-w-0">
-            {title && <h2 className="text-base font-semibold text-ink">{title}</h2>}
+            {title && <h2 className="label text-xs text-ink">{title}</h2>}
             {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}

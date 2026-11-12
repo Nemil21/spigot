@@ -128,17 +128,22 @@ export function AppShell<T extends { name: string; email: string }>({
         className="sticky top-0 z-30 flex flex-col border-b border-line bg-surface lg:h-screen lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0"
       >
         <div className="flex h-14 items-center justify-between gap-2 px-4 lg:px-4">
-          <Link
-            to={nav[0]?.to ?? '/'}
-            className="flex min-w-0 items-center gap-2.5 rounded-md text-md font-semibold tracking-tight text-ink"
-          >
-            <SpigotMark size={22} className="text-accent" />
-            <span className="truncate">{brand}</span>
-          </Link>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Link
+              to={nav[0]?.to ?? '/'}
+              className="flex min-w-0 items-center gap-2 rounded-sm text-md font-semibold tracking-tight text-ink"
+            >
+              <SpigotMark size={22} className="text-accent" />
+              <span className="truncate">{brand}</span>
+            </Link>
+            <span className="label shrink-0 rounded-xs bg-accent-tint px-1.5 py-0.5 text-2xs text-accent-strong">
+              {area}
+            </span>
+          </div>
           <button
             ref={menuButton}
             type="button"
-            className="grid size-8 place-items-center rounded-md text-body hover:bg-surface-2 hover:text-ink lg:hidden"
+            className="grid size-8 place-items-center rounded-sm text-body hover:bg-surface-2 hover:text-ink lg:hidden"
             aria-expanded={menuOpen}
             aria-controls={menuId}
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
@@ -161,9 +166,9 @@ export function AppShell<T extends { name: string; email: string }>({
                     to={item.to}
                     end={item.end}
                     className={({ isActive }) =>
-                      `group flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors duration-150 ${
+                      `label group relative flex h-9 items-center gap-2.5 rounded-sm px-2.5 text-xs transition-colors duration-150 ${
                         isActive
-                          ? 'bg-surface-2 font-medium text-ink'
+                          ? 'bg-surface-2 text-ink before:absolute before:inset-y-2 before:-left-2 before:w-0.5 before:rounded-full before:bg-accent'
                           : 'text-body hover:bg-surface-2/70 hover:text-ink'
                       }`
                     }
@@ -187,7 +192,7 @@ export function AppShell<T extends { name: string; email: string }>({
               <div className="flex min-w-0 items-center gap-2.5 px-1">
                 <span
                   aria-hidden="true"
-                  className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-tint text-xs font-semibold text-accent-strong"
+                  className="grid size-8 shrink-0 place-items-center rounded-sm bg-ink font-mono text-2xs font-medium text-canvas"
                 >
                   {initials(session.session.name)}
                 </span>
@@ -198,7 +203,7 @@ export function AppShell<T extends { name: string; email: string }>({
               </div>
             ) : (
               <div aria-hidden="true" className="flex items-center gap-2.5 px-1">
-                <Skeleton className="size-8 rounded-full" />
+                <Skeleton className="size-8" />
                 <span className="block">
                   <Skeleton className="block h-3.5 w-28" />
                   <Skeleton className="mt-1.5 block h-3 w-36" />
@@ -206,7 +211,7 @@ export function AppShell<T extends { name: string; email: string }>({
               </div>
             )}
             {badgeText && (
-              <p className="mt-2.5 ml-1 inline-flex h-5 items-center rounded-full border border-border px-2 text-2xs font-medium text-muted">
+              <p className="label mt-2.5 ml-1 inline-flex h-5 items-center rounded-xs border border-border px-1.5 text-2xs text-muted">
                 {badgeText}
               </p>
             )}
@@ -216,7 +221,7 @@ export function AppShell<T extends { name: string; email: string }>({
                 type="button"
                 onClick={logout}
                 disabled={loggingOut || session.status !== 'ready'}
-                className="flex h-8 flex-1 items-center gap-2 rounded-md px-2 text-sm text-body transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-55"
+                className="label flex h-8 flex-1 items-center gap-2 rounded-sm px-2 text-2xs text-body transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-55"
               >
                 <IconLogout className="text-muted" />
                 Log out
@@ -272,7 +277,7 @@ function ThemeToggle() {
       onClick={() => setThemeMode(next)}
       aria-label={`Switch to ${next} theme`}
       title={`Switch to ${next} theme`}
-      className="grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+      className="grid size-8 shrink-0 place-items-center rounded-sm text-muted transition-colors hover:bg-surface-2 hover:text-ink"
     >
       {mode === 'dark' ? <IconSun /> : <IconMoon />}
     </button>

@@ -1,4 +1,6 @@
 // Shared UI (SP-024b). Screens import from here: `import { Money, StatusPill } from '../components'`.
+export { Accent, Marker } from './Accent';
+export { Badge, type BadgeTone } from './Badge';
 export {
   Button,
   ButtonLink,

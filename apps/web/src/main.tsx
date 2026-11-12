@@ -5,6 +5,7 @@ import { createAppRouter } from './router';
 import { applyThemeMode } from './theme/mode';
 import '@fontsource-variable/instrument-sans/wght.css';
 import '@fontsource-variable/jetbrains-mono/wght.css';
+import '@fontsource/instrument-serif/latin-400-italic.css';
 import './theme/tokens.css';
 
 applyThemeMode();

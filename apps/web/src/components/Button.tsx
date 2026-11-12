@@ -1,30 +1,52 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Link, type LinkProps } from 'react-router';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
+export type ButtonVariant = 'primary' | 'dark' | 'secondary' | 'ghost' | 'danger' | 'link';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const BASE =
-  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium ' +
+  'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-sm ' +
   'transition-[background-color,border-color,color,box-shadow] duration-150 ' +
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ' +
   'disabled:pointer-events-none disabled:opacity-55 aria-disabled:pointer-events-none aria-disabled:opacity-55';
 
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-on-accent shadow-card hover:bg-accent-strong active:translate-y-px',
+  primary: 'label bg-accent text-on-accent hover:bg-accent-strong active:translate-y-px',
+  dark: 'label bg-ink text-canvas hover:bg-ink/85 active:translate-y-px',
   secondary:
-    'border border-border bg-surface text-ink shadow-card hover:border-muted/50 hover:bg-surface-2 active:translate-y-px',
-  ghost: 'text-body hover:bg-surface-2 hover:text-ink',
+    'label border border-border bg-surface text-ink hover:border-muted/60 hover:bg-surface-2 active:translate-y-px',
+  ghost: 'label text-body hover:bg-surface-2 hover:text-ink',
   danger:
-    'border border-border bg-surface text-danger shadow-card hover:border-danger/40 hover:bg-danger-tint active:translate-y-px',
-  link: 'text-accent underline-offset-4 hover:underline',
+    'label border border-border bg-surface text-danger hover:border-danger/40 hover:bg-danger-tint active:translate-y-px',
+  link: 'font-medium text-accent underline-offset-4 hover:underline',
 };
 
 const SIZE: Record<ButtonSize, string> = {
-  sm: 'h-7 px-2.5 text-sm',
-  md: 'h-8 px-3 text-sm',
-  lg: 'h-10 px-4 text-base',
+  sm: 'h-7 px-2.5 text-2xs',
+  md: 'h-8 px-3.5 text-xs',
+  lg: 'h-10 px-4 text-[13px]',
 };
+
+const CHIP: Record<ButtonVariant, string> = {
+  primary: 'bg-on-accent/20 text-on-accent',
+  dark: 'bg-canvas/20 text-canvas',
+  secondary: 'bg-surface-2 text-muted',
+  ghost: 'bg-surface-2 text-muted',
+  danger: 'bg-surface-2 text-muted',
+  link: 'bg-surface-2 text-muted',
+};
+
+/** A keyboard-shortcut hint inside a button ("S", "P"). Display only: wire the key yourself. */
+function ShortcutChip({ keys, variant = 'primary' }: { keys: string; variant?: ButtonVariant }) {
+  return (
+    <kbd
+      aria-hidden="true"
+      className={`-mr-1 rounded-xs px-1.5 py-px font-mono text-2xs font-normal normal-case ${CHIP[variant]}`}
+    >
+      {keys}
+    </kbd>
+  );
+}
 
 /**
  * Class string for a button-looking control, for when the element isn't `<Button>` (a `<Link>`,
@@ -44,6 +66,8 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: ButtonSize;
   /** Leading icon (an icon from ./icons). */
   icon?: ReactNode;
+  /** Keyboard-shortcut hint shown in a chip after the label, e.g. "S". */
+  shortcut?: string;
 };
 
 /** The one button. `type` defaults to "button" so it never submits a form by accident. */
@@ -51,15 +75,22 @@ export function Button({
   variant,
   size,
   icon,
+  shortcut,
   className,
   type = 'button',
   children,
   ...rest
 }: ButtonProps) {
   return (
-    <button type={type} className={buttonClass({ variant, size, className })} {...rest}>
+    <button
+      type={type}
+      className={buttonClass({ variant, size, className })}
+      aria-keyshortcuts={shortcut}
+      {...rest}
+    >
       {icon}
       {children}
+      {shortcut && <ShortcutChip keys={shortcut} variant={variant} />}
     </button>
   );
 }
@@ -69,14 +100,25 @@ export function ButtonLink({
   variant,
   size,
   icon,
+  shortcut,
   className,
   children,
   ...rest
-}: LinkProps & { variant?: ButtonVariant; size?: ButtonSize; icon?: ReactNode }) {
+}: LinkProps & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  icon?: ReactNode;
+  shortcut?: string;
+}) {
   return (
-    <Link className={buttonClass({ variant, size, className })} {...rest}>
+    <Link
+      className={buttonClass({ variant, size, className })}
+      aria-keyshortcuts={shortcut}
+      {...rest}
+    >
       {icon}
       {children}
+      {shortcut && <ShortcutChip keys={shortcut} variant={variant} />}
     </Link>
   );
 }

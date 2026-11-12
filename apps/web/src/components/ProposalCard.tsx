@@ -101,7 +101,7 @@ const BADGE_CLASS: Record<SourceBadge, string> = {
 function Badge({ children, className }: { children: string; className: string }) {
   return (
     <span
-      className={`inline-flex h-5 items-center whitespace-nowrap rounded-full px-2 text-xs font-medium ${className}`}
+      className={`label inline-flex h-5 items-center whitespace-nowrap rounded-xs px-1.5 text-2xs ${className}`}
     >
       {children}
     </span>
@@ -181,7 +181,7 @@ export function ProposalCard({
     <article
       aria-labelledby={headingId}
       data-dataset-id={p.datasetId}
-      className="rounded-lg border border-line bg-surface p-5 shadow-card sm:p-6"
+      className="rounded-lg border border-line bg-surface p-5 sm:p-6"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>

@@ -52,7 +52,7 @@ export function StatusPill(props: StatusPillProps) {
       : [topupStatusLabel(props.status), TOPUP_TONE[props.status]];
   return (
     <span
-      className={`inline-flex h-5 items-center gap-1.5 whitespace-nowrap rounded-full pr-2 pl-1.5 text-xs font-medium ${TONE_CLASS[tone]}`}
+      className={`label inline-flex h-5 items-center gap-1.5 whitespace-nowrap rounded-xs pr-1.5 pl-1.5 text-2xs ${TONE_CLASS[tone]}`}
       data-status={props.status}
       data-tone={tone}
     >

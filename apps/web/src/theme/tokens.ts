@@ -17,6 +17,7 @@ export const TOKEN_NAMES = [
   'accent',
   'accent-strong',
   'accent-tint',
+  'accent-key',
   'on-accent',
   'money',
   'money-tint',
@@ -47,6 +48,7 @@ export const tokens: Record<ThemeMode, Record<TokenName, string>> = {
     accent: '#0b6e75',
     'accent-strong': '#085a60',
     'accent-tint': '#e2f1f1',
+    'accent-key': '#c3e5e6',
     'on-accent': '#ffffff',
     money: '#8a5a00',
     'money-tint': '#fbf1dc',
@@ -74,6 +76,7 @@ export const tokens: Record<ThemeMode, Record<TokenName, string>> = {
     accent: '#3cc0c8',
     'accent-strong': '#7ad9de',
     'accent-tint': '#0e3135',
+    'accent-key': '#145257',
     'on-accent': '#03191b',
     money: '#f0b445',
     'money-tint': '#36280b',
@@ -99,5 +102,6 @@ export const chartPalette: Record<ThemeMode, readonly string[]> = {
 
 export const font = {
   sans: "'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  serif: "'Instrument Serif', ui-serif, Georgia, serif",
   mono: "'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
 } as const;

@@ -24,11 +24,11 @@ export function EmptyState({
 }) {
   const cls = buttonClass({ variant: 'primary', className: 'mt-5' });
   return (
-    <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-surface px-6 py-12 text-center">
-      <span className="grid size-10 place-items-center rounded-lg border border-line bg-surface-2 text-muted">
+    <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-surface px-6 py-14 text-center">
+      <span className="grid size-10 place-items-center rounded-md border border-line bg-surface-2 text-muted">
         {icon ?? <IconInbox size={18} />}
       </span>
-      {title && <p className="mt-4 text-md font-semibold text-ink">{title}</p>}
+      {title && <p className="mt-4 text-lg font-semibold text-ink">{title}</p>}
       <p className={`${title ? 'mt-1' : 'mt-4'} max-w-md text-base text-body`}>{message}</p>
       {action.to !== undefined ? (
         <Link className={cls} to={action.to}>
