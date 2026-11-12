@@ -143,17 +143,18 @@ export function autoTopupDeclinedMessage(args: { method?: 'CARD' | 'PAYPAL' } = 
 export const DATASET_UNPUBLISHED_MESSAGE = 'The owner stopped selling this data.';
 
 /**
- * Human age for freshness copy: "45 s", "12 min", "6 h", "3 d". Floors to the unit, so it never
- * says data is fresher than it is.
+ * Human duration: "45 s", "12 min", "6 h", "3 d". The unit is picked from the floored value, then
+ * the number is rounded within it:
+ *   - `floor` (default) for ages, so data never looks fresher than it is;
+ *   - `ceil` for waits, so we never promise something sooner than it happens (90 s → "2 min").
  */
-export function formatAge(ms: number): string {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  if (s < 60) return `${s} s`;
-  const min = Math.floor(s / 60);
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 48) return `${h} h`;
-  return `${Math.floor(h / 24)} d`;
+export function formatAge(ms: number, opts: { round?: 'floor' | 'ceil' } = {}): string {
+  const round = opts.round === 'ceil' ? Math.ceil : Math.floor;
+  const s = Math.max(0, ms) / 1000;
+  if (s < 60) return `${round(s)} s`;
+  if (s < 3600) return `${round(s / 60)} min`;
+  if (s < 48 * 3600) return `${round(s / 3600)} h`;
+  return `${round(s / 86_400)} d`;
 }
 
 /** Stale-data freshness badge: "Last good extract 6 h ago; the site changed layout." */
@@ -169,10 +170,10 @@ export function payoutUnclaimedMessage(args: { amountCents: number; payoutEmail:
   );
 }
 
-/** "Your site returned 429. We paused and will retry after 10 min." */
+/** "Your site returned 429. We paused and will retry after 10 min." Rounds the wait up. */
 export function crawlBlockedMessage(args: { httpStatus: number; retryAfterMs: number }): string {
   return (
     `Your site returned ${args.httpStatus}. ` +
-    `We paused and will retry after ${formatAge(args.retryAfterMs)}.`
+    `We paused and will retry after ${formatAge(args.retryAfterMs, { round: 'ceil' })}.`
   );
 }

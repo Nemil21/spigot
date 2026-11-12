@@ -86,6 +86,27 @@ describe('W15 copy (screens.md)', () => {
     ).toContain('return 1 record ($0.0015)');
   });
 
+  it('rounds a retry delay up, never promising an earlier retry', () => {
+    const msg = (ms: number) => crawlBlockedMessage({ httpStatus: 429, retryAfterMs: ms });
+    expect(msg(90_000)).toBe('Your site returned 429. We paused and will retry after 2 min.');
+    expect(msg(10 * 60_000)).toContain('after 10 min.');
+    expect(msg(59 * 60_000 + 59_000)).toContain('after 60 min.');
+    expect(msg(47.9 * 3_600_000)).toContain('after 48 h.');
+    expect(msg(1_500)).toContain('after 2 s.');
+  });
+
+  it.each([
+    [0, '0 s', '0 s'],
+    [1_500, '1 s', '2 s'],
+    [90_000, '1 min', '2 min'],
+    [3_599_999, '59 min', '60 min'],
+    [47.9 * 3_600_000, '47 h', '48 h'],
+    [50 * 3_600_000, '2 d', '3 d'],
+  ])('formatAge(%d) floors to %s and ceils to %s', (ms, floored, ceiled) => {
+    expect(formatAge(ms)).toBe(floored);
+    expect(formatAge(ms, { round: 'ceil' })).toBe(ceiled);
+  });
+
   it.each([
     [0, '0 s'],
     [59_999, '59 s'],
