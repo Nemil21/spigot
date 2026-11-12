@@ -3,12 +3,15 @@ import { useSearchParams } from 'react-router';
 import { api as defaultApi, ApiError, type ApiClient } from '../api/client';
 import { EmptyState, ErrorBanner, errorMessage, SkeletonText } from '../components';
 import type { AuthMe } from '../layout/session';
+import { PAYPAL_CONNECT, PayPalButton, PayPalNotice } from '../components/PayPalSignIn';
 import { paths } from '../routes';
 
 /**
  * W16 Settings (SP-034; screens.md §W16). Four tabs, `?tab=` in the URL:
  * - Account: name (`PATCH /api/publishers/me`).
- * - Payout: PayPal payout email; applies to the next batch. P1 "Connect with PayPal" slot (SP-058).
+ * - Payout: PayPal payout email; applies to the next batch. "Connect with PayPal" (SP-058) logs
+ *   in with PayPal and sets the payout email to the verified PayPal email; the callback comes
+ *   back to `?tab=payout&paypal=<reason>`.
  * - Gate policy: per-category Pass / Send to API and gated path regexes
  *   (`PATCH /api/sites/:id/policy`); the gate picks a change up within 60 s.
  * - Keys: rotate the gate or crawl key (`POST /api/sites/:id/keys/rotate`); the new key is shown
@@ -418,15 +421,37 @@ function PayoutTab({
           {f.saving ? 'Saving…' : 'Save'}
         </button>
       </form>
-      {/* P1 slot: SP-058 replaces this with Log in with PayPal. */}
-      <div className={cardCls} data-slot="connect-paypal">
-        <h3 className="font-medium text-ink">Connect with PayPal</h3>
+      <ConnectPayPalCard publisher={publisher} />
+    </div>
+  );
+}
+
+function ConnectPayPalCard({ publisher }: { publisher: Loaded['publisher'] }) {
+  const [params] = useSearchParams();
+  const connected = !!publisher.paypalConnected;
+  return (
+    <div className={cardCls} data-slot="connect-paypal">
+      <h3 className="font-medium text-ink">Connect with PayPal</h3>
+      {connected ? (
         <p className="mt-1 text-sm text-muted">
-          Verify your payout account by logging in with PayPal. Coming soon.
+          <span className="mr-2 inline-block rounded-full bg-positive-tint px-2 py-0.5 text-xs font-medium text-positive">
+            Connected
+          </span>
+          You can log in with PayPal. Reconnect to switch to another PayPal account; its verified
+          email becomes your payout email.
         </p>
-        <button type="button" disabled className={`mt-4 ${buttonCls}`}>
-          Connect with PayPal
-        </button>
+      ) : (
+        <p className="mt-1 text-sm text-muted">
+          Log in with PayPal once to verify your payout account: we set your payout email to your
+          PayPal account’s verified email, and you can log in with PayPal from then on.
+        </p>
+      )}
+      <PayPalNotice reason={params.get('paypal')} />
+      <div className="mt-4 max-w-xs">
+        <PayPalButton
+          href={PAYPAL_CONNECT}
+          label={connected ? 'Reconnect PayPal' : 'Connect with PayPal'}
+        />
       </div>
     </div>
   );

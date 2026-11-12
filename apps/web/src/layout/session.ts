@@ -10,6 +10,8 @@ export interface AuthMe {
     email: string;
     payoutEmail: string;
     isDemo: boolean;
+    /** Linked with Log in with PayPal (SP-058). */
+    paypalConnected?: boolean;
   } | null;
   buyer: { id: string; name: string; email: string } | null;
   isAdmin: boolean;

@@ -104,7 +104,7 @@ describe('W16 Settings', () => {
   });
 
   describe('Payout', () => {
-    it('saves the PayPal email; says it applies to the next batch; has the Connect with PayPal slot', async () => {
+    it('saves the PayPal email; says it applies to the next batch; links Connect with PayPal', async () => {
       const fetch = api((_url, init) =>
         json(200, { ...me.publisher, payoutEmail: bodyOf(init).payoutEmail.toLowerCase() }),
       );
@@ -112,7 +112,10 @@ describe('W16 Settings', () => {
       const email = await screen.findByLabelText('PayPal email');
       expect(email).toHaveValue(me.publisher.payoutEmail);
       expect(screen.getByText(/applies to the next batch/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Connect with PayPal' })).toBeDisabled();
+      expect(screen.getByRole('link', { name: /Connect with PayPal/ })).toHaveAttribute(
+        'href',
+        '/api/auth/paypal/start?intent=connect',
+      );
 
       await userEvent.clear(email);
       await userEvent.type(email, 'New@Example.com');
@@ -122,6 +125,27 @@ describe('W16 Settings', () => {
       );
       expect(bodyOf(fetch.mock.calls.at(-1)![1])).toEqual({ payoutEmail: 'New@Example.com' });
       expect(email).toHaveValue('new@example.com');
+    });
+
+    it('after Connect with PayPal: Connected, Reconnect, and the callback’s notice', async () => {
+      const connectedMe = { ...me, publisher: { ...me.publisher, paypalConnected: true } };
+      const fetch = vi.fn<FetchLike>(async (url) =>
+        url === '/api/auth/me' ? json(200, connectedMe) : json(200, sitesFixture),
+      );
+      setup(fetch, 'payout&paypal=connected');
+      expect(await screen.findByText('Connected')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Reconnect PayPal/ })).toHaveAttribute(
+        'href',
+        '/api/auth/paypal/start?intent=connect',
+      );
+      expect(screen.getByRole('status')).toHaveTextContent('PayPal connected.');
+    });
+
+    it('shows why Connect with PayPal failed (taken)', async () => {
+      setup(api(), 'payout&paypal=taken');
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'already connected to another Spigot account',
+      );
     });
 
     it('shows a client-side and a server-side validation error', async () => {

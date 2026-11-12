@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api as defaultApi, ApiError, type ApiClient } from '../api/client';
 import { errorMessage } from './ErrorBanner';
@@ -11,6 +11,8 @@ export interface LoginFormProps {
   title: string;
   subtitle: string;
   signUp: { to: string; label: string };
+  /** Another way in, under the submit button (publishers: Log in with PayPal, SP-058). */
+  alternative?: ReactNode;
   client?: ApiClient;
 }
 
@@ -31,6 +33,7 @@ export function LoginForm({
   title,
   subtitle,
   signUp,
+  alternative,
   client = defaultApi,
 }: LoginFormProps) {
   const navigate = useNavigate();
@@ -116,6 +119,7 @@ export function LoginForm({
           >
             {submitting ? 'Logging in…' : 'Log in'}
           </button>
+          {alternative}
         </form>
         <p className="mt-4 text-center text-sm text-muted">
           New here?{' '}

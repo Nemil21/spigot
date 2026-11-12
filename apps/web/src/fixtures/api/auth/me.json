@@ -4,7 +4,8 @@
     "name": "Bluebonnet Rentals",
     "email": "owner@bluebonnet.example",
     "payoutEmail": "payouts@bluebonnet.example",
-    "isDemo": true
+    "isDemo": true,
+    "paypalConnected": false
   },
   "buyer": null,
   "isAdmin": false

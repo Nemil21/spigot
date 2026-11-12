@@ -63,7 +63,8 @@ export async function updatePublisher(
     const payoutEmail = patch.payoutEmail ?? prev.payout_email;
     const { rows } = await tx.query<PublisherAccount>(
       `UPDATE publishers SET name = $2, payout_email = $3, updated_at = now() WHERE id = $1
-       RETURNING id, name, email, payout_email AS "payoutEmail", is_demo AS "isDemo"`,
+       RETURNING id, name, email, payout_email AS "payoutEmail", is_demo AS "isDemo",
+                 paypal_payer_id IS NOT NULL AS "paypalConnected"`,
       [publisherId, name, payoutEmail],
     );
     const changed: Record<string, { from: string; to: string }> = {};
