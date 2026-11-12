@@ -31,6 +31,7 @@ const B: TenantB = {
   apiKeyId: 'b-key',
   topupId: 'b-topup',
   callId: 'b-call',
+  recordId: 'b-record',
 };
 const RANDOM = () => 'random-id';
 

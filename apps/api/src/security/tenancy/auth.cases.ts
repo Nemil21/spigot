@@ -34,6 +34,8 @@ export interface TenantB {
   apiKeyId: string;
   topupId: string;
   callId: string;
+  /** One of B's live records (SP-053 `/api/records/:id/versions`). */
+  recordId: string;
 }
 
 export const cases: TenancyCase[] = [
