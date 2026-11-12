@@ -29,3 +29,12 @@ export {
 export { handleTopupReturn } from './returnHandler.js';
 export { setTopupPayPal, topupPayPal, walletUrls } from './deps.js';
 export { TOPUP_COLUMNS, topupView, type TopupRow } from './row.js';
+export {
+  nextSimTestCard,
+  serverCardTopup,
+  SIM_CREATE_STALE_MS,
+  SIM_TEST_CARDS,
+  type ServerCardTopupInput,
+  type ServerCardTopupOutcome,
+} from './serverCardTopup.js';
+export { agentIdempotencyKey, createTopupForAgent, type AgentTopup } from './agentTopup.js';
