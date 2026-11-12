@@ -1,5 +1,8 @@
 import { PayPalRestClient, type PayPalRestClientOptions } from '../client.js';
 import { centsToDecimal, decimalToCents } from '../money.js';
+import { FakePayPalExtras, type FakePayPalExtrasOptions } from './extras.js';
+import type { EmitWebhookOptions, FakeWebhookDelivery } from './webhooks.js';
+import { FAKE_WEBHOOK_ID } from './webhooks.js';
 
 /**
  * `FakePayPal`: an in-memory PayPal REST API behind `PAYPAL_MODE=stub`, for race tests, dev seeds
@@ -12,8 +15,9 @@ import { centsToDecimal, decimalToCents } from '../money.js';
  * `PayPal-Request-Id` replay, `seller_receivable_breakdown.paypal_fee`, PENDING captures and fault
  * injection (latency, 5xx, timeouts, declines, a response lost after the work was done).
  *
- * Extensions (SP-001c: refunds, payouts, webhooks) live in their own files and register routes
- * with `FakePayPal.extend(install)`; an install runs for every fake constructed afterwards.
+ * SP-001c's refunds, payouts and webhook verify live in `fake/extras.ts`: this fake checks the
+ * OAuth token, then forwards the routes `extras` owns to it (with its own faults and calls), and
+ * lets refunds draw on the captures made here (`captureOf`).
  */
 
 export const FAKE_PAYPAL_BASE = 'https://fake.paypal.local';
@@ -107,6 +111,8 @@ export interface FakePayPalOptions {
    * `refuse`: 422 `TRANSACTION_REFUSED`, as Holdfast S7 saw for AUTHORIZE creates.
    */
   rawCardReplay?: 'replay' | 'refuse';
+  /** Options for SP-001c's refunds / payouts / webhooks part (`fake.extras`). */
+  extras?: Omit<FakePayPalExtrasOptions, 'next'>;
 }
 
 /** A PayPal-shaped error body: `{name, details: [{issue}]}`. */
@@ -132,16 +138,9 @@ export function fakeFeeCents(amountCents: number): number {
   return Math.round(amountCents * 0.0349) + 49;
 }
 
-type Installer = (fake: FakePayPal) => void;
-
 export class FakePayPal {
-  static readonly #installers: Installer[] = [];
-
-  /** Register an extension (SP-001c's `fake/*.ts`). Runs in every fake constructed afterwards. */
-  static extend(install: Installer): void {
-    if (!FakePayPal.#installers.includes(install)) FakePayPal.#installers.push(install);
-  }
-
+  /** SP-001c's refunds, payouts and webhooks (their own `failNext`, `calls`, helpers). */
+  readonly extras: FakePayPalExtras;
   readonly calls: FakeCall[] = [];
   latencyMs: number;
   jitterMs: number;
@@ -157,7 +156,6 @@ export class FakePayPal {
   readonly #vaults = new Map<string, { kind: 'card' | 'paypal'; customerId: string }>();
   readonly #replays = new Map<string, FakeAnswer>();
   readonly #faults = new Map<FakeOp | 'any', FakeFault[]>();
-  readonly #routes: FakeRoute[] = [];
   #pendNext: string[] = [];
 
   constructor(opts: FakePayPalOptions = {}) {
@@ -166,7 +164,20 @@ export class FakePayPal {
     this.#now = opts.now ?? (() => new Date());
     this.#tokenTtl = opts.tokenTtlSeconds ?? 32_400;
     this.#rawCardReplay = opts.rawCardReplay ?? 'replay';
-    for (const install of FakePayPal.#installers) install(this);
+    const extras = opts.extras ?? {};
+    this.extras = new FakePayPalExtras({
+      latencyMs: this.latencyMs,
+      jitterMs: this.jitterMs,
+      ...extras,
+      refunds: {
+        // Refunds draw on completed captures made by this fake.
+        captureOf: (id) => {
+          const c = this.#captures.get(id);
+          return c && c.status === 'COMPLETED' ? { amountCents: c.amountCents } : undefined;
+        },
+        ...extras.refunds,
+      },
+    });
   }
 
   /** A `PayPalRestClient` wired to this fake (raw test cards and mock responses allowed). */
@@ -179,17 +190,13 @@ export class FakePayPal {
       allowRawCard: true,
       allowMockResponse: true,
       sleep: async () => {},
+      webhookId: FAKE_WEBHOOK_ID,
       ...opts,
       testBases: [FAKE_PAYPAL_BASE],
     });
   }
 
-  // ------------------------------------------------------------------ extension API
-
-  /** Add a route (extensions). Core routes are matched first. */
-  route(route: FakeRoute): void {
-    this.#routes.push(route);
-  }
+  // ------------------------------------------------------------------ helpers
 
   /** A fresh PayPal-looking id: `prefix` + 8 base-36 characters. */
   newId(prefix: string): string {
@@ -255,6 +262,30 @@ export class FakePayPal {
     capture.reason = status === 'DECLINED' ? 'DECLINED' : null;
   }
 
+  /** `UNCLAIMED → SUCCESS` payout item (SP-021). */
+  claimPayout(itemId: string): void {
+    this.extras.claimPayout(itemId);
+  }
+
+  /** `UNCLAIMED → RETURNED` payout item (SP-021). */
+  returnPayout(itemId: string): void {
+    this.extras.returnPayout(itemId);
+  }
+
+  /** Refund `PENDING → COMPLETED` (SP-049). */
+  completeRefund(refundId: string): void {
+    this.extras.completeRefund(refundId);
+  }
+
+  /** A signed webhook delivery `pp.verifyWebhook` accepts (SP-059). */
+  emitWebhook(
+    type: string,
+    resource: Record<string, unknown>,
+    opts?: EmitWebhookOptions,
+  ): FakeWebhookDelivery {
+    return this.extras.emitWebhook(type, resource, opts);
+  }
+
   /** Put a payment method in the vault directly (tests that start from a saved card / wallet). */
   seedVault(kind: 'card' | 'paypal'): string {
     const id = this.newId('VAULT');
@@ -291,6 +322,27 @@ export class FakePayPal {
     const headers = new Headers(init?.headers);
     const signal = init?.signal ?? undefined;
     const rawBody = typeof init?.body === 'string' ? init.body : '';
+    if (this.extras.owns(method, url.pathname)) {
+      // SP-001c's routes: same OAuth check as PayPal, then its own faults, latency and state.
+      if (!this.#authorized(headers.get('authorization'))) {
+        return this.#respond(
+          {
+            op: 'extras',
+            method,
+            path: url.pathname,
+            requestId: null,
+            prefer: null,
+            mockResponse: null,
+            http: 0,
+          },
+          {
+            http: 401,
+            body: { name: 'AUTHENTICATION_FAILURE', details: [{ issue: 'INVALID_TOKEN' }] },
+          },
+        );
+      }
+      return this.extras.fetch(input, init);
+    }
     const route = this.#match(method, url.pathname);
     const call: FakeCall = {
       op: route?.op ?? 'unknown',
@@ -395,7 +447,7 @@ export class FakePayPal {
   ];
 
   #match(method: string, path: string): (FakeRoute & { id: string }) | null {
-    for (const route of [...this.#coreRoutes, ...this.#routes]) {
+    for (const route of this.#coreRoutes) {
       if (route.method !== method) continue;
       const id = route.match(path);
       if (id !== null) return { ...route, id: decodeURIComponent(id) };

@@ -3,14 +3,25 @@ import { PayPalRestClient, type PayPalLogger } from './client.js';
 import { FakePayPal } from './fake/core.js';
 
 /**
- * The PayPal client (SP-001b). Every money ticket imports from here:
- *   `const pp = createPayPalClient(config)`.
- * SP-001c adds one export line each for refunds, payouts and webhooks (and imports its
- * `fake/*.ts` so their routes register with `FakePayPal.extend`).
+ * The PayPal client. Every money ticket imports from here: `const pp = createPayPalClient(config)`.
+ * Orders (SP-001b) and refunds / payouts / webhook verify (SP-001c, moneyOut.ts) share one client.
  */
 
 export * from './types.js';
 export * from './errors.js';
+export { moneyOut, type MoneyOutClient } from './moneyOut.js';
+export {
+  PayPalCallError,
+  type MoneyOutCall,
+  type PayPalErrorClass,
+  type PayPalRequestOptions,
+  type PayPalTransport,
+} from './transport.js';
+export * from './refunds.js';
+export * from './payouts.js';
+export * from './webhooks.js';
+export { FakePayPalExtras } from './fake/extras.js';
+export { FAKE_WEBHOOK_ID } from './fake/webhooks.js';
 export { assertCents, centsToDecimal, decimalToCents, paypalAmount } from './money.js';
 export {
   PayPalHttp,
@@ -43,8 +54,6 @@ export {
   type FakeOp,
   type FakeOrder,
   type FakePayPalOptions,
-  type FakeRequest,
-  type FakeRoute,
 } from './fake/core.js';
 
 let sharedFake: FakePayPal | undefined;
@@ -81,6 +90,7 @@ export function createPayPalClient(
     });
   }
   return new PayPalRestClient({
+    webhookId: config.PAYPAL_WEBHOOK_ID,
     baseUrl: config.PAYPAL_API_BASE,
     clientId: config.PAYPAL_CLIENT_ID,
     clientSecret: config.PAYPAL_CLIENT_SECRET,

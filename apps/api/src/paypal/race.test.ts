@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { FakePayPal, fakeError } from './fake/core.js';
+import { FakePayPal } from './fake/core.js';
+import { PayPalRefundExceeded } from './refunds.js';
 import type { TestCard, TopupResult } from './types.js';
 
 /** Races and fault cases on `FakePayPal` with latency and jitter, so concurrent calls overlap. */
@@ -268,23 +269,57 @@ describe('FakePayPal behaviour', () => {
     expect(fake.order(r.orderId!)?.status).toBe('COMPLETED');
   });
 
-  it('extensions register routes for every new fake (SP-001c seam)', async () => {
-    FakePayPal.extend((fake) =>
-      fake.route({
-        op: 'ping_test',
-        method: 'GET',
-        match: (p) => /^\/v1\/test-ping\/([^/]+)$/.exec(p)?.[1] ?? null,
-        handle: (req) =>
-          req.id === 'ok' ? { http: 200, body: { pong: fake.newId('P') } } : fakeError(404, 'NOPE'),
-      }),
+  it('one client does top-up, refund, payout and webhook verify against one fake (SP-001c wired in)', async () => {
+    const { fake, client } = racing();
+    const r = await client.createTopupOrder({
+      topupId: uid('t'),
+      amountCents: 2000,
+      source: { kind: 'card', card: CARD },
+    });
+    if (r.status !== 'COMPLETED') throw new Error(r.status);
+
+    // Refunds draw on the core fake's real capture, with the cumulative cap.
+    const refund = await client.refundCapture(r.captureId, 500, uid('refund'));
+    expect(refund).toMatchObject({ status: 'COMPLETED', amountCents: 500, replayed: false });
+    await expect(client.refundCapture(r.captureId, 1600, uid('refund'))).rejects.toBeInstanceOf(
+      PayPalRefundExceeded,
     );
+    await expect(client.refundCapture('UNKNOWN', 100, uid('refund'))).rejects.toThrow();
+
+    const batch = await client.payout({
+      batchId: uid('batch'),
+      items: [
+        { itemId: uid('item'), email: 'publisher@example.com', amountCents: 1000, note: 'n' },
+      ],
+    });
+    expect(batch.payoutBatchId).toEqual(expect.any(String));
+
+    const delivery = fake.emitWebhook('PAYMENT.CAPTURE.COMPLETED', { id: r.captureId });
+    expect(await client.verifyWebhook(delivery.headers, delivery.rawBody)).toBe(true);
+    const respaced = JSON.stringify(JSON.parse(delivery.rawBody), null, 2);
+    expect(await client.verifyWebhook(delivery.headers, respaced)).toBe(false);
+
+    // One token for all of it; extras calls are recorded on fake.extras.
+    expect(fake.tokensIssued).toBe(1);
+    expect(fake.extras.calls.map((c) => c.op)).toContain('refund');
+  });
+
+  it('SP-001c routes need a valid OAuth token too', async () => {
     const fake = new FakePayPal();
     const client = fake.client();
-    const ok = await client.http.request('get', 'GET', '/v1/test-ping/ok');
-    expect(ok).toMatchObject({ http: 200, json: { pong: expect.stringMatching(/^P/) } });
-    const missing = await client.http.request('get', 'GET', '/v1/test-ping/x');
-    expect(missing).toMatchObject({ http: 404, issue: 'NOPE' });
-    expect(fake.calls.at(-1)?.op).toBe('ping_test');
+    await client.createTopupOrder({
+      topupId: uid('t'),
+      amountCents: 500,
+      source: { kind: 'none' },
+    });
+    fake.revokeTokens();
+    // The client refreshes after the 401 and the call goes through.
+    const b = await client.payout({
+      batchId: uid('batch'),
+      items: [{ itemId: uid('item'), email: 'p@example.com', amountCents: 100, note: 'n' }],
+    });
+    expect(b.payoutBatchId).toEqual(expect.any(String));
+    expect(fake.tokensIssued).toBe(2);
   });
 
   it('approve() refuses an order that is not awaiting approval', async () => {

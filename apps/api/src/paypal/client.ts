@@ -1,5 +1,6 @@
 import { isSandboxPayPalBase } from '../config.js';
 import { classifyFailure, PayPalApiError, PayPalAuthError, type PayPalCall } from './errors.js';
+import { moneyOut, type MoneyOutClient } from './moneyOut.js';
 import * as orders from './orders.js';
 import type { CaptureOrderOptions, CreateTopupOrderInput, PayPalOrdersClient } from './types.js';
 
@@ -45,6 +46,8 @@ export interface PayPalResponse {
 
 export interface RequestOptions {
   body?: unknown;
+  /** Send this exact text instead of `JSON.stringify(body)` (webhook verify: byte-for-byte). */
+  rawBody?: string;
   /** `PayPal-Request-Id`. Every mutating call sends one (data-model.md §Locking rule 5). */
   requestId?: string;
   headers?: Record<string, string>;
@@ -219,7 +222,7 @@ export class PayPalHttp {
       res = await this.#fetch(this.baseUrl + path, {
         method,
         headers,
-        body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+        body: opts.rawBody ?? (opts.body === undefined ? undefined : JSON.stringify(opts.body)),
         signal: AbortSignal.timeout(this.#timeoutMs),
       });
       // A body cut off mid-read (timeout) is the same as no answer: the outcome is unknown.
@@ -285,12 +288,23 @@ export interface PayPalRestClientOptions extends PayPalHttpOptions {
   sleep?: (ms: number) => Promise<void>;
   /** Bases besides PayPal's sandbox hosts that count as non-live (the fake's). */
   testBases?: readonly string[];
+  /** `PAYPAL_WEBHOOK_ID`, for `verifyWebhook`. */
+  webhookId?: string | undefined;
 }
 
-/** The REST implementation of the PayPal client. */
-export class PayPalRestClient implements PayPalOrdersClient {
+/**
+ * The PayPal client (`pp`): the order calls here plus SP-001c's refunds, payouts and webhook
+ * verify (moneyOut.ts), all over one `PayPalHttp` (one token cache).
+ */
+export class PayPalRestClient implements PayPalOrdersClient, MoneyOutClient {
   readonly http: PayPalHttp;
   readonly settings: orders.OrderSettings;
+  readonly refundCapture: MoneyOutClient['refundCapture'];
+  readonly getRefund: MoneyOutClient['getRefund'];
+  readonly payout: MoneyOutClient['payout'];
+  readonly getPayoutBatch: MoneyOutClient['getPayoutBatch'];
+  readonly getPayoutItem: MoneyOutClient['getPayoutItem'];
+  readonly verifyWebhook: MoneyOutClient['verifyWebhook'];
 
   constructor(opts: PayPalRestClientOptions) {
     this.http = new PayPalHttp(opts);
@@ -305,6 +319,13 @@ export class PayPalRestClient implements PayPalOrdersClient {
       retryDelayMs: opts.retryDelayMs ?? ((n) => 500 * n),
       sleep: opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms))),
     };
+    const out = moneyOut(this.http, opts.webhookId);
+    this.refundCapture = out.refundCapture;
+    this.getRefund = out.getRefund;
+    this.payout = out.payout;
+    this.getPayoutBatch = out.getPayoutBatch;
+    this.getPayoutItem = out.getPayoutItem;
+    this.verifyWebhook = out.verifyWebhook;
   }
 
   createTopupOrder(input: CreateTopupOrderInput) {

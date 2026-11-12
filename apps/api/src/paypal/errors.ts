@@ -1,3 +1,5 @@
+import type { MoneyOutCall } from './transport.js';
+
 /**
  * PayPal failure classification (api.md §PayPal calls used; spikes/s7-results.md §RECONCILE
  * mapping). Every money ticket branches on these three classes, never on raw HTTP codes.
@@ -13,11 +15,10 @@
 export type ErrorClass = 'TRANSIENT' | 'RECONCILE' | 'TERMINAL';
 
 /**
- * The call a failed response came from; classification depends on it. SP-001c's calls are listed
- * here too so its files never need to edit this one.
+ * The call a failed response came from; classification depends on it. Includes SP-001c's
+ * `MoneyOutCall` names, so `PayPalHttp` is the `PayPalTransport` its modules call.
  */
-export type PayPalCall =
-  'token' | 'order_create' | 'capture' | 'get' | 'refund' | 'payout' | 'verify_webhook';
+export type PayPalCall = 'token' | 'order_create' | 'capture' | 'get' | MoneyOutCall;
 
 /** What a failed response looked like. `http` is 0 when no response arrived (network, timeout). */
 export interface FailureInfo {

@@ -138,13 +138,9 @@ export interface OrderView {
   vault: VaultRef | null;
 }
 
-/** Webhook signature headers PayPal sends (lower-cased keys accepted). SP-001c uses it. */
-export type WebhookHeaders = Record<string, string | string[] | undefined>;
-
 /**
- * The PayPal client every money ticket shares. `PayPalRestClient` talks to PayPal;
- * `FakePayPal#client()` is the same class over an in-memory PayPal (`PAYPAL_MODE=stub`).
- * SP-001c adds refunds, payouts and webhook verify.
+ * The order calls of the PayPal client. `PayPalRestClient` (client.ts) implements them and binds
+ * SP-001c's refunds / payouts / webhook verify (`MoneyOutClient`) on the same transport.
  */
 export interface PayPalOrdersClient {
   /** `POST /v2/checkout/orders`, `intent: CAPTURE`, `PayPal-Request-Id: topupId`. */
