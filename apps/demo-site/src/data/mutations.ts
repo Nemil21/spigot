@@ -104,7 +104,7 @@ export interface MutateOptions {
   new: number;
   seed: number;
   focus?: string;
-  /** Accepted; a no-op until SP-055 (CMS ping). */
+  /** CLI only (SP-055): after the mutation, `demo:mutate` pings Spigot with the touched pages. The site ignores it. */
   ping: boolean;
 }
 

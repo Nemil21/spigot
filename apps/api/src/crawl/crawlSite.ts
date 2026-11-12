@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import PQueue from 'p-queue';
-import { notify, transition, type Db } from '../db/index.js';
+import { notify, transition, withAdvisoryXactLock, type Db } from '../db/index.js';
 import { deriveCrawlKey, sentCrawlKeyVersionSql } from './crawlKey.js';
 import { CRAWL_DEFAULTS, crawlerUserAgent, defaultCrawlDeps, type CrawlDeps } from './deps.js';
 import { fetchPage, type FetchPageResult } from './fetchPage.js';
 import { emitDiscoveryDone, emitPageChanged, emitRunFinished } from './hooks.js';
 import { upsertPages } from './pages.js';
+import { drainPings, hasPendingPings, pingLockKey } from './ping.js';
 import { readSitemap } from './sitemap.js';
 
 /**
@@ -24,6 +25,9 @@ import { readSitemap } from './sitemap.js';
  *    counters; on the site's discovery run (site still VERIFIED) that SUCCEEDED, or is PARTIAL
  *    with ≥ 90% of pages fetched, `VERIFIED → PROPOSING` in the same transaction; after commit
  *    `onRunFinished(runId)`, then `onDiscoveryDone(siteId, runId)`.
+ *
+ * 4. CMS pings (SP-055, ping.ts): a PING run reads the sitemap but selects no pages; at run end
+ *    every run fetches the site's pending pings, and ends only once none are left.
  *
  * Where it runs (SP-041a): the run is inserted with `workflow_run_id = inproc:<id>`; when
  * `deps.handOff` starts it on Render Workflows instead, the id becomes the Workflows run id and
@@ -395,40 +399,14 @@ async function runCrawl(
   }
   const startedAt = run.started_at!;
 
-  const { rows: siteRows } = await db.pool.query<{
-    origin: string;
-    sitemap_url: string | null;
-    crawl_key_version: number;
-  }>(
-    `SELECT origin, sitemap_url, ${sentCrawlKeyVersionSql('s')} AS crawl_key_version
-       FROM sites s WHERE id = $1`,
-    [siteId],
-  );
-  const site = siteRows[0]!;
-
-  let sitemap;
   try {
-    sitemap = await readSitemap(site, {
-      allowLocal: deps.allowLocal,
-      resolver: deps.resolver,
-      fetch: deps.fetch,
-      headers: {
-        'x-spigot-key': deriveCrawlKey(siteId, deps.crawlSecret, site.crawl_key_version),
-        'user-agent': crawlerUserAgent(deps.appBaseUrl),
-      },
-    });
+    await syncSitemap(deps, runId, siteId, startedAt);
   } catch (err) {
-    return finishRun(deps, runId, siteId, `Could not read the sitemap: ${(err as Error).message}`);
+    if (!(err instanceof SitemapReadError)) throw err;
+    return finishRun(deps, runId, siteId, err.message);
   }
-  await upsertPages(db, siteId, sitemap.entries);
 
-  // Pages this run's sitemap read dropped: their records must go too.
-  const dropped = await db.pool.query<{ id: string }>(
-    'SELECT id FROM pages WHERE site_id = $1 AND removed_at >= $2 ORDER BY url',
-    [siteId, startedAt],
-  );
-  for (const { id } of dropped.rows) await emitPageChanged(id, runId);
-
+  // A PING run fetches only the pinged URLs (at run end, below).
   const { rows: todo } = await db.pool.query<{ id: string }>(
     `SELECT id FROM pages
       WHERE site_id = $1 AND removed_at IS NULL
@@ -436,8 +414,9 @@ async function runCrawl(
              OR sitemap_lastmod >= date_trunc('second', fetched_at)
              OR last_status IN (404, 410)
              OR ($2 AND fetched_at < $3))
+        AND NOT $4
       ORDER BY url`,
-    [siteId, run.trigger === 'MANUAL', startedAt],
+    [siteId, run.trigger === 'MANUAL', startedAt, run.trigger === 'PING'],
   );
   // A resumed run keeps its original total; only the remainder is fetched.
   if (run.pages_total === 0) {
@@ -522,6 +501,59 @@ async function runCrawl(
   return finishRun(deps, runId, siteId);
 }
 
+class SitemapReadError extends Error {}
+
+/**
+ * Read the sitemap into `pages`, then fire `onPageChanged` for every page dropped from it since
+ * `since` (their records must go too). Throws `SitemapReadError` when the sitemap can't be read.
+ */
+async function syncSitemap(
+  deps: CrawlDeps,
+  runId: string,
+  siteId: string,
+  since: Date,
+): Promise<void> {
+  const { db } = deps;
+  const { rows: siteRows } = await db.pool.query<{
+    origin: string;
+    sitemap_url: string | null;
+    crawl_key_version: number;
+  }>(
+    `SELECT origin, sitemap_url, ${sentCrawlKeyVersionSql('s')} AS crawl_key_version
+       FROM sites s WHERE id = $1`,
+    [siteId],
+  );
+  const site = siteRows[0]!;
+
+  let sitemap;
+  try {
+    sitemap = await readSitemap(site, {
+      allowLocal: deps.allowLocal,
+      resolver: deps.resolver,
+      fetch: deps.fetch,
+      headers: {
+        'x-spigot-key': deriveCrawlKey(siteId, deps.crawlSecret, site.crawl_key_version),
+        'user-agent': crawlerUserAgent(deps.appBaseUrl),
+      },
+    });
+  } catch (err) {
+    throw new SitemapReadError(`Could not read the sitemap: ${(err as Error).message}`);
+  }
+  await upsertPages(db, siteId, sitemap.entries);
+
+  const dropped = await db.pool.query<{ id: string }>(
+    'SELECT id FROM pages WHERE site_id = $1 AND removed_at >= $2 ORDER BY url',
+    [siteId, since],
+  );
+  for (const { id } of dropped.rows) await emitPageChanged(id, runId);
+}
+
+/** A ping re-reading the sitemap mid-run: only pages dropped by this read fire `onPageChanged`. */
+async function resyncSitemap(deps: CrawlDeps, runId: string, siteId: string): Promise<void> {
+  const { rows } = await deps.db.pool.query<{ now: Date }>('SELECT now() AS now');
+  await syncSitemap(deps, runId, siteId, rows[0]!.now);
+}
+
 async function progress(db: Db, runId: string, status?: RunStatus): Promise<void> {
   const r = await readRun(db, runId);
   await notify(db.pool, 'crawl_progress', {
@@ -531,13 +563,45 @@ async function progress(db: Db, runId: string, status?: RunStatus): Promise<void
   }).catch(() => {});
 }
 
-/** Run end and discovery hand-off: one transaction, then the hooks. */
+/**
+ * Run end. A run that would end cleanly first fetches the site's pending pings (SP-055), and
+ * checks again under the ping lock until none are left. A run that fails (`error`) leaves its
+ * pings queued for the next run.
+ */
 async function finishRun(
   deps: CrawlDeps,
   runId: string,
   siteId: string,
   error?: string,
 ): Promise<CrawlRunResult> {
+  for (;;) {
+    const ended = await endRun(deps, runId, siteId, error);
+    if (ended !== PINGS_PENDING) return ended;
+    const drained = await drainPings(deps, runId, siteId, () => resyncSitemap(deps, runId, siteId));
+    if (drained === 'stopped') {
+      const r = await readRun(deps.db, runId);
+      await progress(deps.db, runId, r.status);
+      return {
+        runId,
+        status: r.status,
+        counters: countersOf(r),
+        discovery: false,
+        aborted: deps.signal?.aborted ?? false,
+      };
+    }
+    await progress(deps.db, runId);
+  }
+}
+
+const PINGS_PENDING = Symbol('pings pending');
+
+/** Run end and discovery hand-off: one transaction, then the hooks. */
+async function endRun(
+  deps: CrawlDeps,
+  runId: string,
+  siteId: string,
+  error?: string,
+): Promise<CrawlRunResult | typeof PINGS_PENDING> {
   const { db } = deps;
   const outcome = await db.tx(async (tx) => {
     const { rows } = await tx.query<CrawlCounters & { status: RunStatus }>(
@@ -548,6 +612,10 @@ async function finishRun(
     const counters = countersOf(run);
     if (run.status !== 'RUNNING' && run.status !== 'QUEUED') {
       return { status: run.status, counters, discovery: false, ended: false };
+    }
+    if (!error && run.status === 'RUNNING') {
+      await withAdvisoryXactLock(tx, pingLockKey(siteId));
+      if (await hasPendingPings(tx, siteId)) return PINGS_PENDING;
     }
     const status = error || run.status === 'QUEUED' ? 'FAILED' : finalStatus(counters);
     const ended = await transition(tx, 'crawl_runs', runId, run.status, status, {
@@ -564,6 +632,7 @@ async function finishRun(
     await notify(tx, 'crawl_progress', { runId, status, counters });
     return { status, counters, discovery, ended: true };
   });
+  if (outcome === PINGS_PENDING) return PINGS_PENDING;
 
   if (outcome.ended) {
     await emitRunFinished(runId);

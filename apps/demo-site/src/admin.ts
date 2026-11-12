@@ -55,7 +55,6 @@ export function createAdminRouter({ store, token }: AdminOptions): Router {
     const entry = await store.mutate(opts);
     res.json({
       ...mutateSummary(entry),
-      ping: opts.ping ? 'not implemented until SP-055' : undefined,
       counts: store.counts(),
     });
   });
