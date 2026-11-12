@@ -10,7 +10,7 @@ const v = (name: string) => `var(--sp-${name})`;
  *
  * The look is a quiet ledger: headers sit on the same surface as the rows with muted labels, rows
  * are divided by hairlines only (no zebra, no column rules), hover is a faint wash and only the
- * selected row carries the accent. Numbers use tabular figures (see tokens.css `.ag-cell`).
+ * selected row carries the accent. Tabular figures for cells are set on the wrapper in SpigotGrid.tsx.
  */
 export const gridTheme = themeQuartz.withParams({
   fontFamily: font.sans,

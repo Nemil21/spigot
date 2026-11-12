@@ -218,7 +218,8 @@ export default function RecordTypesPage({
     }
 
     const live = crawling || proposing;
-    const step = crawling ? 0 : proposing || waitingRetry ? 1 : 2;
+    // Done with nothing left to review: every step is complete, none is current.
+    const step = crawling ? 0 : proposing || waitingRetry ? 1 : proposals.length > 0 ? 2 : 3;
 
     return (
       <>

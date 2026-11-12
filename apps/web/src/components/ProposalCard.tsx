@@ -267,7 +267,7 @@ export function ProposalCard({
           <p className={`mb-2 ${railLabel}`}>
             Sample rows{' '}
             <span className="font-normal">
-              · {Math.min(p.sampleRows.length, 5)} of {formatCount(p.records)}
+              · {p.sampleRows.length} of {formatCount(p.records)}
             </span>
           </p>
           <SpigotGrid<Record<string, unknown>>
