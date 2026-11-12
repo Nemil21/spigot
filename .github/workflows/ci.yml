@@ -40,4 +40,4 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - name: Unit tests related to this PR's changes
-        run: npx vitest run --project unit --project web --changed origin/${{ github.base_ref || 'main' }} --passWithNoTests --maxWorkers=4
+        run: npx vitest run --project unit --project web --changed origin/${{ github.base_ref || 'main' }} --passWithNoTests --maxWorkers=2
