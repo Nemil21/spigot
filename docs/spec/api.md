@@ -162,12 +162,23 @@ Errors: `VALIDATION_ERROR` (rights not attested; no visible fields).
 ### `POST /api/datasets/:id/unpublish` → `{ "status": "UNPUBLISHED" }`
 ### `POST /api/datasets/:id/reinfer` (P1) → `202` (drift; see 04)
 
-### `GET /api/publishers/me/earnings?from&to&groupBy=buyer|dataset|day&includeSim=true`
+### `GET /api/publishers/me/earnings?from&to&groupBy=<dims>&includeSim=true`
+`groupBy` is one dimension (`buyer` | `dataset` | `day`; default `buyer`) or a comma list of distinct dimensions from `buyer,dataset,day,channel`, in order (W08 reads `groupBy=buyer,dataset,channel,day`). A repeated, empty or unknown dimension is `400 VALIDATION_ERROR`. `from` is inclusive, `to` exclusive; `includeSim=false` drops SIM calls and SIM txns.
+
+Rows are split by `isSimulated` as well as the grouped dimensions. With several dimensions, `key` is their display keys joined by ` · ` and `id` their ids joined by `|`; `dims` always holds the value of each requested dimension (and only those). `day` is `YYYY-MM-DD` UTC. Day-first groupings come oldest first; anything else by gross, descending. KPIs and rows are read in one snapshot, so the rows sum to the KPIs.
 ```json
 { "kpis": { "grossMicros": 515940000, "commissionMicros": 103188000, "netMicros": 412752000, "payableMicros": 412752000,
-            "recordsSold": 343960, "changesSold": 12040, "buyers": 23 },
-  "rows": [ { "key": "Acme Agents", "isSimulated": false, "calls": 41, "records": 2210, "grossMicros": 3315000 } ] }
+            "calls": 9120, "recordsSold": 343960, "changesSold": 12040, "buyers": 23 },
+  "rows": [ { "key": "Acme Agents · bluebonnet/listings · MCP · 2026-11-12",
+              "id": "6f1c…|0b9e…|MCP|2026-11-12",
+              "dims": { "buyer": { "id": "6f1c…", "name": "Acme Agents" },
+                        "dataset": { "id": "0b9e…", "key": "bluebonnet/listings" },
+                        "channel": "MCP", "day": "2026-11-12" },
+              "isSimulated": false, "calls": 41, "records": 2210, "changes": 0,
+              "grossMicros": 3315000, "commissionMicros": 663000, "netMicros": 2652000,
+              "channels": { "REST": { "calls": 0, "grossMicros": 0 }, "MCP": { "calls": 41, "grossMicros": 3315000 } } } ] }
 ```
+Single-dimension form (`groupBy=buyer`): `"key": "Acme Agents"`, `"id": "6f1c…"`, `"dims": { "buyer": { "id": "6f1c…", "name": "Acme Agents" } }`, same fields otherwise.
 ### `GET /api/publishers/me/ledger?cursor` (AG Grid server-side rows: txn kind, memo, amount, PayPal id, time)
 ### `GET /api/publishers/me/payouts` → batches with items, statuses, PayPal batch/item ids.
 ### `GET /api/publishers/me/events` (SSE: `hits`, `call.charged`, `payout.updated`, `proposal.ready`, `crawl.progress`)

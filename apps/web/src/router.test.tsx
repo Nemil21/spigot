@@ -9,7 +9,6 @@ import { buyerNav, href, paths, publisherNav } from './routes';
 /** Every screen in SP-024a's list: path → the stub's `data-screen` and heading. */
 const SCREENS: [path: string, screen: string, title: string][] = [
   ['/app/records', 'W07', 'Records'],
-  ['/app/earnings', 'W08', 'Earnings'],
   ['/app/crawls', 'W10', 'Crawls'],
   ['/app/admin/audit', 'W14', 'Audit'],
   ['/buyers/usage', 'W12', 'Usage and claims'],
@@ -33,6 +32,9 @@ const BUILT: [path: string, screen: string, title: string, landmark: string][] =
   ['/app', 'W04', 'Overview', 'alert'],
   // SP-029; no datasets API here either, so W06 shows its inline error banner.
   ['/app/datasets/ds_123', 'W06', 'Dataset editor', 'alert'],
+  // SP-030b; no earnings API here either, so W08 shows its inline error banner. Its states are
+  // tested in pages/Earnings.
+  ['/app/earnings', 'W08', 'Earnings', 'alert'],
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
@@ -61,11 +63,13 @@ afterEach(() => vi.unstubAllGlobals());
 async function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   render(<RouterProvider router={router} />);
-  return screen.findByRole('heading', { level: 1 });
+  // Screens with AG Grid / Charts load that chunk on first use, which can take over the 1 s default.
+  return screen.findByRole('heading', { level: 1 }, { timeout: 10_000 });
 }
 
-describe('router', () => {
-  // W04 (SP-027b) imports AG Grid + AG Charts; load the chunk once so `findBy`'s 1 s covers render only.
+// AG-backed screens render slowly in jsdom on a loaded machine: above the 5 s default.
+describe('router', { timeout: 30_000 }, () => {
+  // W04 (SP-027b) imports AG Grid + AG Charts; load the chunk once so `findBy` covers render only.
   beforeAll(() => import('./pages/Overview'), 30_000);
 
   it.each(SCREENS)('%s resolves to its stub (%s)', async (path, screenId, title) => {
@@ -79,7 +83,8 @@ describe('router', () => {
     const h1 = await renderAt(path);
     expect(h1).toHaveTextContent(title);
     expect(h1.closest('[data-screen]')).toHaveAttribute('data-screen', screenId);
-    expect(await screen.findByRole(landmark)).toBeInTheDocument();
+    // The landmark can come after the heading (e.g. W09's error banner once its fetch fails).
+    expect(await screen.findByRole(landmark, {}, { timeout: 10_000 })).toBeInTheDocument();
     expect(screen.queryByText('Coming soon')).toBeNull();
   });
 

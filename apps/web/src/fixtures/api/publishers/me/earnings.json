@@ -1,0 +1,1763 @@
+{
+  "kpis": {
+    "grossMicros": 4227500,
+    "commissionMicros": 845500,
+    "netMicros": 3382000,
+    "payableMicros": -1618000,
+    "calls": 182,
+    "recordsSold": 4491,
+    "changesSold": 42,
+    "buyers": 4
+  },
+  "rows": [
+    {
+      "key": "Claude Desktop (demo buyer) · bluebonnet/listings · MCP · 2026-11-06",
+      "id": "b0000000-0000-4000-8000-000000000001|d0000000-0000-4000-8000-000000000001|MCP|2026-11-06",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "name": "Claude Desktop (demo buyer)"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-06"
+      },
+      "isSimulated": false,
+      "calls": 1,
+      "records": 19,
+      "changes": 0,
+      "grossMicros": 28500,
+      "commissionMicros": 5700,
+      "netMicros": 22800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 1,
+          "grossMicros": 28500
+        }
+      }
+    },
+    {
+      "key": "Claude Desktop (demo buyer) · bluebonnet/listings · MCP · 2026-11-07",
+      "id": "b0000000-0000-4000-8000-000000000001|d0000000-0000-4000-8000-000000000001|MCP|2026-11-07",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "name": "Claude Desktop (demo buyer)"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-07"
+      },
+      "isSimulated": false,
+      "calls": 5,
+      "records": 141,
+      "changes": 1,
+      "grossMicros": 211500,
+      "commissionMicros": 42300,
+      "netMicros": 169200,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 5,
+          "grossMicros": 211500
+        }
+      }
+    },
+    {
+      "key": "Claude Desktop (demo buyer) · bluebonnet/listings · MCP · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000001|d0000000-0000-4000-8000-000000000001|MCP|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "name": "Claude Desktop (demo buyer)"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-08"
+      },
+      "isSimulated": false,
+      "calls": 6,
+      "records": 178,
+      "changes": 0,
+      "grossMicros": 267000,
+      "commissionMicros": 53400,
+      "netMicros": 213600,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 6,
+          "grossMicros": 267000
+        }
+      }
+    },
+    {
+      "key": "Claude Desktop (demo buyer) · bluebonnet/listings · MCP · 2026-11-09",
+      "id": "b0000000-0000-4000-8000-000000000001|d0000000-0000-4000-8000-000000000001|MCP|2026-11-09",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "name": "Claude Desktop (demo buyer)"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-09"
+      },
+      "isSimulated": false,
+      "calls": 2,
+      "records": 81,
+      "changes": 0,
+      "grossMicros": 121500,
+      "commissionMicros": 24300,
+      "netMicros": 97200,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 2,
+          "grossMicros": 121500
+        }
+      }
+    },
+    {
+      "key": "Claude Desktop (demo buyer) · bluebonnet/agents · MCP · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000001|d0000000-0000-4000-8000-000000000002|MCP|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "name": "Claude Desktop (demo buyer)"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-08"
+      },
+      "isSimulated": false,
+      "calls": 4,
+      "records": 82,
+      "changes": 0,
+      "grossMicros": 41000,
+      "commissionMicros": 8200,
+      "netMicros": 32800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 4,
+          "grossMicros": 41000
+        }
+      }
+    },
+    {
+      "key": "Claude Desktop (demo buyer) · bluebonnet/agents · MCP · 2026-11-09",
+      "id": "b0000000-0000-4000-8000-000000000001|d0000000-0000-4000-8000-000000000002|MCP|2026-11-09",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "name": "Claude Desktop (demo buyer)"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-09"
+      },
+      "isSimulated": false,
+      "calls": 1,
+      "records": 18,
+      "changes": 0,
+      "grossMicros": 9000,
+      "commissionMicros": 1800,
+      "netMicros": 7200,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 1,
+          "grossMicros": 9000
+        }
+      }
+    },
+    {
+      "key": "Claude Desktop (demo buyer) · bluebonnet/agents · MCP · 2026-11-10",
+      "id": "b0000000-0000-4000-8000-000000000001|d0000000-0000-4000-8000-000000000002|MCP|2026-11-10",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "name": "Claude Desktop (demo buyer)"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-10"
+      },
+      "isSimulated": false,
+      "calls": 4,
+      "records": 92,
+      "changes": 0,
+      "grossMicros": 46000,
+      "commissionMicros": 9200,
+      "netMicros": 36800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 4,
+          "grossMicros": 46000
+        }
+      }
+    },
+    {
+      "key": "Claude Desktop (demo buyer) · bluebonnet/agents · MCP · 2026-11-11",
+      "id": "b0000000-0000-4000-8000-000000000001|d0000000-0000-4000-8000-000000000002|MCP|2026-11-11",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000001",
+          "name": "Claude Desktop (demo buyer)"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-11"
+      },
+      "isSimulated": false,
+      "calls": 4,
+      "records": 76,
+      "changes": 0,
+      "grossMicros": 38000,
+      "commissionMicros": 7600,
+      "netMicros": 30400,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 4,
+          "grossMicros": 38000
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · REST · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|REST|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-08"
+      },
+      "isSimulated": false,
+      "calls": 5,
+      "records": 129,
+      "changes": 0,
+      "grossMicros": 193500,
+      "commissionMicros": 38700,
+      "netMicros": 154800,
+      "channels": {
+        "REST": {
+          "calls": 5,
+          "grossMicros": 193500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · REST · 2026-11-10",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|REST|2026-11-10",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-10"
+      },
+      "isSimulated": false,
+      "calls": 6,
+      "records": 109,
+      "changes": 0,
+      "grossMicros": 163500,
+      "commissionMicros": 32700,
+      "netMicros": 130800,
+      "channels": {
+        "REST": {
+          "calls": 6,
+          "grossMicros": 163500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · REST · 2026-11-11",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|REST|2026-11-11",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-11"
+      },
+      "isSimulated": false,
+      "calls": 6,
+      "records": 150,
+      "changes": 0,
+      "grossMicros": 225000,
+      "commissionMicros": 45000,
+      "netMicros": 180000,
+      "channels": {
+        "REST": {
+          "calls": 6,
+          "grossMicros": 225000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · REST · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|REST|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-12"
+      },
+      "isSimulated": false,
+      "calls": 2,
+      "records": 35,
+      "changes": 0,
+      "grossMicros": 52500,
+      "commissionMicros": 10500,
+      "netMicros": 42000,
+      "channels": {
+        "REST": {
+          "calls": 2,
+          "grossMicros": 52500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · MCP · 2026-11-06",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|MCP|2026-11-06",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-06"
+      },
+      "isSimulated": false,
+      "calls": 4,
+      "records": 80,
+      "changes": 1,
+      "grossMicros": 120000,
+      "commissionMicros": 24000,
+      "netMicros": 96000,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 4,
+          "grossMicros": 120000
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · MCP · 2026-11-07",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|MCP|2026-11-07",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-07"
+      },
+      "isSimulated": false,
+      "calls": 3,
+      "records": 59,
+      "changes": 5,
+      "grossMicros": 88500,
+      "commissionMicros": 17700,
+      "netMicros": 70800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 3,
+          "grossMicros": 88500
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · MCP · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|MCP|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-08"
+      },
+      "isSimulated": false,
+      "calls": 2,
+      "records": 79,
+      "changes": 0,
+      "grossMicros": 118500,
+      "commissionMicros": 23700,
+      "netMicros": 94800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 2,
+          "grossMicros": 118500
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · MCP · 2026-11-11",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|MCP|2026-11-11",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-11"
+      },
+      "isSimulated": false,
+      "calls": 3,
+      "records": 80,
+      "changes": 0,
+      "grossMicros": 120000,
+      "commissionMicros": 24000,
+      "netMicros": 96000,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 3,
+          "grossMicros": 120000
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/listings · MCP · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000001|MCP|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-12"
+      },
+      "isSimulated": false,
+      "calls": 5,
+      "records": 91,
+      "changes": 6,
+      "grossMicros": 136500,
+      "commissionMicros": 27300,
+      "netMicros": 109200,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 5,
+          "grossMicros": 136500
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · REST · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|REST|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-08"
+      },
+      "isSimulated": false,
+      "calls": 4,
+      "records": 101,
+      "changes": 0,
+      "grossMicros": 50500,
+      "commissionMicros": 10100,
+      "netMicros": 40400,
+      "channels": {
+        "REST": {
+          "calls": 4,
+          "grossMicros": 50500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · REST · 2026-11-09",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|REST|2026-11-09",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-09"
+      },
+      "isSimulated": false,
+      "calls": 4,
+      "records": 107,
+      "changes": 2,
+      "grossMicros": 53500,
+      "commissionMicros": 10700,
+      "netMicros": 42800,
+      "channels": {
+        "REST": {
+          "calls": 4,
+          "grossMicros": 53500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · REST · 2026-11-10",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|REST|2026-11-10",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-10"
+      },
+      "isSimulated": false,
+      "calls": 1,
+      "records": 34,
+      "changes": 8,
+      "grossMicros": 17000,
+      "commissionMicros": 3400,
+      "netMicros": 13600,
+      "channels": {
+        "REST": {
+          "calls": 1,
+          "grossMicros": 17000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · REST · 2026-11-11",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|REST|2026-11-11",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-11"
+      },
+      "isSimulated": false,
+      "calls": 4,
+      "records": 137,
+      "changes": 0,
+      "grossMicros": 68500,
+      "commissionMicros": 13700,
+      "netMicros": 54800,
+      "channels": {
+        "REST": {
+          "calls": 4,
+          "grossMicros": 68500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · REST · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|REST|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-12"
+      },
+      "isSimulated": false,
+      "calls": 4,
+      "records": 79,
+      "changes": 0,
+      "grossMicros": 39500,
+      "commissionMicros": 7900,
+      "netMicros": 31600,
+      "channels": {
+        "REST": {
+          "calls": 4,
+          "grossMicros": 39500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · MCP · 2026-11-06",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|MCP|2026-11-06",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-06"
+      },
+      "isSimulated": false,
+      "calls": 6,
+      "records": 120,
+      "changes": 0,
+      "grossMicros": 60000,
+      "commissionMicros": 12000,
+      "netMicros": 48000,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 6,
+          "grossMicros": 60000
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · MCP · 2026-11-07",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|MCP|2026-11-07",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-07"
+      },
+      "isSimulated": false,
+      "calls": 3,
+      "records": 101,
+      "changes": 0,
+      "grossMicros": 50500,
+      "commissionMicros": 10100,
+      "netMicros": 40400,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 3,
+          "grossMicros": 50500
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · MCP · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|MCP|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-08"
+      },
+      "isSimulated": false,
+      "calls": 1,
+      "records": 6,
+      "changes": 0,
+      "grossMicros": 3000,
+      "commissionMicros": 600,
+      "netMicros": 2400,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 1,
+          "grossMicros": 3000
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · MCP · 2026-11-09",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|MCP|2026-11-09",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-09"
+      },
+      "isSimulated": false,
+      "calls": 6,
+      "records": 142,
+      "changes": 0,
+      "grossMicros": 71000,
+      "commissionMicros": 14200,
+      "netMicros": 56800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 6,
+          "grossMicros": 71000
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · MCP · 2026-11-10",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|MCP|2026-11-10",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-10"
+      },
+      "isSimulated": false,
+      "calls": 6,
+      "records": 138,
+      "changes": 0,
+      "grossMicros": 69000,
+      "commissionMicros": 13800,
+      "netMicros": 55200,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 6,
+          "grossMicros": 69000
+        }
+      }
+    },
+    {
+      "key": "Acme Agents · bluebonnet/agents · MCP · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000002|d0000000-0000-4000-8000-000000000002|MCP|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000002",
+          "name": "Acme Agents"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-12"
+      },
+      "isSimulated": false,
+      "calls": 5,
+      "records": 124,
+      "changes": 0,
+      "grossMicros": 62000,
+      "commissionMicros": 12400,
+      "netMicros": 49600,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 5,
+          "grossMicros": 62000
+        }
+      }
+    },
+    {
+      "key": "Relocation Scout · bluebonnet/listings · REST · 2026-11-09",
+      "id": "b0000000-0000-4000-8000-000000000003|d0000000-0000-4000-8000-000000000001|REST|2026-11-09",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000003",
+          "name": "Relocation Scout"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-09"
+      },
+      "isSimulated": true,
+      "calls": 5,
+      "records": 114,
+      "changes": 0,
+      "grossMicros": 171000,
+      "commissionMicros": 34200,
+      "netMicros": 136800,
+      "channels": {
+        "REST": {
+          "calls": 5,
+          "grossMicros": 171000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Relocation Scout · bluebonnet/listings · REST · 2026-11-10",
+      "id": "b0000000-0000-4000-8000-000000000003|d0000000-0000-4000-8000-000000000001|REST|2026-11-10",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000003",
+          "name": "Relocation Scout"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-10"
+      },
+      "isSimulated": true,
+      "calls": 1,
+      "records": 38,
+      "changes": 9,
+      "grossMicros": 57000,
+      "commissionMicros": 11400,
+      "netMicros": 45600,
+      "channels": {
+        "REST": {
+          "calls": 1,
+          "grossMicros": 57000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Relocation Scout · bluebonnet/listings · REST · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000003|d0000000-0000-4000-8000-000000000001|REST|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000003",
+          "name": "Relocation Scout"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-12"
+      },
+      "isSimulated": true,
+      "calls": 5,
+      "records": 107,
+      "changes": 0,
+      "grossMicros": 160500,
+      "commissionMicros": 32100,
+      "netMicros": 128400,
+      "channels": {
+        "REST": {
+          "calls": 5,
+          "grossMicros": 160500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Relocation Scout · bluebonnet/agents · REST · 2026-11-07",
+      "id": "b0000000-0000-4000-8000-000000000003|d0000000-0000-4000-8000-000000000002|REST|2026-11-07",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000003",
+          "name": "Relocation Scout"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-07"
+      },
+      "isSimulated": true,
+      "calls": 1,
+      "records": 40,
+      "changes": 2,
+      "grossMicros": 20000,
+      "commissionMicros": 4000,
+      "netMicros": 16000,
+      "channels": {
+        "REST": {
+          "calls": 1,
+          "grossMicros": 20000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Relocation Scout · bluebonnet/agents · REST · 2026-11-10",
+      "id": "b0000000-0000-4000-8000-000000000003|d0000000-0000-4000-8000-000000000002|REST|2026-11-10",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000003",
+          "name": "Relocation Scout"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-10"
+      },
+      "isSimulated": true,
+      "calls": 3,
+      "records": 100,
+      "changes": 0,
+      "grossMicros": 50000,
+      "commissionMicros": 10000,
+      "netMicros": 40000,
+      "channels": {
+        "REST": {
+          "calls": 3,
+          "grossMicros": 50000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Relocation Scout · bluebonnet/agents · REST · 2026-11-11",
+      "id": "b0000000-0000-4000-8000-000000000003|d0000000-0000-4000-8000-000000000002|REST|2026-11-11",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000003",
+          "name": "Relocation Scout"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-11"
+      },
+      "isSimulated": true,
+      "calls": 5,
+      "records": 98,
+      "changes": 0,
+      "grossMicros": 49000,
+      "commissionMicros": 9800,
+      "netMicros": 39200,
+      "channels": {
+        "REST": {
+          "calls": 5,
+          "grossMicros": 49000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Relocation Scout · bluebonnet/agents · REST · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000003|d0000000-0000-4000-8000-000000000002|REST|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000003",
+          "name": "Relocation Scout"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-12"
+      },
+      "isSimulated": true,
+      "calls": 5,
+      "records": 130,
+      "changes": 0,
+      "grossMicros": 65000,
+      "commissionMicros": 13000,
+      "netMicros": 52000,
+      "channels": {
+        "REST": {
+          "calls": 5,
+          "grossMicros": 65000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/listings · REST · 2026-11-07",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000001|REST|2026-11-07",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-07"
+      },
+      "isSimulated": true,
+      "calls": 5,
+      "records": 119,
+      "changes": 0,
+      "grossMicros": 178500,
+      "commissionMicros": 35700,
+      "netMicros": 142800,
+      "channels": {
+        "REST": {
+          "calls": 5,
+          "grossMicros": 178500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/listings · REST · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000001|REST|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-08"
+      },
+      "isSimulated": true,
+      "calls": 1,
+      "records": 42,
+      "changes": 0,
+      "grossMicros": 63000,
+      "commissionMicros": 12600,
+      "netMicros": 50400,
+      "channels": {
+        "REST": {
+          "calls": 1,
+          "grossMicros": 63000
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/listings · REST · 2026-11-09",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000001|REST|2026-11-09",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-09"
+      },
+      "isSimulated": true,
+      "calls": 3,
+      "records": 71,
+      "changes": 0,
+      "grossMicros": 106500,
+      "commissionMicros": 21300,
+      "netMicros": 85200,
+      "channels": {
+        "REST": {
+          "calls": 3,
+          "grossMicros": 106500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/listings · REST · 2026-11-11",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000001|REST|2026-11-11",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-11"
+      },
+      "isSimulated": true,
+      "calls": 1,
+      "records": 27,
+      "changes": 0,
+      "grossMicros": 40500,
+      "commissionMicros": 8100,
+      "netMicros": 32400,
+      "channels": {
+        "REST": {
+          "calls": 1,
+          "grossMicros": 40500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/listings · REST · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000001|REST|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "REST",
+        "day": "2026-11-12"
+      },
+      "isSimulated": true,
+      "calls": 2,
+      "records": 79,
+      "changes": 0,
+      "grossMicros": 118500,
+      "commissionMicros": 23700,
+      "netMicros": 94800,
+      "channels": {
+        "REST": {
+          "calls": 2,
+          "grossMicros": 118500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/listings · MCP · 2026-11-06",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000001|MCP|2026-11-06",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-06"
+      },
+      "isSimulated": true,
+      "calls": 2,
+      "records": 44,
+      "changes": 0,
+      "grossMicros": 66000,
+      "commissionMicros": 13200,
+      "netMicros": 52800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 2,
+          "grossMicros": 66000
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/listings · MCP · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000001|MCP|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000001",
+          "key": "bluebonnet/listings"
+        },
+        "channel": "MCP",
+        "day": "2026-11-08"
+      },
+      "isSimulated": true,
+      "calls": 4,
+      "records": 110,
+      "changes": 0,
+      "grossMicros": 165000,
+      "commissionMicros": 33000,
+      "netMicros": 132000,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 4,
+          "grossMicros": 165000
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · REST · 2026-11-06",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|REST|2026-11-06",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-06"
+      },
+      "isSimulated": true,
+      "calls": 3,
+      "records": 95,
+      "changes": 0,
+      "grossMicros": 47500,
+      "commissionMicros": 9500,
+      "netMicros": 38000,
+      "channels": {
+        "REST": {
+          "calls": 3,
+          "grossMicros": 47500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · REST · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|REST|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-08"
+      },
+      "isSimulated": true,
+      "calls": 6,
+      "records": 141,
+      "changes": 0,
+      "grossMicros": 70500,
+      "commissionMicros": 14100,
+      "netMicros": 56400,
+      "channels": {
+        "REST": {
+          "calls": 6,
+          "grossMicros": 70500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · REST · 2026-11-09",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|REST|2026-11-09",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-09"
+      },
+      "isSimulated": true,
+      "calls": 4,
+      "records": 81,
+      "changes": 7,
+      "grossMicros": 40500,
+      "commissionMicros": 8100,
+      "netMicros": 32400,
+      "channels": {
+        "REST": {
+          "calls": 4,
+          "grossMicros": 40500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · REST · 2026-11-10",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|REST|2026-11-10",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-10"
+      },
+      "isSimulated": true,
+      "calls": 1,
+      "records": 15,
+      "changes": 0,
+      "grossMicros": 7500,
+      "commissionMicros": 1500,
+      "netMicros": 6000,
+      "channels": {
+        "REST": {
+          "calls": 1,
+          "grossMicros": 7500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · REST · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|REST|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "REST",
+        "day": "2026-11-12"
+      },
+      "isSimulated": true,
+      "calls": 1,
+      "records": 41,
+      "changes": 0,
+      "grossMicros": 20500,
+      "commissionMicros": 4100,
+      "netMicros": 16400,
+      "channels": {
+        "REST": {
+          "calls": 1,
+          "grossMicros": 20500
+        },
+        "MCP": {
+          "calls": 0,
+          "grossMicros": 0
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · MCP · 2026-11-06",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|MCP|2026-11-06",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-06"
+      },
+      "isSimulated": true,
+      "calls": 1,
+      "records": 41,
+      "changes": 1,
+      "grossMicros": 20500,
+      "commissionMicros": 4100,
+      "netMicros": 16400,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 1,
+          "grossMicros": 20500
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · MCP · 2026-11-08",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|MCP|2026-11-08",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-08"
+      },
+      "isSimulated": true,
+      "calls": 4,
+      "records": 52,
+      "changes": 0,
+      "grossMicros": 26000,
+      "commissionMicros": 5200,
+      "netMicros": 20800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 4,
+          "grossMicros": 26000
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · MCP · 2026-11-09",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|MCP|2026-11-09",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-09"
+      },
+      "isSimulated": true,
+      "calls": 1,
+      "records": 32,
+      "changes": 0,
+      "grossMicros": 16000,
+      "commissionMicros": 3200,
+      "netMicros": 12800,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 1,
+          "grossMicros": 16000
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · MCP · 2026-11-10",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|MCP|2026-11-10",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-10"
+      },
+      "isSimulated": true,
+      "calls": 2,
+      "records": 33,
+      "changes": 0,
+      "grossMicros": 16500,
+      "commissionMicros": 3300,
+      "netMicros": 13200,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 2,
+          "grossMicros": 16500
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · MCP · 2026-11-11",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|MCP|2026-11-11",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-11"
+      },
+      "isSimulated": true,
+      "calls": 4,
+      "records": 89,
+      "changes": 0,
+      "grossMicros": 44500,
+      "commissionMicros": 8900,
+      "netMicros": 35600,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 4,
+          "grossMicros": 44500
+        }
+      }
+    },
+    {
+      "key": "Rent Index Bot · bluebonnet/agents · MCP · 2026-11-12",
+      "id": "b0000000-0000-4000-8000-000000000004|d0000000-0000-4000-8000-000000000002|MCP|2026-11-12",
+      "dims": {
+        "buyer": {
+          "id": "b0000000-0000-4000-8000-000000000004",
+          "name": "Rent Index Bot"
+        },
+        "dataset": {
+          "id": "d0000000-0000-4000-8000-000000000002",
+          "key": "bluebonnet/agents"
+        },
+        "channel": "MCP",
+        "day": "2026-11-12"
+      },
+      "isSimulated": true,
+      "calls": 5,
+      "records": 164,
+      "changes": 0,
+      "grossMicros": 82000,
+      "commissionMicros": 16400,
+      "netMicros": 65600,
+      "channels": {
+        "REST": {
+          "calls": 0,
+          "grossMicros": 0
+        },
+        "MCP": {
+          "calls": 5,
+          "grossMicros": 82000
+        }
+      }
+    }
+  ]
+}

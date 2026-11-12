@@ -410,6 +410,46 @@ describe.skipIf(!testDatabaseUrl)(
         ]);
       });
 
+      it('groups by several dimensions at once (W08: buyer,dataset,channel,day); rows sum to the KPIs', async () => {
+        const { kpis, rows } = (await getEarnings(A, '?groupBy=buyer,dataset,channel,day'))
+          .body as Earnings;
+        const sum = (f: (r: Earnings['rows'][number]) => number) =>
+          rows.reduce((t, r) => t + f(r), 0);
+        expect(sum((r) => r.calls)).toBe(kpis.calls);
+        expect(sum((r) => r.records)).toBe(kpis.recordsSold);
+        expect(sum((r) => r.grossMicros)).toBe(kpis.grossMicros);
+        expect(sum((r) => r.netMicros)).toBe(kpis.netMicros);
+
+        const today = new Date().toISOString().slice(0, 10);
+        const mcp = rows.find((r) => r.dims.channel === 'MCP')!;
+        expect(mcp).toMatchObject({
+          id: `${X.id}|${A.datasetId}|MCP|${today}`,
+          key: `Acme Agents · ${A.datasetKey} · MCP · ${today}`,
+          dims: {
+            buyer: { id: X.id, name: 'Acme Agents' },
+            dataset: { id: A.datasetId, key: A.datasetKey },
+            channel: 'MCP',
+            day: today,
+          },
+          isSimulated: false,
+          calls: 1,
+          records: 4,
+          grossMicros: 4 * UNIT,
+          channels: { REST: { calls: 0 }, MCP: { calls: 1, grossMicros: 4 * UNIT } },
+        });
+        expect(rows.filter((r) => r.isSimulated).map((r) => r.dims.buyer?.name)).toEqual([
+          'Sim Agent',
+        ]);
+
+        // Day first reads as a time series; a single dimension keeps its old shape plus `dims`.
+        const byDay = ((await getEarnings(A, '?groupBy=day,dataset')).body as Earnings).rows;
+        expect(byDay.map((r) => r.dims.day)).toEqual([...byDay.map((r) => r.dims.day!)].sort());
+        const byBuyer = ((await getEarnings(A, '?groupBy=buyer')).body as Earnings).rows;
+        expect(byBuyer.find((r) => r.id === X.id)?.dims).toEqual({
+          buyer: { id: X.id, name: 'Acme Agents' },
+        });
+      });
+
       it('from/to bound the calls by time; payable stays the current balance', async () => {
         const from = new Date(Date.now() - DAY).toISOString();
         const { kpis, rows } = (await getEarnings(A, `?from=${from}&groupBy=day`)).body as Earnings;
@@ -425,6 +465,9 @@ describe.skipIf(!testDatabaseUrl)(
       it('rejects a bad query with 400 VALIDATION_ERROR', async () => {
         for (const qs of [
           '?groupBy=site',
+          '?groupBy=buyer,buyer',
+          '?groupBy=buyer,',
+          '?groupBy=',
           '?includeSim=maybe',
           '?from=yesterday',
           '?from=1',
