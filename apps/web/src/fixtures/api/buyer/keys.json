@@ -1,0 +1,24 @@
+{
+  "keys": [
+    {
+      "id": "00000000-0000-4000-8000-000000000201",
+      "name": "Claude Desktop",
+      "prefix": "4kQ9xT2m",
+      "scopes": ["read", "topup"],
+      "rateLimitPerMin": 60,
+      "lastUsedAt": "2026-11-12T09:41:00.000Z",
+      "revokedAt": null,
+      "createdAt": "2026-11-11T18:02:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000202",
+      "name": "Old scraper",
+      "prefix": "Zr81bLq0",
+      "scopes": ["read"],
+      "rateLimitPerMin": 60,
+      "lastUsedAt": "2026-11-10T14:15:00.000Z",
+      "revokedAt": "2026-11-11T08:00:00.000Z",
+      "createdAt": "2026-11-09T11:20:00.000Z"
+    }
+  ]
+}

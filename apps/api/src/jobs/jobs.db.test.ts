@@ -8,6 +8,7 @@ import { createDb, createPool, runEvery, runJobTick } from '../db/index.js';
 import { testDatabaseUrl } from '../db/test-db.js';
 import { claimCall } from '../meter/idempotency.js';
 import { FakePayPal } from '../paypal/index.js';
+import { setPayoutDeps } from '../payouts/deps.js';
 import { buildServer } from '../server.js';
 import { REQUIRED_ENV } from '../test/env.js';
 import { seedDataset } from '../test/extract-fixtures.js';
@@ -67,7 +68,14 @@ describe.skipIf(!testDatabaseUrl)('SP-019 jobs (Postgres + FakePayPal)', () => {
   beforeAll(async () => {
     db = await createTestDatabase();
     app = await buildServer(
-      loadConfig({ ...REQUIRED_ENV, DATABASE_URL: db.url, PAYPAL_MODE: 'stub' }),
+      // `recorded`: the schema-agent resume job (SP-012a) replays fixtures instead of needing
+      // ANTHROPIC_API_KEY, which CI doesn't have.
+      loadConfig({
+        ...REQUIRED_ENV,
+        DATABASE_URL: db.url,
+        PAYPAL_MODE: 'stub',
+        SCHEMA_AGENT_MODE: 'recorded',
+      }),
       { logger: false },
     );
     await app.ready();
@@ -434,6 +442,8 @@ describe.skipIf(!testDatabaseUrl)('SP-019 jobs (Postgres + FakePayPal)', () => {
           const fn = (who: string) => async () => {
             runs.push(who);
             setJobDeps({ ...deps, db: createDb(who === 'a' ? a : b) });
+            // SP-021's payout jobs take their own deps (else they read process.env).
+            setPayoutDeps({ pool: who === 'a' ? a : b, pp: fake.client({ timeoutMs: 1_000 }) });
             await job.run();
           };
           const ran = await Promise.all([
@@ -446,6 +456,7 @@ describe.skipIf(!testDatabaseUrl)('SP-019 jobs (Postgres + FakePayPal)', () => {
       }
     } finally {
       setJobDeps(deps);
+      setPayoutDeps(undefined);
       await Promise.all([a.end(), b.end()]);
     }
   });

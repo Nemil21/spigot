@@ -21,10 +21,14 @@ const SCREENS: [path: string, screen: string, title: string][] = [
   ['/app/crawls', 'W10', 'Crawls'],
   ['/app/settings', 'W16', 'Settings'],
   ['/app/admin/audit', 'W14', 'Audit'],
-  ['/buyers', 'W11', 'Balance and keys'],
-  ['/buyers/topup/tp_1?ok=1', 'W11', 'Balance and keys'],
   ['/buyers/usage', 'W12', 'Usage and claims'],
-  ['/buyers/signup', 'W11', 'Buyer sign up'],
+];
+
+/** Real W11 pages (SP-032), no longer stubs. */
+const BUYER_PAGES: [path: string, title: string][] = [
+  ['/buyers', 'Balance and keys'],
+  ['/buyers/topup/tp_1?ok=1', 'Balance and keys'],
+  ['/buyers/signup', 'Create a buyer account'],
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
@@ -63,8 +67,13 @@ describe('router', () => {
     expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument();
   });
 
+  it.each(BUYER_PAGES)('%s renders the W11 page', async (path, title) => {
+    expect(await renderAt(path)).toHaveTextContent(title);
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument();
+  });
+
   it('covers every path in the paths table', () => {
-    const tested = new Set([...SCREENS, ...LOGINS].map(([p]) => p.split('?')[0]));
+    const tested = new Set([...SCREENS, ...LOGINS, ...BUYER_PAGES].map(([p]) => p.split('?')[0]));
     for (const [name, p] of Object.entries(paths)) {
       const concrete = p.replace(':datasetId', 'ds_123').replace(':topupId', 'tp_1');
       expect(tested, name).toContain(concrete);

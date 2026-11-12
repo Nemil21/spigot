@@ -1,0 +1,46 @@
+{
+  "topups": [
+    {
+      "topupId": "00000000-0000-4000-8000-000000000301",
+      "amountCents": 2000,
+      "currency": "USD",
+      "method": "PAYPAL_WALLET",
+      "trigger": "MANUAL",
+      "status": "COMPLETED",
+      "orderId": "5O190127TN364715T",
+      "captureId": "3C679366HH908993F",
+      "errorCode": null,
+      "pendingReason": null,
+      "createdAt": "2026-11-12T09:30:00.000Z",
+      "updatedAt": "2026-11-12T09:30:20.000Z"
+    },
+    {
+      "topupId": "00000000-0000-4000-8000-000000000302",
+      "amountCents": 500,
+      "currency": "USD",
+      "method": "PAYPAL_WALLET",
+      "trigger": "MCP",
+      "status": "ABANDONED",
+      "orderId": "8BX71622JA4401624",
+      "captureId": null,
+      "errorCode": null,
+      "pendingReason": null,
+      "createdAt": "2026-11-12T08:10:00.000Z",
+      "updatedAt": "2026-11-12T08:40:00.000Z"
+    },
+    {
+      "topupId": "00000000-0000-4000-8000-000000000303",
+      "amountCents": 5000,
+      "currency": "USD",
+      "method": "CARD",
+      "trigger": "SIM",
+      "status": "COMPLETED",
+      "orderId": "9TJ55210W9881032V",
+      "captureId": "2MK11987PU5531224",
+      "errorCode": null,
+      "pendingReason": null,
+      "createdAt": "2026-11-11T17:00:00.000Z",
+      "updatedAt": "2026-11-11T17:00:03.000Z"
+    }
+  ]
+}
