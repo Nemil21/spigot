@@ -8,6 +8,15 @@ import type { Site402, SiteDataset402 } from './payment402.js';
 /** Only these are sold (data-model §Dataset states). */
 export const SOLD_STATUSES = ['LIVE', 'LIVE_STALE'] as const;
 
+/**
+ * The dataset status buyers see, as SQL over `datasets d`. A PROPOSED dataset that still has an
+ * active schema was sold before and taken back by `demo:reset` (SP-038's DEMO_RESET transition):
+ * it answers like an unpublished one (410) until the owner re-approves it. A dataset that was
+ * never approved has no active schema and stays a 404.
+ */
+export const BUYER_STATUS_SQL = `CASE WHEN d.status = 'PROPOSED' AND d.active_schema_id IS NOT NULL
+  THEN 'UNPUBLISHED' ELSE d.status END`;
+
 /** Cheap shape check before SQL (values are parameters anyway); generous for dataset slugs. */
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,99}$/;
 
@@ -72,7 +81,7 @@ export async function resolveDataset(
     throw notFound();
   }
   const { rows } = await q.query<SiteRow & { dataset_id: string; status: string }>(
-    `SELECT d.id AS dataset_id, d.status, s.id AS site_id, s.slug AS site_slug,
+    `SELECT d.id AS dataset_id, ${BUYER_STATUS_SQL} AS status, s.id AS site_id, s.slug AS site_slug,
             nullif(p.name, '') AS site_name, ${SITE_DATASETS} AS site_datasets
        FROM sites s
        JOIN publishers p ON p.id = s.publisher_id

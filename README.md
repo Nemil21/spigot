@@ -250,7 +250,8 @@ Restart Claude Desktop and ask: *"Using Spigot, find 3-bedroom rentals under $2,
 | `npm run sim:bots -- --target <demo-site> [--minutes 10] [--backfill 7d]` | Real HTTP requests to the demo site with bot UAs (2–5 req/s each) and human UAs (`--human-rps`, default 60), header `X-Spigot-Sim: 1`, live tally by bot; counted SIM only when the gate runs with `SPIGOT_GATE_DEMO=1` (it warns otherwise). `--backfill 7d` first posts a week of SIM buckets to `/api/gate/hits` with `SPIGOT_GATE_KEY` (a few posts, ≥ 5 s apart; run it once per reset, re-posting sums) | SP-037 |
 | `npm run sim:buyers [-- --live]` | Real `/v1` calls from SIM buyers over a simulated week | SP-036 |
 | `npm run demo:mutate -- --prices 30 --leased 5 --new 3 [--focus …] [--target <url>]` | A labelled **demo mutation**: changes listings on the demo site (rents, leased, new) so the next crawl has exactly those changes; `POST /admin/reset` on the demo site puts them back | SP-004b |
-| `npm run demo:reset`, `npm run demo:payout` | Clean take; "Run payout now" with the labelled $1 demo threshold | SP-038 |
+| `DEMO_MODE=true npm run demo:reset -- --yes` | Clean take, nothing deleted: demo datasets back to PROPOSED (records kept, gate policy bumped, `/v1` answers 410 until the re-approve), Acme to $0 with a `DEMO_RESET` ledger txn, Acme's calls hidden and its API key rotated (prints the new key), `POST {DEMO_SITE_URL}/admin/reset`, then a MANUAL crawl. SIM history and PayPal history untouched. `--skip-site` for the database steps only | SP-038 |
+| `DEMO_MODE=true npm run demo:payout -- --yes` | "Run payout now" with the labelled $1 demo threshold (`payoutRun('MANUAL_DEMO')`); prints the batch, PayPal batch and item ids | SP-038 |
 | `python scripts/scraper-demo.py <demo-site>` | A plain scraper gets three 402s with the price and API link | SP-039a |
 
 ## Test accounts (sandbox only)
@@ -279,6 +280,7 @@ Simulated items are always labelled **SIM** in the UI (a grey chip in every grid
 | Demo buyer's top-up | **Real** sandbox PayPal Orders v2 CAPTURE, approved on PayPal's page | – | SP-018a, SP-032, not merged yet |
 | Claude Desktop paid call | **Real** MCP call, real ledger charge of `records × price` | – | SP-022a, SP-016, not merged yet |
 | Background buyers (20) | **Simulated** buyers. Their balances come from real sandbox card top-ups (or ledger-only top-ups if rate-limited); their calls are real `/v1` calls backdated over a simulated week | SIM chip; "SIM (no PayPal)" for ledger-only top-ups | SP-035, SP-036, not merged yet |
+| Demo reset between takes | **Demo control.** Acme's balance goes to $0 through a `DEMO_RESET` ledger txn into platform revenue (memo "demo reset"); no ledger entry, API call or PayPal record is ever deleted | "Demo reset" in the ledger; `DEMO_RESET` in the audit log | SP-038, not merged yet |
 | Payout to the publisher | **Real** sandbox Payouts batch to the separate publisher account | Demo $1 threshold labelled | SP-020, SP-021, not merged yet |
 
 `TODO(SP-046)`: re-check this table against `main` at the freeze and record the count of "SIM (no PayPal)" top-ups in the recording seed.

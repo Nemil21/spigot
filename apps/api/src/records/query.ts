@@ -47,7 +47,12 @@ export async function loadServedDataset(
     price_per_change_micros: number;
     max_records_per_call: number;
   }>(
-    `SELECT d.id, d.site_id, d.slug, d.type_name, d.status, sv.fields, sv.version AS schema_version,
+    // Buyer-facing status, as `BUYER_STATUS_SQL` in services/lookup.ts: a dataset taken back by
+    // demo:reset (PROPOSED with an active schema, SP-038) answers like an unpublished one.
+    `SELECT d.id, d.site_id, d.slug, d.type_name,
+            CASE WHEN d.status = 'PROPOSED' AND d.active_schema_id IS NOT NULL
+              THEN 'UNPUBLISHED' ELSE d.status END AS status,
+            sv.fields, sv.version AS schema_version,
             d.stale_since, d.published_seq, d.price_per_record_micros, d.price_per_change_micros,
             d.max_records_per_call
        FROM datasets d

@@ -16,7 +16,9 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "seed:demo": "tsx --conditions=source src/cli/seed-demo.ts"
+    "seed:demo": "tsx --conditions=source src/cli/seed-demo.ts",
+    "demo:reset": "tsx --conditions=source src/cli/demo-reset.ts",
+    "demo:payout": "tsx --conditions=source src/cli/demo-payout.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
