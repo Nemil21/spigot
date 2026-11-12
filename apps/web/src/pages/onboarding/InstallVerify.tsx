@@ -482,20 +482,23 @@ function Stepper({ current }: { current: number }) {
               }`}
             >
               {state === 'done' ? (
-                <svg
-                  viewBox="0 0 16 16"
-                  className="size-3.5 shrink-0 text-accent"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M3.5 8.5l3 3 6-7"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <>
+                  <span className="sr-only">Done: </span>
+                  <svg
+                    viewBox="0 0 16 16"
+                    className="size-3.5 shrink-0 text-accent"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3.5 8.5l3 3 6-7"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </>
               ) : (
                 <span className="tabular-nums">{n}.</span>
               )}
