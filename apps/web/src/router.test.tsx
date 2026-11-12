@@ -9,7 +9,6 @@ import { buyerNav, href, paths, publisherNav } from './routes';
 /** Every screen in SP-024a's list: path → the stub's `data-screen` and heading. */
 const SCREENS: [path: string, screen: string, title: string][] = [
   ['/', 'W01', 'Spigot'],
-  ['/app/datasets/ds_123', 'W06', 'Dataset editor'],
   ['/app/records', 'W07', 'Records'],
   ['/app/earnings', 'W08', 'Earnings'],
   ['/app/crawls', 'W10', 'Crawls'],
@@ -32,6 +31,8 @@ const BUILT: [path: string, screen: string, title: string, landmark: string][] =
   ['/app/record-types', 'W05', 'Record types', 'alert'], // SP-028 (no API here: its error banner)
   // SP-027b. This test's fetch 404s `/api/sites`, so W04 settles on its error banner.
   ['/app', 'W04', 'Overview', 'alert'],
+  // SP-029; no datasets API here either, so W06 shows its inline error banner.
+  ['/app/datasets/ds_123', 'W06', 'Dataset editor', 'alert'],
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
