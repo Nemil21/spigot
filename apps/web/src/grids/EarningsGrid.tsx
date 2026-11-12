@@ -38,6 +38,9 @@ export interface EarningsGridProps {
   height?: number | string;
 }
 
+/** Give up waiting for the rows to be drawn after ~1 s (60 frames) and flash what's there. */
+const MAX_FLASH_FRAMES = 60;
+
 const MONEY_FIELDS = new Set(['grossMicros', 'commissionMicros', 'netMicros']);
 
 const money = (p: ValueFormatterParams) =>
@@ -180,10 +183,21 @@ export function EarningsGrid({
     // Rows still being applied: wait for onRowDataUpdated.
     if (nodes.some((n) => !n)) return;
     pending.current = null;
-    // A brand-new row has no cells yet; AG renders it on the next frame, so flash after that.
-    requestAnimationFrame(() => {
-      if (!api.isDestroyed()) api.flashCells({ rowNodes: nodes.flatMap(withAncestors) });
-    });
+    // A brand-new row has no cells yet and flashCells only touches drawn cells. AG draws it a
+    // frame or more later (more on a slow machine), so wait until every row is drawn.
+    const rowNodes = nodes.flatMap(withAncestors);
+    let frames = 0;
+    const tryFlash = () => {
+      if (api.isDestroyed()) return;
+      const drawn = new Set(api.getRenderedNodes());
+      if (rowNodes.every((n) => drawn.has(n)) || ++frames > MAX_FLASH_FRAMES) {
+        // Draw cycles finish within this frame; flash right after.
+        setTimeout(() => !api.isDestroyed() && api.flashCells({ rowNodes }), 0);
+        return;
+      }
+      requestAnimationFrame(tryFlash);
+    };
+    requestAnimationFrame(tryFlash);
   }, []);
 
   useEffect(() => {
