@@ -1,9 +1,11 @@
 @import 'tailwindcss';
 
 /*
- * Spigot design tokens (SP-024a; features/13 §6 Theme). Deliberately not Holdfast's look:
- * Holdfast is white / charcoal / orange with Geist; Spigot is cool slate with a deep "tap water"
- * teal accent and a brass money colour, set in Instrument Sans, in light and dark.
+ * Spigot design tokens (SP-024a; features/13 §6 Theme). A sibling of Holdfast v4, not a clone
+ * (owner decision 2026-11-12): it shares v4's system ideas (mono labels, one serif accent word,
+ * hairlines, square radii) but never its palette, fonts or mark. Holdfast is white / charcoal /
+ * orange in Geist; Spigot is cool slate with a deep "tap water" teal accent and a brass money
+ * colour, in Instrument Sans + JetBrains Mono + Instrument Serif, in light and dark.
  *
  * Rules the components follow:
  *   - Semantic colour names only (bg-surface, text-ink, border-line, text-accent …), never raw hex.
@@ -15,7 +17,7 @@
  *     table text are text-sm (13 px); page titles text-2xl.
  *   - Surfaces: canvas → surface (cards, panels) → surface-2 (wells, table headers). Structure is
  *     1 px hairlines and 2–6 px radii; shadows are near-flat and only overlays really lift.
- *   - Voice (sibling of Holdfast v4, not a clone): Instrument Sans for text, JetBrains Mono
+ *   - Voice: Instrument Sans for text, JetBrains Mono
  *     UPPERCASE letter-spaced (`label` utility) for buttons, nav, KPI labels and chips, and
  *     Instrument Serif italic in teal for one accent word in a heading (`<Accent>`).
  *
@@ -162,7 +164,7 @@
   --text-5xl--line-height: 1.02;
   --text-5xl--letter-spacing: -0.034em;
 
-  /* Square-ish: 2–6 px. Pills (rounded-full) only for status. */
+  /* Square-ish: 2–6 px everywhere, status chips included. rounded-full only for dots. */
   --radius-xs: 2px;
   --radius-sm: 3px;
   --radius-md: 4px;

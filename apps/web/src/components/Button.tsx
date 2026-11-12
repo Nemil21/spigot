@@ -36,7 +36,7 @@ const CHIP: Record<ButtonVariant, string> = {
   link: 'bg-surface-2 text-muted',
 };
 
-/** A keyboard-shortcut hint inside a button ("S", "P"). Display only: wire the key yourself. */
+/** A keyboard-shortcut hint inside a button ("S", "P"). */
 function ShortcutChip({ keys, variant = 'primary' }: { keys: string; variant?: ButtonVariant }) {
   return (
     <kbd
@@ -66,7 +66,10 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: ButtonSize;
   /** Leading icon (an icon from ./icons). */
   icon?: ReactNode;
-  /** Keyboard-shortcut hint shown in a chip after the label, e.g. "S". */
+  /**
+   * Keyboard-shortcut hint shown in a chip after the label, e.g. "S". It also sets
+   * `aria-keyshortcuts`, so pass it only when a key handler for it is actually installed.
+   */
   shortcut?: string;
 };
 
