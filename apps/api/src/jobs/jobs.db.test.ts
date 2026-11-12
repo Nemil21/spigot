@@ -321,6 +321,36 @@ describe.skipIf(!testDatabaseUrl)('SP-019 jobs (Postgres + FakePayPal)', () => {
     expect(await balanceOf(app.db.pool, buyer.id)).toBe(20_000_000);
   });
 
+  it('a PENDING capture that clears with the wrong amount → one ALERT, then the sweep leaves it', async () => {
+    const buyer = await newBuyer();
+    const { topupId, orderId } = await openTopup(buyer.cookie);
+    fake.approve(orderId);
+    fake.pendNextCapture('ECHECK');
+    expect((await capture(buyer.cookie, topupId)).body).toMatchObject({ pendingReason: 'ECHECK' });
+    await backdate(topupId, 120);
+    fake.settleCapture(fake.order(orderId)!.captureIds[0]!);
+    const mismatched = fake.client({
+      timeoutMs: 1_000,
+      fetch: amountRewritingFetch(fake, '19.00'),
+    });
+    const before = getOrders(orderId);
+
+    for (let i = 0; i < 4; i++) await abandonStaleTopups({ ...deps, pp: mismatched });
+
+    expect(getOrders(orderId) - before).toBe(1);
+    expect(await topupById(app.db, topupId)).toMatchObject({
+      status: 'AWAITING_APPROVAL',
+      pendingReason: 'ECHECK',
+      needsReconcile: true,
+    });
+    const { rows } = await app.db.pool.query(
+      `SELECT id FROM audit_events WHERE entity_id = $1 AND action = 'ALERT'`,
+      [topupId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(await topupTxns(topupId)).toBe(0);
+  });
+
   it('a row with paypal_capture_id or needs_reconcile is skipped by the sweep (no PayPal call)', async () => {
     const buyer = await newBuyer();
     const withCapture = await openTopup(buyer.cookie);

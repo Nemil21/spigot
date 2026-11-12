@@ -15,7 +15,8 @@ import { POLL_BATCH, POLL_WINDOW_MS, settleAll, type PollResult } from './topupP
  * A capture after the sweep still credits once (`creditTopup` takes ABANDONED → COMPLETED).
  *
  * The same tick re-checks PENDING captures past the poller's 30-minute window (once per sweep),
- * so an eCheck that clears later is credited even without the webhook.
+ * so an eCheck that clears later is credited even without the webhook. `needs_reconcile` rows are
+ * left for a person (re-checking one would only call PayPal and write the same `ALERT` again).
  *
  * **Retention (hourly):** `api_calls.response_body` is nulled 24 h after the call (a replay then
  * gets `409 IDEMPOTENCY_KEY_EXPIRED`, SP-016); `served_record_keys` is kept (claims need ≥ 7 days,
@@ -47,7 +48,7 @@ export async function abandonStaleTopups(deps: JobDeps): Promise<AbandonSweepRes
   const pending = await deps.db.pool.query<TopupRow>(
     `SELECT ${TOPUP_COLUMNS} FROM topups
       WHERE status = 'AWAITING_APPROVAL' AND created_at <= $1
-        AND paypal_order_id IS NOT NULL AND pending_reason IS NOT NULL
+        AND paypal_order_id IS NOT NULL AND pending_reason IS NOT NULL AND NOT needs_reconcile
       ORDER BY created_at LIMIT $2`,
     [cutoff, POLL_BATCH],
   );
