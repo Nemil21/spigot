@@ -1,16 +1,13 @@
+import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Money } from '../components';
 import { Logo } from '../components/Brand';
-import { claudeDesktopConfig, mcpUrl } from '../components/buyer/ClaudeConfig';
 import { paths } from '../routes';
 
 /**
- * W01 Landing (SP-057; screens.md §W01, features/16 §Landing): one static page for judges and
- * visitors. Hero, two CTAs (W02 sign up, W11 buyer portal), the sourced bot stat, how it works,
- * a mini proposal card, a "for agents" block. Responsive to 375 px.
- *
- * The proposal card is a static picture of W05's card, not `ProposalCard` itself, so the landing
- * chunk doesn't pull in AG Grid.
+ * W01 Landing (SP-057; Figma "Landing / Hero", "/ Features", "/ Pricing", "/ Footer"). The hero is
+ * laid out in Figma's 1440-wide units (`--u`), so it scales with the viewport like the frame.
+ * Static page: no API calls, so the landing chunk stays small.
  */
 
 /** TollBit's scraper index, Q4 2025 (docs/research/15-gstack-spigot.md). */
@@ -41,44 +38,9 @@ export function sampleRequest(origin: string = window.location.origin): string {
   "${origin.replace(/\/+$/, '')}/v1/bluebonnet/datasets/listings/records?city=Austin&bedrooms[gte]=3&limit=50"`;
 }
 
-export const SAMPLE_RESPONSE = JSON.stringify(
-  {
-    records: [
-      {
-        key: 'listings/2br-east-cesar-chavez-4471',
-        data: {
-          title: 'Bungalow near East Cesar Chavez',
-          price_usd: 1850,
-          bedrooms: 3,
-          city: 'Austin',
-          url: 'https://bluebonnet-rentals.onrender.com/listings/2br-east-cesar-chavez-4471',
-        },
-        version: 4,
-        freshness: { crawledAt: '2026-11-12T09:14:00Z', staleSince: null },
-      },
-    ],
-    next: 'eyJ…',
-    charged: { records: 37, priceMicros: 55500 },
-    balanceMicros: 19943000,
-  },
-  null,
-  2,
-);
-
-const MINI_FIELDS = [
-  ['title', 'Bungalow near East Cesar Chavez'],
-  ['price_usd', '1850'],
-  ['bedrooms', '3'],
-  ['city', 'Austin'],
-] as const;
-
-const primaryCta =
-  'inline-flex items-center justify-center rounded-md bg-accent px-4 py-2.5 font-medium text-on-accent hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
-const secondaryCta =
-  'inline-flex items-center justify-center rounded-md border border-border bg-surface px-4 py-2.5 font-medium text-ink hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
-/** Frosted pill used by every hero nav item (Figma "Landing / Hero"). */
+/** Frosted pill used by every hero nav item. */
 const glass =
-  'flex items-center rounded-lg border border-white/10 bg-white/12 text-white backdrop-blur-md hover:bg-white/16';
+  'flex items-center rounded-[calc(8*var(--u))] border border-white/10 bg-white/12 text-white backdrop-blur-md hover:bg-white/16';
 
 /** "Scrape from" strip: sites people scrape (simple-icons paths, CC0). */
 const SCRAPE_FROM: readonly (readonly [string, string])[] = [
@@ -111,66 +73,114 @@ function PayPalMark() {
     </svg>
   );
 }
-const codeBlock =
-  'mt-2 max-w-full overflow-x-auto rounded-md bg-surface-2 p-3 font-mono text-xs leading-relaxed text-ink focus-visible:outline-2 focus-visible:outline-focus';
 
-/** W05's proposal card, shrunk to a picture: what Claude found on the demo site. */
-function MiniProposalCard() {
+const STEP_ICONS = [
+  'M12 3v12M7 10l5 5 5-5M5 21h14',
+  'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+  'm12 2 9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5',
+  'M20 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15v13H5a2 2 0 0 1-2-2V5',
+];
+const STEP_TONES = [
+  'text-accent bg-accent/14',
+  'text-info bg-info/14',
+  'text-sim bg-sim/14',
+  'text-positive bg-positive/14',
+];
+
+const PUBLISHER_PLAN = [
+  'You set the price: $0.10–$100 per 1,000 records, and per 1,000 changes',
+  "You keep 80% of every call; Spigot's 20% is taken at sale",
+  'Paid out via PayPal every Monday once you have $10 payable',
+  'Search engines always pass, so your SEO is safe',
+  'Fails open: if Spigot is down, your site keeps working',
+];
+const AGENT_PLAN = [
+  'Prepaid balance, funded with PayPal or a card through PayPal',
+  'Every response says exactly what it charged',
+  'Auto top-up with a monthly cap, so agents keep working',
+  'Report a wrong or stale record and get credited',
+  'Refund unused balance back to PayPal',
+];
+
+const eyebrow = 'text-xs font-medium tracking-[0.12em] uppercase';
+const h2 =
+  'mt-3 max-w-3xl font-[family-name:var(--font-display)] text-4xl font-light tracking-[-0.035em] text-ink sm:text-[52px] sm:leading-[58px]';
+const card = 'rounded-[20px] border border-white/9 bg-white/4';
+
+function Check({ tone }: { tone: string }) {
   return (
-    <figure className="min-w-0">
-      <div className="rounded-lg border border-line bg-surface p-5 shadow-card">
-        <p className="text-sm font-medium text-accent-strong">
-          I found 3 kinds of records on your site
-        </p>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-lg font-semibold text-ink">Listing · 2,341</p>
-            <code className="block text-sm text-muted">/listings/:slug</code>
-          </div>
-          <span className="rounded-full bg-info-tint px-2 py-0.5 text-xs font-medium text-info">
-            JSON-LD
-          </span>
-        </div>
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          {MINI_FIELDS.map(([name, example]) => (
-            <div key={name} className="min-w-0">
-              <dt className="font-mono text-ink">{name}</dt>
-              <dd className="truncate text-body">{example}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="mt-3 inline-flex flex-wrap items-center gap-1 rounded-md border border-line px-2 py-0.5 text-xs">
-          <span className="font-mono text-muted line-through">agent_phone</span>
-          <span className="rounded-full bg-warning-tint px-2 py-0.5 font-medium text-warning">
-            PII
-          </span>
-          <span className="text-muted">hidden</span>
-        </p>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-          <span className="text-sm text-muted">
-            Suggested price{' '}
-            <Money micros={1500} per1000="records" className="font-medium text-money" />
-          </span>
-          <span className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent">
-            Review
-          </span>
-        </div>
-      </div>
-      <figcaption className="mt-2 text-sm text-muted">
-        Claude wrote the extractor once. It now runs with no AI on each page.
-      </figcaption>
-    </figure>
+    <span
+      aria-hidden="true"
+      className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${tone}`}
+    >
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    </span>
+  );
+}
+
+function Plan({
+  label,
+  title,
+  price,
+  unit,
+  lines,
+  cta,
+  featured,
+}: {
+  label: string;
+  title: string;
+  price: string;
+  unit: string;
+  lines: readonly string[];
+  cta: ReactNode;
+  featured?: boolean;
+}) {
+  const tone = featured ? 'text-accent bg-accent/16' : 'text-positive bg-positive/16';
+  return (
+    <div
+      className={`flex flex-col gap-5 rounded-[20px] border p-9 ${featured ? 'border-accent/40 bg-gradient-to-br from-accent/16 to-accent/3' : 'border-white/9 bg-white/3'}`}
+    >
+      <p className={`${eyebrow} ${featured ? 'text-accent' : 'text-positive'}`}>{label}</p>
+      <h3 className="font-[family-name:var(--font-display)] text-3xl font-light tracking-tight text-ink">
+        {title}
+      </h3>
+      <p className="flex items-end gap-2">
+        <span className="font-[family-name:var(--font-display)] text-[56px] leading-[60px] font-light tracking-[-0.05em] text-ink">
+          {price}
+        </span>
+        <span className="pb-2 text-[15px] text-muted">{unit}</span>
+      </p>
+      <hr className="border-white/10" />
+      <ul className="space-y-3.5">
+        {lines.map((l) => (
+          <li key={l} className="flex gap-3 text-[15px] text-body">
+            <Check tone={tone} />
+            {l}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-auto pt-4">{cta}</div>
+    </div>
   );
 }
 
 export default function LandingPage() {
-  const mcpConfig = claudeDesktopConfig(mcpUrl(), 'sk_spg_…');
-
   return (
-    <div className="min-h-screen bg-canvas text-body" data-screen="W01">
+    <div className="min-h-screen bg-canvas text-body" data-screen="W01" data-theme="dark">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-ink"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-ink"
       >
         Skip to content
       </a>
@@ -178,54 +188,69 @@ export default function LandingPage() {
         <section
           aria-labelledby="hero-title"
           data-theme="dark"
-          className="relative flex min-h-[640px] flex-col overflow-hidden bg-[#070b23] bg-[url('/hero-bg.webp')] bg-cover bg-bottom text-white sm:h-screen sm:max-h-[1000px]"
+          style={{ '--u': 'clamp(0.62px, calc(100vw / 1440), 2.2px)' } as CSSProperties}
+          className="relative flex min-h-[620px] flex-col overflow-hidden bg-[#070b23] bg-[url('/hero-bg.webp')] bg-cover bg-center text-white sm:h-[calc(900*var(--u))]"
         >
           <nav
             aria-label="Main"
-            className="mx-auto flex w-full max-w-[1296px] items-center justify-between gap-3 px-4 pt-8 sm:px-0"
+            className="flex items-center justify-between gap-3 px-[max(16px,calc(72*var(--u)))] pt-[max(20px,calc(32*var(--u)))]"
           >
-            <div className="flex items-center gap-3">
-              <Link to={paths.landing} className={`${glass} h-11 px-4`}>
+            <div className="flex items-center gap-[calc(12*var(--u))]">
+              <Link
+                to={paths.landing}
+                className={`${glass} h-[max(40px,calc(44*var(--u)))] px-[calc(16*var(--u))] [&_svg]:size-[max(20px,calc(24*var(--u)))] [&_span]:text-[max(18px,calc(20*var(--u)))]`}
+              >
                 <Logo />
               </Link>
-              <ul className={`${glass} hidden h-11 gap-1 p-1.5 sm:flex`}>
+              <ul
+                className={`${glass} hidden h-[calc(44*var(--u))] gap-[calc(4*var(--u))] p-[calc(6*var(--u))] text-[calc(14*var(--u))] sm:flex`}
+              >
                 <li>
-                  <a href="#agents" className="rounded-md bg-white/14 px-4 py-2 text-sm">
+                  <a
+                    href="#pricing"
+                    className="block rounded-[calc(6*var(--u))] bg-white/14 px-[calc(16*var(--u))] py-[calc(7*var(--u))]"
+                  >
                     Pricing
                   </a>
                 </li>
                 <li>
-                  <a href="#how" className="rounded-md px-4 py-2 text-sm hover:bg-white/10">
+                  <a
+                    href="#features"
+                    className="block rounded-[calc(6*var(--u))] px-[calc(16*var(--u))] py-[calc(7*var(--u))] hover:bg-white/10"
+                  >
                     Features
                   </a>
                 </li>
               </ul>
             </div>
-            <Link to={paths.login} className={`${glass} h-11 px-5 text-sm`}>
+            <Link
+              to={paths.login}
+              className={`${glass} h-[max(40px,calc(44*var(--u)))] px-[max(16px,calc(18*var(--u)))] text-[max(14px,calc(14*var(--u)))]`}
+            >
               Sign in
             </Link>
           </nav>
 
-          <div className="mx-auto grid w-full max-w-[1296px] gap-8 px-4 pt-24 sm:px-0 lg:grid-cols-[1fr_460px] lg:pt-[180px]">
+          <div className="grid gap-8 px-[max(16px,calc(72*var(--u)))] pt-24 sm:grid-cols-[1fr_calc(568*var(--u))] sm:gap-0 sm:pt-[calc(176*var(--u))]">
             <div>
-              <p className="flex items-center gap-2 text-[15px] text-white/75">
+              <p className="flex items-center gap-[calc(8*var(--u))] text-[max(14px,calc(15*var(--u)))] text-white/75 [&_svg]:size-[max(16px,calc(18*var(--u)))]">
                 Built on <PayPalMark /> <span className="font-semibold text-white">PayPal</span>
               </p>
               <h1
                 id="hero-title"
-                className="mt-4 text-5xl text-white sm:text-[72px] sm:leading-[80px]"
+                className="mt-[max(12px,calc(16*var(--u)))] text-[max(44px,calc(72*var(--u)))] leading-[1.11] text-white"
               >
                 Make AI bots pay <br />
                 for your site.
               </h1>
             </div>
-            <div className="lg:pt-12">
-              <p className="text-lg leading-[30px] text-white/80 sm:text-xl">
+            <div className="sm:pt-[calc(58*var(--u))]">
+              <p className="max-w-[calc(460*var(--u))] text-[max(17px,calc(20*var(--u)))] leading-[1.5] text-white/80">
                 Turn your site into a paid API for AI agents. PayPal pays you.
               </p>
               <Link
                 to={paths.login}
-                className="mt-6 inline-flex items-center rounded-lg bg-white px-[22px] py-3 text-lg font-medium text-[#0a1230] hover:bg-white/90"
+                className="mt-[max(20px,calc(24*var(--u)))] inline-flex items-center rounded-[calc(8*var(--u))] bg-white px-[max(18px,calc(22*var(--u)))] py-[max(10px,calc(12*var(--u)))] text-[max(16px,calc(18*var(--u)))] font-medium text-[#0a1230] hover:bg-white/90"
               >
                 View demo
               </Link>
@@ -233,17 +258,18 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-auto border-t border-white/10 bg-white/10 backdrop-blur-xl">
-            <div className="mx-auto flex max-w-[1296px] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-4 py-7 sm:px-0">
-              <span className="text-[15px] font-medium text-white/60">Scrape from</span>
+            <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-[max(16px,calc(72*var(--u)))] py-[max(18px,calc(36*var(--u)))]">
+              <span className="text-[max(14px,calc(15*var(--u)))] font-medium text-white/60">
+                Scrape from
+              </span>
               {SCRAPE_FROM.map(([name, d]) => (
                 <span
                   key={name}
-                  className="flex items-center gap-2.5 text-[17px] font-medium text-white/90"
+                  className="flex items-center gap-[calc(10*var(--u))] text-[max(15px,calc(17*var(--u)))] font-medium text-white/90"
                 >
                   <svg
                     aria-hidden="true"
-                    width="24"
-                    height="24"
+                    className="size-[max(20px,calc(24*var(--u)))]"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -256,101 +282,259 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section aria-label="Get started" className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-            <div className="min-w-0">
-              <h2 className="text-3xl font-[family-name:var(--font-display)] font-light tracking-tight text-ink sm:text-4xl">
-                Turn your site into a paid API for AI agents
-              </h2>
-              <p className="mt-4 text-lg text-body sm:text-xl">
-                Scrapers pay Bright Data. Spigot makes them pay you.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link to={paths.signUp} className={primaryCta}>
-                  Connect your site
-                </Link>
-                <Link to={paths.buyerPortal} className={secondaryCta}>
-                  I'm an agent builder
-                </Link>
-              </div>
-              <p className="mt-8 rounded-md border border-accent/30 bg-accent-tint px-4 py-3 text-ink">
-                <strong className="font-semibold">1 AI bot for every 31 human visits</strong>, up
-                from 1 in 200.{' '}
-                <a
-                  href={STAT_SOURCE_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-accent-strong underline underline-offset-2"
-                >
-                  Source: TollBit, Q4 2025
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
-              </p>
-            </div>
-            <MiniProposalCard />
-          </div>
-        </section>
+        <section
+          id="features"
+          aria-labelledby="features-title"
+          className="px-4 py-24 sm:px-[5vw] sm:py-[120px]"
+        >
+          <p className={`${eyebrow} text-accent`}>Features</p>
+          <h2 id="features-title" className={h2}>
+            From scraped to paid in four steps.
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg leading-7 text-muted">
+            Bots stop scraping your HTML and buy clean, live records instead. You stay in control of
+            what's sold and for how much.
+          </p>
 
-        <section id="how" aria-labelledby="how-title" className="border-t border-line bg-surface">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-            <h2 id="how-title" className="text-2xl font-semibold text-ink">
-              How it works
-            </h2>
-            <ol className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {STEPS.map((s, i) => (
-                <li key={s.title} className="rounded-lg border border-line bg-canvas p-5">
+          <ol aria-label="How it works" className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((s, i) => (
+              <li key={s.title} className={`${card} flex flex-col p-7`}>
+                <span className="flex items-center justify-between">
                   <span
                     aria-hidden="true"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-semibold text-on-accent"
+                    className={`grid size-11 place-items-center rounded-xl ${STEP_TONES[i]}`}
                   >
-                    {i + 1}
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d={STEP_ICONS[i]} />
+                    </svg>
                   </span>
-                  <h3 className="mt-3 font-semibold text-ink">{s.title}</h3>
-                  <p className="mt-1 text-sm text-body">{s.body}</p>
-                </li>
-              ))}
-            </ol>
+                  <span aria-hidden="true" className="font-mono text-[13px] text-muted">
+                    0{i + 1}
+                  </span>
+                </span>
+                <h3 className="mt-10 font-[family-name:var(--font-display)] text-[22px] tracking-tight text-ink">
+                  {s.title}
+                </h3>
+                <p className="mt-3 text-[14.5px] leading-[22px] text-muted">{s.body}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_560px]">
+            <figure className="rounded-[20px] border border-accent/25 bg-gradient-to-br from-accent/18 to-sim/4 p-8">
+              <p className={`${eyebrow} text-accent`}>What Claude found on a demo site</p>
+              <p className="mt-4 font-[family-name:var(--font-display)] text-[28px] font-light tracking-tight text-ink">
+                I found 3 kinds of records on your site
+              </p>
+              <div className="mt-5 rounded-[14px] border border-white/10 bg-canvas/60 p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-[family-name:var(--font-display)] text-xl tracking-tight text-ink">
+                      Listing · 2,341
+                    </p>
+                    <code className="text-[12.5px] text-muted">/listings/:slug</code>
+                  </div>
+                  <span className="rounded-full bg-info-tint px-2.5 py-0.5 text-xs font-medium text-info">
+                    JSON-LD
+                  </span>
+                </div>
+                <dl className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {[
+                    ['title', 'Sunny 3BR near Zilker'],
+                    ['price_usd', '1850'],
+                    ['bedrooms', '3'],
+                    ['city', 'Austin'],
+                  ].map(([k, v]) => (
+                    <div
+                      key={k}
+                      className="min-w-0 rounded-[9px] border border-white/8 bg-white/4 p-2.5"
+                    >
+                      <dt className="font-mono text-[11.5px] text-accent">{k}</dt>
+                      <dd className="truncate text-[13px] text-body">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-4 flex items-center justify-between">
+                  <Money
+                    micros={1500}
+                    per1000="records"
+                    className="text-[15px] font-medium text-money"
+                  />
+                  <span className="rounded-md bg-white px-3.5 py-2 text-[13.5px] font-medium text-[#0a1230]">
+                    Review
+                  </span>
+                </div>
+              </div>
+              <figcaption className="mt-4 text-sm text-muted">
+                Claude wrote the extractor once. It now runs with no AI on each page.
+              </figcaption>
+            </figure>
+
+            <section aria-labelledby="agents-title" className={`${card} p-8`}>
+              <p className={`${eyebrow} text-positive`}>For agents</p>
+              <h3
+                id="agents-title"
+                className="mt-4 font-[family-name:var(--font-display)] text-[28px] font-light tracking-tight text-ink"
+              >
+                Typed records, not HTML.
+              </h3>
+              <p className="mt-4 text-[14.5px] leading-[22px] text-muted">
+                Pay per record from a balance you top up with PayPal; every response says what it
+                charged. Use the MCP server from Claude Desktop or call the REST API.
+              </p>
+              <pre
+                tabIndex={0}
+                aria-label="Sample request"
+                className="mt-5 overflow-x-auto rounded-xl border border-white/8 bg-[#02050f]/75 p-4 font-mono text-[12.5px] leading-5 text-ink"
+              >
+                {sampleRequest()}
+              </pre>
+              <p className="mt-2 font-mono text-[12.5px] text-money">
+                → 37 records · <Money micros={55500} word="charged" />
+              </p>
+            </section>
           </div>
+
+          <p className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/8 bg-white/3 px-7 py-5">
+            <span className="flex flex-wrap items-baseline gap-3.5">
+              <strong className="font-[family-name:var(--font-display)] text-2xl font-normal tracking-tight text-ink">
+                1 AI bot for every 31 human visits
+              </strong>
+              <span className="text-muted">up from 1 in 200.</span>
+            </span>
+            <a
+              href={STAT_SOURCE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-accent hover:underline"
+            >
+              Source: TollBit, Q4 2025 ↗<span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </p>
         </section>
 
-        <section id="agents" aria-labelledby="agents-title" className="border-t border-line">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-            <h2 id="agents-title" className="text-2xl font-semibold text-ink">
-              For agents
-            </h2>
-            <p className="mt-2 max-w-3xl text-body">
-              Typed records and a change feed instead of HTML. Pay per record from a balance you top
-              up with PayPal; every response says what it charged. Use the MCP server from Claude
-              Desktop or call the REST API.
-            </p>
-            <div className="mt-8 grid gap-6 lg:grid-cols-2">
-              <div className="min-w-0">
-                <h3 className="font-semibold text-ink">Claude Desktop (MCP)</h3>
-                <p className="mt-1 text-sm text-muted">
-                  Add to <code className="font-mono text-xs">claude_desktop_config.json</code> with
-                  your API key.
-                </p>
-                <pre tabIndex={0} aria-label="MCP config" className={codeBlock}>
-                  {mcpConfig}
-                </pre>
-              </div>
-              <div className="min-w-0">
-                <h3 className="font-semibold text-ink">REST API</h3>
-                <p className="mt-1 text-sm text-muted">
-                  37 records at <Money micros={1500} per1000="records" />:{' '}
-                  <Money micros={55500} word="charged" />.
-                </p>
-                <pre tabIndex={0} aria-label="Sample request" className={codeBlock}>
-                  {sampleRequest()}
-                </pre>
-                <pre tabIndex={0} aria-label="Sample JSON response" className={codeBlock}>
-                  {SAMPLE_RESPONSE}
-                </pre>
-              </div>
-            </div>
+        <section
+          id="pricing"
+          aria-labelledby="pricing-title"
+          className="px-4 pb-24 sm:px-[5vw] sm:pt-10 sm:pb-[120px]"
+        >
+          <p className={`${eyebrow} text-accent`}>Pricing</p>
+          <h2 id="pricing-title" className={h2}>
+            You set the price. Spigot takes 20%.
+          </h2>
+          <p className="mt-4 text-lg text-muted">
+            No monthly fee. Spigot earns only when your records sell.
+          </p>
+          <div className="mt-14 grid gap-4 lg:grid-cols-2">
+            <Plan
+              featured
+              label="For publishers"
+              title="Free to connect"
+              price="20%"
+              unit="commission on each sale"
+              lines={PUBLISHER_PLAN}
+              cta={
+                <Link
+                  to={paths.signUp}
+                  className="inline-flex rounded-lg bg-white px-5 py-3 text-[15px] font-medium text-[#0a1230] hover:bg-white/90"
+                >
+                  Connect your site
+                </Link>
+              }
+            />
+            <Plan
+              label="For agents"
+              title="Pay per record"
+              price="$5"
+              unit="minimum top-up"
+              lines={AGENT_PLAN}
+              cta={
+                <Link
+                  to={paths.buyerPortal}
+                  className="inline-flex rounded-lg border border-white/16 bg-white/6 px-5 py-3 text-[15px] font-medium text-ink hover:bg-white/10"
+                >
+                  I'm an agent builder
+                </Link>
+              }
+            />
           </div>
+          <p className="mt-4 flex flex-wrap items-center gap-3.5 rounded-[14px] border border-positive/22 bg-positive/7 px-6 py-4 text-[15.5px] text-body">
+            <span className={`${eyebrow} text-positive`}>Example</span>A buyer pulling all 2,341
+            listings at $1.50 / 1,000 pays $3.51; you get $2.81 after Spigot's 20%.
+          </p>
         </section>
       </main>
+
+      <footer className="border-t border-white/8 px-4 pt-16 pb-10 sm:px-[5vw]">
+        <div className="flex flex-wrap justify-between gap-10">
+          <div>
+            <Logo />
+            <p className="mt-3.5 text-[15px] text-muted">Make AI bots pay for your site.</p>
+          </div>
+          <div className="flex gap-24">
+            <FooterCol
+              title="Product"
+              links={[
+                ['Features', '#features'],
+                ['Pricing', '#pricing'],
+                ['For agents', '#features'],
+              ]}
+            />
+            <FooterCol
+              title="Get started"
+              links={[
+                ['Connect your site', paths.signUp],
+                ['Publisher sign in', paths.login],
+                ['Buyer sign in', paths.buyerLogin],
+              ]}
+            />
+          </div>
+        </div>
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-white/8 pt-6 text-[13px] text-muted">
+          <span>© 2026 Spigot · MIT licence</span>
+          <span className="flex items-center gap-1.5 [&_svg]:size-3.5">
+            Built on <PayPalMark /> <span className="font-medium text-body">PayPal</span>
+          </span>
+        </div>
+      </footer>
     </div>
+  );
+}
+
+function FooterCol({
+  title,
+  links,
+}: {
+  title: string;
+  links: readonly (readonly [string, string])[];
+}) {
+  return (
+    <nav aria-label={title}>
+      <p className={`${eyebrow} text-muted`}>{title}</p>
+      <ul className="mt-3 space-y-3 text-[15px] text-body">
+        {links.map(([l, to]) => (
+          <li key={l}>
+            {to.startsWith('#') ? (
+              <a href={to} className="hover:text-ink">
+                {l}
+              </a>
+            ) : (
+              <Link to={to} className="hover:text-ink">
+                {l}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
