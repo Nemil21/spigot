@@ -78,6 +78,15 @@ describe('pages', () => {
     await request(app).get('/search').query({ beds: 'x', max_rent: '-5', page: '0' }).expect(200);
   });
 
+  it('D01 search clamps a past-the-end page to the last page', async () => {
+    const res = await request(app).get('/search').query({ page: 999 }).expect(200);
+    const $ = cheerio.load(res.text);
+    const pages = Math.ceil(store.listings.length / 24);
+    expect($('.pagination span').text()).toBe(`Page ${pages} of ${pages}`);
+    expect($('.pagination a[rel=next]')).toHaveLength(0);
+    expect($('.results .listing-card').length).toBeGreaterThan(0);
+  });
+
   it('D02 listing page carries valid schema.org Apartment + Offer JSON-LD matching the visible HTML', async () => {
     const res = await request(app).get(`/listings/${available.slug}`).expect(200);
     const blocks = jsonLdBlocks(res.text);
@@ -269,6 +278,18 @@ describe('gate mount point and access log', () => {
     await request(gated).get('/sitemap.xml').set('User-Agent', 'BadBot').expect(402);
     await request(gated).get(`/listings/${available.slug}`).set('User-Agent', 'Mozilla/5.0').expect(200);
     expect(seen).toEqual([`/listings/${available.slug}`, '/sitemap.xml', `/listings/${available.slug}`]);
+  });
+
+  it('trusts only one proxy hop, so X-Forwarded-For cannot be spoofed past it', async () => {
+    const ips: string[] = [];
+    const gate: RequestHandler = (req, _res, next) => {
+      ips.push(req.ip ?? '');
+      next();
+    };
+    const a = createApp({ store, gate, accessLog: quietLog() });
+    // Client spoofs 1.2.3.4; Render's proxy appends the real client address 203.0.113.9.
+    await request(a).get('/about').set('X-Forwarded-For', '1.2.3.4, 203.0.113.9').expect(200);
+    expect(ips).toEqual(['203.0.113.9']);
   });
 
   it('logs method, path, UA, status and in-flight count as one JSON line per request', async () => {

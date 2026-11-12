@@ -52,7 +52,9 @@ export function createApp({ store, gate = noopGate, verifyToken, accessLog = cre
   app.set('views', VIEWS_DIR);
   app.set('view engine', 'ejs');
   app.set('etag', false); // sendWithEtag sets a strong hash-of-body ETag instead
-  app.set('trust proxy', true); // Render terminates TLS; sitemap URLs use the forwarded proto/host
+  // Render puts exactly one proxy in front: trust that hop only, so X-Forwarded-For can't be
+  // spoofed past it (spigot-gate may key on req.ip). Sitemap URLs use the forwarded proto.
+  app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.locals.accessLog = accessLog;
   app.locals.store = store;
@@ -87,8 +89,12 @@ export function createApp({ store, gate = noopGate, verifyToken, accessLog = cre
   });
 
   app.get('/search', (req, res) => {
-    const q = parseSearchQuery(req.query as Record<string, unknown>);
-    const { total, results } = searchListings(store.listings, q);
+    const parsed = parseSearchQuery(req.query as Record<string, unknown>);
+    const total = searchListings(store.listings, { ...parsed, page: 1 }).total;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    // Clamp past-the-end pages so crawlers never walk an endless run of empty result pages.
+    const q = { ...parsed, page: Math.min(parsed.page, pages) };
+    const { results } = searchListings(store.listings, q);
     const params = new URLSearchParams();
     if (q.beds !== undefined) params.set('beds', String(q.beds));
     if (q.maxRent !== undefined) params.set('max_rent', String(q.maxRent));
@@ -98,7 +104,7 @@ export function createApp({ store, gate = noopGate, verifyToken, accessLog = cre
       q,
       total,
       results,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages,
       baseQuery: params.toString(),
       neighbourhoods: store.neighbourhoods(),
     });
