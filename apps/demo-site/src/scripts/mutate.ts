@@ -1,24 +1,36 @@
-// `npm run demo:mutate -- --prices 30 --leased 5 --new 3 [--seed 42] [--focus "bedrooms>=3,price_usd<2000,city=Austin"] [--target <url>] [--ping]`
+// `npm run demo:mutate -- --prices 30 --leased 5 --new 3 [--seed 42] [--focus "bedrooms>=3,price_usd<2000,city=Austin"] [--target <url> [--ping]]`
 //
 // A "demo mutation": changes a known set of listings so the next crawl emits exactly those changes.
 // - With --target, calls POST <target>/admin/mutate with DEMO_ADMIN_TOKEN (local site or Render).
 // - Without it, appends to the mutation log in DEMO_DATA_DIR directly; a running site only
 //   picks that up on restart, so use --target when the site is up.
+// - --ping (SP-055, needs --target): then POST the changed pages to Spigot's
+//   /api/sites/:id/ping with the site's crawl key (SPIGOT_API_BASE, SPIGOT_SITE_ID,
+//   SPIGOT_CRAWL_KEY), so Spigot re-fetches only those pages.
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
 import { mutateSummary } from '../admin.js';
 import { MutationError, parseMutateOptions } from '../data/mutations.js';
 import { DEFAULT_DATA_DIR, openStore } from '../data/store.js';
+import { pingConfigFromEnv, pingSpigot, pingUrls, type PingResult } from '../ping.js';
 
-type Summary = ReturnType<typeof mutateSummary> & { ping?: string };
+type Summary = ReturnType<typeof mutateSummary> & { ping?: PingResult };
 
 /** Fill DEMO_* keys from the repo-root .env without overriding the environment or printing values. */
 function loadRootEnv(): void {
   const file = fileURLToPath(new URL('../../../../.env', import.meta.url));
   if (!existsSync(file)) return;
   const parsed = parseEnv(readFileSync(file, 'utf8'));
-  for (const key of ['DEMO_ADMIN_TOKEN', 'DEMO_DATA_DIR', 'DEMO_SEED_SCALE']) {
+  const keys = [
+    'DEMO_ADMIN_TOKEN',
+    'DEMO_DATA_DIR',
+    'DEMO_SEED_SCALE',
+    'SPIGOT_API_BASE',
+    'SPIGOT_SITE_ID',
+    'SPIGOT_CRAWL_KEY',
+  ];
+  for (const key of keys) {
     if (process.env[key] === undefined && parsed[key]) process.env[key] = parsed[key];
   }
 }
@@ -32,7 +44,10 @@ function print(s: Summary): void {
   console.log(`new listings (${s.added.length}):`);
   for (const slug of s.added) console.log(`  ${slug}`);
   console.log(`pages with a new lastmod: ${s.touched.length}`);
-  if (s.ping) console.log(`--ping: ${s.ping}`);
+  if (s.ping) {
+    const how = s.ping.joined ? 'joined live run' : 'PING run';
+    console.log(`pinged Spigot with ${s.ping.urls} URLs: ${how} ${s.ping.crawlRunId}`);
+  }
 }
 
 async function main(): Promise<void> {
@@ -52,6 +67,10 @@ async function main(): Promise<void> {
   });
   const opts = parseMutateOptions(values);
   const emit = (s: Summary) => (values.json ? console.log(JSON.stringify(s, null, 2)) : print(s));
+  // Pinging pages the running site doesn't serve yet would fetch the old content.
+  if (opts.ping && !values.target)
+    throw new MutationError('--ping needs --target (the running site)');
+  const ping = opts.ping ? pingConfigFromEnv(process.env) : null;
 
   if (values.target) {
     const token = process.env.DEMO_ADMIN_TOKEN;
@@ -60,7 +79,7 @@ async function main(): Promise<void> {
     const res = await fetch(url, {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify(opts),
+      body: JSON.stringify({ ...opts, ping: false }),
     });
     const body = (await res.json().catch(() => ({}))) as Summary & {
       message?: string;
@@ -70,6 +89,10 @@ async function main(): Promise<void> {
       throw new Error(
         `${url.origin}/admin/mutate → ${res.status} ${body.message ?? body.error ?? ''}`.trim(),
       );
+    if (ping) {
+      // The changed pages on the site Spigot knows: --target is that site's origin.
+      body.ping = await pingSpigot(ping, pingUrls(values.target, body.touched));
+    }
     emit(body);
     return;
   }
@@ -78,7 +101,7 @@ async function main(): Promise<void> {
   const scale = process.env.DEMO_SEED_SCALE ? Number(process.env.DEMO_SEED_SCALE) : 1;
   const store = await openStore({ dataDir, scale });
   const entry = await store.mutate(opts);
-  emit({ ...mutateSummary(entry), ping: opts.ping ? 'not implemented until SP-055' : undefined });
+  emit(mutateSummary(entry));
   console.error(
     `wrote the mutation log in ${dataDir}; restart a running demo site to serve it (or use --target)`,
   );

@@ -20,6 +20,8 @@ npm run demo:mutate -w @spigot/demo-site -- --prices 30 --leased 5 --new 3 --see
 | `SPIGOT_VERIFY_TOKEN` | unset | Served at `/.well-known/spigot.txt`; 404 when unset |
 | `SPIGOT_API_BASE` | unset | Spigot API origin for spigot-gate (policy + hit counts) |
 | `SPIGOT_GATE_KEY` | unset | Site gate key `gk_…` from W03. Gate is off until this and `SPIGOT_API_BASE` are set |
+| `SPIGOT_SITE_ID` | unset | `demo:mutate --ping`: the site's id in Spigot |
+| `SPIGOT_CRAWL_KEY` | unset | `demo:mutate --ping`: the site's crawl key `ck_…` (never printed) |
 | `SPIGOT_GATE_DEMO` | unset | `1`: requests with `X-Spigot-Sim: 1` (sim:bots) count as simulated |
 
 ## Pages
@@ -65,7 +67,11 @@ mutations. The log stores outcomes (slugs, old and new rents, whole new listings
 - `--target URL` calls `POST URL/admin/mutate` with `DEMO_ADMIN_TOKEN` (env or the repo `.env`); use it
   whenever the site is running, locally or on Render. Without it the CLI appends to the log in
   `DEMO_DATA_DIR` directly, and a running site only sees it after a restart.
-- `--ping` is accepted and does nothing until SP-055.
+- `--ping` (SP-055, needs `--target`): after the mutation, POST the touched pages to Spigot's CMS ping
+  `SPIGOT_API_BASE/api/sites/SPIGOT_SITE_ID/ping` with the site's crawl key `SPIGOT_CRAWL_KEY` (`ck_…`, shown
+  once when the site was connected, or printed by `seed:demo`). Spigot re-fetches only those pages, so
+  `--prices 3 --ping` shows 3 updates in the changes feed within seconds, no full crawl. ≤ 500 touched pages,
+  1 ping per 10 s per site.
 
 Admin endpoints (`Authorization: Bearer $DEMO_ADMIN_TOKEN`; 401 with a missing or wrong token, 404 when
 the token is unset). They're mounted before spigot-gate, and robots.txt disallows `/admin`.
