@@ -1,0 +1,103 @@
+{
+  "pathPattern": "/agents/:slug",
+  "model": "claude-opus-5-5",
+  "source": "hand-authored",
+  "capturedAt": "2026-11-12",
+  "usage": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0
+  },
+  "input": {
+    "typeName": "Agent",
+    "recordKey": { "from": "url" },
+    "fields": [
+      {
+        "name": "name",
+        "type": "string",
+        "description": "Agent's full name",
+        "required": true,
+        "source": { "css": "h1.agent-name", "attr": "text" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "brokerage",
+        "type": "string",
+        "description": "Brokerage the agent works for",
+        "required": true,
+        "source": { "css": "dl.facts dd[data-k=brokerage]", "attr": "text" },
+        "transforms": ["trim"],
+        "filterable": ["eq", "in"]
+      },
+      {
+        "name": "license_no",
+        "type": "string",
+        "description": "Texas real-estate licence number",
+        "source": { "css": "dl.facts dd[data-k=license]", "attr": "text" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "years_experience",
+        "type": "integer",
+        "description": "Years in the business",
+        "source": { "css": "dl.facts dd[data-k=experience]", "attr": "text" },
+        "transforms": ["firstInt"],
+        "filterable": ["gte", "lte"]
+      },
+      {
+        "name": "languages",
+        "type": "string[]",
+        "description": "Languages the agent speaks",
+        "source": { "css": "dl.facts dd[data-k=languages]", "attr": "text" },
+        "transforms": ["split:,"]
+      },
+      {
+        "name": "areas",
+        "type": "string[]",
+        "description": "Neighbourhoods the agent covers",
+        "source": { "css": "dl.facts dd[data-k=areas]", "attr": "text" },
+        "transforms": ["split:,"]
+      },
+      {
+        "name": "active_listings",
+        "type": "integer",
+        "description": "Listings the agent has on the market now",
+        "source": { "css": "dl.facts dd[data-k=active_listings]", "attr": "text" },
+        "transforms": ["toInt"],
+        "filterable": ["gte", "lte"]
+      },
+      {
+        "name": "leased_listings",
+        "type": "integer",
+        "description": "Listings the agent leased recently",
+        "source": { "css": "dl.facts dd[data-k=leased_listings]", "attr": "text" },
+        "transforms": ["toInt"]
+      },
+      {
+        "name": "bio",
+        "type": "string",
+        "description": "Short biography",
+        "source": { "css": "p.agent-bio", "attr": "text" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "phone",
+        "type": "string",
+        "description": "Agent's phone number",
+        "source": { "css": "article.agent a.agent-phone", "attr": "text" },
+        "transforms": ["trim"],
+        "visible": true
+      },
+      {
+        "name": "email",
+        "type": "string",
+        "description": "Agent's email address",
+        "source": { "css": "article.agent a.agent-email", "attr": "text" },
+        "transforms": ["trim", "lower"],
+        "visible": true
+      }
+    ],
+    "rationale": "Agent pages have no JSON-LD, so every field comes from the page: the name heading, the facts list (brokerage, licence, experience, languages, areas, listing counts) and the bio paragraph. Phone and email are in the contact line."
+  }
+}

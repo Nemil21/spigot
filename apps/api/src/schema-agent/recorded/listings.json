@@ -1,0 +1,131 @@
+{
+  "pathPattern": "/listings/:slug",
+  "model": "claude-opus-5-5",
+  "source": "hand-authored",
+  "capturedAt": "2026-11-12",
+  "usage": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0
+  },
+  "input": {
+    "typeName": "Listing",
+    "recordKey": { "from": "url" },
+    "fields": [
+      {
+        "name": "title",
+        "type": "string",
+        "description": "Listing headline",
+        "required": true,
+        "source": { "jsonld": "$.name" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "price_usd",
+        "type": "integer",
+        "description": "Monthly rent in USD",
+        "required": true,
+        "source": { "jsonld": "$.offers.price" },
+        "transforms": ["toInt"],
+        "filterable": ["eq", "lt", "lte", "gt", "gte"]
+      },
+      {
+        "name": "bedrooms",
+        "type": "integer",
+        "description": "Number of bedrooms",
+        "required": true,
+        "source": { "jsonld": "$.numberOfRooms" },
+        "transforms": ["toInt"],
+        "filterable": ["eq", "gte", "lte"]
+      },
+      {
+        "name": "bathrooms",
+        "type": "number",
+        "description": "Number of bathrooms (half baths as .5)",
+        "source": { "jsonld": "$.numberOfBathroomsTotal" },
+        "transforms": ["toFloat"]
+      },
+      {
+        "name": "sqft",
+        "type": "integer",
+        "description": "Floor area in square feet",
+        "source": { "jsonld": "$.floorSize.value" },
+        "transforms": ["toInt"]
+      },
+      {
+        "name": "street_address",
+        "type": "string",
+        "description": "Street address of the unit",
+        "source": { "jsonld": "$.address.streetAddress" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "city",
+        "type": "string",
+        "description": "City",
+        "required": true,
+        "source": { "jsonld": "$.address.addressLocality" },
+        "transforms": ["trim"],
+        "filterable": ["eq", "in"]
+      },
+      {
+        "name": "postal_code",
+        "type": "string",
+        "description": "ZIP code",
+        "source": { "jsonld": "$.address.postalCode" }
+      },
+      {
+        "name": "neighbourhood",
+        "type": "string",
+        "description": "Neighbourhood name",
+        "source": { "jsonld": "$.containedInPlace.name" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "available_from",
+        "type": "date",
+        "description": "First day the unit can be rented",
+        "source": { "css": "dl.facts dd[data-k=available]", "attr": "text" },
+        "transforms": ["trim", "date"]
+      },
+      {
+        "name": "pets_allowed",
+        "type": "string",
+        "description": "Pet policy: Yes, No, Cats only or Dogs only",
+        "source": { "css": "dl.facts dd[data-k=pets]", "attr": "text" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "description": "available or leased",
+        "source": { "css": "dl.facts dd[data-k=status]", "attr": "text" },
+        "transforms": ["trim", "lower"]
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "description": "Listing description",
+        "source": { "jsonld": "$.description" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "agent_name",
+        "type": "string",
+        "description": "Listing agent",
+        "source": { "css": ".agent-card .agent-name", "attr": "text" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "agent_phone",
+        "type": "string",
+        "description": "Listing agent's phone number",
+        "source": { "css": ".agent-card .agent-phone", "attr": "text" },
+        "transforms": ["trim"],
+        "visible": true
+      }
+    ],
+    "rationale": "Listing pages carry schema.org Apartment/Product JSON-LD with the price, rooms, bathrooms, floor size and address, so those come from JSON-LD. Availability date, pet policy and status only appear in the facts list, and the listing agent only in the agent card, so those use CSS."
+  }
+}
