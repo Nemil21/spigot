@@ -472,10 +472,10 @@ A wave is every ticket whose dependencies are all in earlier waves. With 4–8 w
 | Wave | P0 tickets | P1 tickets (only when no P0 is ready) | P0 worker-h | Last P0 merge @8 | Last P0 merge @4 |
 |---|---|---|---|---|---|
 | 1 | SP-001a, SP-002, SP-003, SP-004a, SP-045 | – | 7 | 08:45 | 09:00 |
-| 2 | SP-001b, SP-004b, SP-005, SP-006a, SP-007a, SP-009a, SP-010, SP-011, SP-015, SP-024, SP-040 | – | 16 | 11:15 | 19:15 |
-| 3 | SP-006b, SP-007b, SP-008a, SP-012a, SP-013, SP-016, SP-018, SP-020, SP-025, SP-043, SP-044 | SP-053, SP-057, SP-064, SP-065 | 16 | 18:15 | 20:45 |
-| 4 | SP-008b, SP-009b, SP-012b, SP-014, SP-017a, SP-019, SP-021, SP-030a, SP-032, SP-035 | SP-047a, SP-049, SP-051, SP-062 | 13.5 | 19:30 | 22:15 |
-| 5 | SP-017b, SP-022a, SP-026, SP-027a, SP-028, SP-029, SP-030b, SP-031, SP-033, SP-034, SP-037, SP-038, SP-041 | SP-052a, SP-054, SP-055, SP-059, SP-060, SP-061, SP-063 | 18 | 19:30 | 23:45 |
+| 2 | SP-001b, SP-004b, SP-005, SP-006a, SP-007a, SP-009a, SP-010, SP-011, SP-015, SP-024, SP-040 | – | 16 | 11:15 | 01:00 +1d |
+| 3 | SP-006b, SP-007b, SP-008a, SP-012a, SP-013, SP-016, SP-018, SP-020, SP-025, SP-043, SP-044 | SP-053, SP-057, SP-064, SP-065 | 16 | 18:15 | 03:45 +1d |
+| 4 | SP-008b, SP-009b, SP-012b, SP-014, SP-017a, SP-019, SP-021, SP-030a, SP-032, SP-035 | SP-047a, SP-049, SP-051, SP-062 | 13.5 | 19:30 | 06:00 +1d |
+| 5 | SP-017b, SP-022a, SP-026, SP-027a, SP-028, SP-029, SP-030b, SP-031, SP-033, SP-034, SP-037, SP-038, SP-041 | SP-052a, SP-054, SP-055, SP-059, SP-060, SP-061, SP-063 | 18 | 19:30 | 06:45 +1d |
 | 6 | SP-022b, SP-023, SP-027b, SP-036, SP-039, SP-042 | SP-048a, SP-052b, SP-058 | 7 | 19:30 | 06:00 +1d |
 | 7 | SP-046 | SP-047b, SP-048b, SP-050, SP-056 | 3 | 20:30 | 05:30 +1d |
 
