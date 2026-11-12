@@ -1,34 +1,26 @@
 name: ci
 
-# Whole-repo check on every PR and every push to main (no path filter), so lockfile drift or a
-# break in any workspace is caught. Tickets never edit this file: DB-backed tests are named
-# `*.db.test.ts` and run in the `db` job's single vitest line.
+# One job per PR (Actions minutes are billed per job, rounded up, so one runner beats three).
+# Not run on pushes to main: PRs are rebased on main before merge, so main is what the PR tested.
+# Docs-only changes and draft PRs skip CI. DB-backed tests are named `*.db.test.ts` and run in the
+# single vitest db line below; tickets never edit this file.
 on:
-  push:
-    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  check:
+  ci:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-
-  db:
-    runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine
@@ -41,37 +33,30 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      GITLEAKS_VERSION: 8.30.1
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scan (full history, every ref)
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          npm run security:secrets
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
       - name: Migrate an empty database twice (idempotent)
         run: npm run migrate && npm run migrate
       - name: Schema constraint tests (db/test)
         run: npm run test:db
       - name: DB-backed tests (every *.db.test.ts)
         run: npx vitest run --project db --maxWorkers=2
-
-  # Gitleaks over the full history (every ref) and npm audit clean of highs.
-  security:
-    runs-on: ubuntu-latest
-    env:
-      GITLEAKS_VERSION: 8.30.1
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install gitleaks
-        run: |
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-            | tar -xz -C /usr/local/bin gitleaks
-      - name: Secret scan (full history)
-        run: npm run security:secrets
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - name: Dependency audit (no highs)
         run: npm run security:audit
