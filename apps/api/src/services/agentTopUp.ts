@@ -72,6 +72,13 @@ export async function agentTopUp(
       requestHash({ op: 'topup', amountCents: input.amountCents }),
       input.now,
     );
+  // A retry of a vault top-up replays it (or waits for it) even after a later decline: only a
+  // new key falls back to the link.
+  const prior = await topupByKey(deps, input.buyerId, agentIdempotencyKey(key));
+  if (prior?.method === 'VAULT_MIT') {
+    const replayed = await vaultTopUp(deps, input, key);
+    if (replayed) return replayed;
+  }
   const vaulted = await deps.db.pool.query<{ vaulted: boolean }>(
     // A method PayPal declined stays saved but isn't charged again (features/08 §Edge cases:
     // re-approve link) until the buyer saves a method or turns auto top-up back on in W11.
@@ -258,6 +265,18 @@ async function replay(
       'IDEMPOTENCY_MISMATCH',
       'This idempotency key was already used for a different top-up.',
       { topupId: t.id },
+    );
+  }
+  if (t.status === 'FAILED') {
+    // The retried call was declined: say so again, as `createTopup` does for its FAILED replays.
+    const { rows } = await deps.db.pool.query<{ kind: 'CARD' | 'PAYPAL' | null }>(
+      `SELECT vault_kind AS kind FROM buyers WHERE id = $1`,
+      [t.buyerId],
+    );
+    throw new ApiError(
+      'TOPUP_FAILED',
+      autoTopupDeclinedMessage(rows[0]?.kind ? { method: rows[0].kind } : {}),
+      { topupId: t.id, paypalCode: t.errorCode, replay: true },
     );
   }
   const out: AgentTopUpResult = {

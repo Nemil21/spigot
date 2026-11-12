@@ -529,6 +529,41 @@ describe.skipIf(!testDatabaseUrl)(
       expect((r.structuredContent as { approveUrl: string }).approveUrl).toMatch(/checkoutnow/);
     });
 
+    it('after a decline, retried keys replay: the declined call → its decline, a completed one → COMPLETED', async () => {
+      const b = await buyer({ vault: true, enabled: true });
+      const client = await connect(b.key);
+      const doneKey = randomUUID();
+      const done = await topUp(client, { amountCents: 2000, idempotencyKey: doneKey });
+      expect(done.structuredContent).toMatchObject({ status: 'COMPLETED' });
+
+      const declining: PayPalOrdersClient = Object.create(pp);
+      declining.createTopupOrder = (input) =>
+        pp.createTopupOrder({ ...input, mockResponse: 'INSTRUMENT_DECLINED' });
+      setTopupPayPal(declining);
+      const declinedKey = randomUUID();
+      const declined = await topUp(client, { amountCents: 2000, idempotencyKey: declinedKey });
+      expect(declined.structuredContent).toMatchObject({ error: { code: 'TOPUP_FAILED' } });
+      expect(creates()).toHaveLength(2);
+
+      // The agent retries the declined call (say, after a dropped connection): the same decline.
+      const retryDeclined = await topUp(client, { amountCents: 2000, idempotencyKey: declinedKey });
+      expect(retryDeclined.isError).toBe(true);
+      expect(textOf(retryDeclined)).toBe(autoTopupDeclinedMessage({ method: 'CARD' }));
+      expect(retryDeclined.structuredContent).toMatchObject({ error: { code: 'TOPUP_FAILED' } });
+
+      // And the earlier completed one: still COMPLETED, not a 409.
+      const retryDone = await topUp(client, { amountCents: 2000, idempotencyKey: doneKey });
+      expect(retryDone.structuredContent).toMatchObject({
+        status: 'COMPLETED',
+        method: 'VAULT_MIT',
+        replay: true,
+        balanceMicros: TWENTY,
+      });
+      // No new PayPal call for either retry; one charge credited.
+      expect(creates()).toHaveLength(2);
+      expect(await balanceOf(app.db.pool, b.id)).toBe(TWENTY);
+    });
+
     it('a declined vault charge from top_up → tool error with the W15 copy, auto top-up off', async () => {
       const b = await buyer({ vault: true, enabled: true });
       const declining: PayPalOrdersClient = Object.create(pp);
