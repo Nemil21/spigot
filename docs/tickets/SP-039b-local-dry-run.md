@@ -6,6 +6,8 @@
 - **Depends on:** SP-035, SP-032, SP-030b, SP-038, SP-022a, SP-039a
 - **Spec refs:** features/12-buyer-agent-demo.md §Video script, §Acceptance criteria
 
+> **Change of plan (Nov 12, the human):** there is no Claude Desktop. The buyer agent is **Claude Code CLI** (`claude mcp add --transport http spigot <api>/mcp --header "Authorization: Bearer <key>"`, then `claude` / `claude -p` with the prompt card); see [docs/demo/claude-code-cli.md](../demo/claude-code-cli.md). `npm run demo:dry-run` automates every step it can; what still needs a person is in [docs/MANUAL-STEPS.md](../MANUAL-STEPS.md). Read "Claude Desktop" below as "Claude Code CLI".
+
 ## Goal
 Prove the whole video script works end to end on the local stack before the freeze, with a person at Claude Desktop and the PayPal approval, so the recording slot isn't spent debugging.
 
