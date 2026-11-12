@@ -15,6 +15,8 @@ import {
 } from './model';
 
 export interface RunsGridProps {
+  /** Drawn inside a panel (no grid frame). */
+  bare?: boolean;
   runs: CrawlRun[];
   now: number;
   onOpen: (run: CrawlRun) => void;
@@ -55,7 +57,7 @@ const count = (
  * added / updated / removed, AI calls, duration, status. Rows are keyed by run id, so a live
  * progress frame updates its row in place.
  */
-export function RunsGrid({ runs, now, onOpen }: RunsGridProps) {
+export function RunsGrid({ runs, now, onOpen, bare = false }: RunsGridProps) {
   const columns = useMemo<ColDef<CrawlRun>[]>(
     () => [
       {
@@ -123,6 +125,7 @@ export function RunsGrid({ runs, now, onOpen }: RunsGridProps) {
 
   return (
     <SpigotGrid<CrawlRun>
+      bare={bare}
       height={Math.min(560, 56 + Math.max(runs.length, 3) * 42)}
       rowData={runs}
       columnDefs={columns}

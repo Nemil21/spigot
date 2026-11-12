@@ -19,6 +19,7 @@ import {
   type ProgressFrame,
 } from './crawls/model';
 import { cardClass, primaryButton } from './onboarding/kit';
+import { KPI_STRIP, PAGE, PageHeader } from './Panel';
 
 export const EVENTS_URL = '/api/publishers/me/events';
 const RUNS_LIMIT = 20;
@@ -75,18 +76,16 @@ export default function CrawlsPage({
   }, [sites, params]);
 
   const frame = (body: ReactNode, header?: ReactNode) => (
-    <section className="mx-auto max-w-7xl space-y-6 px-6 py-8" data-screen="W10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">Crawls</h1>
-          <p className="mt-1 text-sm text-muted">
-            {site
-              ? `How Spigot reads ${site.origin.replace(/^https?:\/\//, '')}`
-              : 'How Spigot reads your site'}
-          </p>
-        </div>
-        {header}
-      </div>
+    <section className={PAGE} data-screen="W10">
+      <PageHeader
+        title="Crawls"
+        description={
+          site
+            ? `How Spigot reads ${site.origin.replace(/^https?:\/\//, '')}`
+            : 'How Spigot reads your site'
+        }
+        actions={header}
+      />
       {body}
     </section>
   );
@@ -303,7 +302,7 @@ function SiteCrawls({
       {notice && (
         <p
           role={notice.tone === 'danger' ? 'alert' : 'status'}
-          className={`rounded-md px-4 py-3 text-sm ${
+          className={`rounded-lg px-4 py-3 text-sm ${
             notice.tone === 'danger' ? 'bg-danger-tint text-danger' : 'bg-info-tint text-info'
           }`}
         >
@@ -315,7 +314,7 @@ function SiteCrawls({
         <div
           role="alert"
           data-paused=""
-          className="rounded-md border border-warning bg-warning-tint px-4 py-3 text-sm text-warning"
+          className="rounded-lg border border-warning/30 bg-warning-tint px-4 py-3 text-sm text-warning"
         >
           <p className="font-medium">
             {pausedMessage(latest?.status === 'PAUSED' ? latest : undefined)}
@@ -329,35 +328,41 @@ function SiteCrawls({
       {ready && !liveRun && latest?.status === 'FAILED' && (
         <div
           role="alert"
-          className="rounded-md border border-danger bg-danger-tint px-4 py-3 text-sm text-danger"
+          className="rounded-lg border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger"
         >
           <p className="font-medium">The last crawl failed.</p>
           {latest.error && <p className="mt-1">{latest.error}</p>}
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3" role="group" aria-label="Crawl health">
-        <Kpi
-          label="AI calls on routine crawls"
-          loading={!ready}
-          value={aiCalls ? formatCount(aiCalls.routine) : '—'}
-          hint="Every crawl after the first: plain code, no Claude"
-        />
-        <Kpi
-          label="AI calls on discovery"
-          loading={!ready}
-          value={aiCalls?.discovery == null ? '—' : formatCount(aiCalls.discovery)}
-          hint="One-time schema proposal on the first crawl"
-        />
-        <Kpi
-          label="Pages in the last crawl"
-          loading={!ready}
-          value={latest ? formatCount(latest.pagesTotal) : '—'}
-        />
+      <div>
+        <div
+          className={`${KPI_STRIP} grid-cols-1 sm:grid-cols-3`}
+          role="group"
+          aria-label="Crawl health"
+        >
+          <Kpi
+            label="AI calls on routine crawls"
+            loading={!ready}
+            value={aiCalls ? formatCount(aiCalls.routine) : '—'}
+            hint="Every crawl after the first: plain code, no Claude"
+          />
+          <Kpi
+            label="AI calls on discovery"
+            loading={!ready}
+            value={aiCalls?.discovery == null ? '—' : formatCount(aiCalls.discovery)}
+            hint="One-time schema proposal on the first crawl"
+          />
+          <Kpi
+            label="Pages in the last crawl"
+            loading={!ready}
+            value={latest ? formatCount(latest.pagesTotal) : '—'}
+          />
+        </div>
+        <p className="mt-3 max-w-[80ch] text-sm leading-6 text-muted">
+          {W10_COPY.aiRoutine} {W10_COPY.polite}
+        </p>
       </div>
-      <p className="text-sm text-muted">
-        {W10_COPY.aiRoutine} {W10_COPY.polite}
-      </p>
 
       {liveRun && <LiveProgress run={liveRun} />}
 
@@ -368,8 +373,17 @@ function SiteCrawls({
       ) : list.length === 0 ? (
         <EmptyState message={W10_COPY.empty} action={{ label: 'Crawl now', onClick: crawlNow }} />
       ) : (
-        <section aria-label="Crawl runs">
-          <RunsGrid runs={list} now={clock} onOpen={(r) => setOpenId(r.id)} />
+        <section
+          aria-label="Crawl runs"
+          className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-card"
+        >
+          <h2 className="border-b border-line px-5 py-3.5 text-sm font-semibold text-ink">
+            Crawl runs
+            <span className="ml-2 font-normal text-muted">
+              Open a run for its pages and changes.
+            </span>
+          </h2>
+          <RunsGrid bare runs={list} now={clock} onOpen={(r) => setOpenId(r.id)} />
         </section>
       )}
 
