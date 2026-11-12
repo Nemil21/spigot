@@ -28,6 +28,8 @@ export const ERROR_STATUS = {
   TOPUP_FAILED: 422,
   AUTO_TOPUP_CAP_REACHED: 422,
   REFUND_EXCEEDS_UNUSED: 422,
+  /** SP-048a: call not charged, older than 7 days, or the record wasn't in its response. */
+  CLAIM_NOT_ELIGIBLE: 422,
   RATE_LIMITED: 429,
   /** Unhandled server error; the message is generic and nothing internal is leaked. */
   INTERNAL_ERROR: 500,
