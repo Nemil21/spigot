@@ -110,6 +110,10 @@ describe('W01 Landing (SP-057)', () => {
     expect(rest).toHaveAttribute('aria-selected', 'true');
     expect(within(agents).getByLabelText('Sample request')).toBeVisible();
     expect(within(agents).getByLabelText('MCP config')).not.toBeVisible();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(within(agents).getByRole('tab', { name: 'Claude Desktop (MCP)' })).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    expect(rest).toHaveAttribute('aria-selected', 'true');
   });
 
   it('builds the sample request on this origin with bracket filters', () => {

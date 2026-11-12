@@ -81,7 +81,8 @@ const navLink =
   'label rounded-sm px-2.5 py-1.5 text-xs text-body transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-focus';
 const codeBlock =
   'max-w-full overflow-x-auto p-4 font-mono text-xs leading-relaxed text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus';
-const column = 'mx-auto w-full max-w-[1120px] px-4 sm:px-6 lg:px-0';
+// Gutters stay until the viewport is wider than the column (1120 px + 2 × 32 px at xl).
+const column = 'mx-auto w-full max-w-[1120px] px-4 sm:px-6 lg:px-8 xl:px-0';
 
 /** "Get paid via PayPal" → "Get paid via " + accent "PayPal". */
 function AccentLast({ text }: { text: string }) {
@@ -150,11 +151,21 @@ function AgentCode({ mcpConfig }: { mcpConfig: string }) {
   const labels = { mcp: 'Claude Desktop (MCP)', rest: 'REST API' } as const;
 
   function onKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const i = tabs.indexOf(tab);
+    const target =
+      e.key === 'ArrowRight'
+        ? tabs[(i + 1) % tabs.length]
+        : e.key === 'ArrowLeft'
+          ? tabs[(i - 1 + tabs.length) % tabs.length]
+          : e.key === 'Home'
+            ? tabs[0]
+            : e.key === 'End'
+              ? tabs[tabs.length - 1]
+              : undefined;
+    if (!target) return;
     e.preventDefault();
-    const next = tabs[(tabs.indexOf(tab) + 1) % tabs.length]!;
-    setTab(next);
-    document.getElementById(`${id}-tab-${next}`)?.focus();
+    setTab(target);
+    document.getElementById(`${id}-tab-${target}`)?.focus();
   }
 
   return (
