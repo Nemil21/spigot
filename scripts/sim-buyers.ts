@@ -19,6 +19,7 @@ import { loadDotenv } from '../apps/api/src/env.js';
 import { ledgerCheck } from '../apps/api/src/ledger/check.js';
 import {
   DEFAULT_WEEK_GROSS_MICROS,
+  EnsureLiveAborted,
   ensureLive,
   findDemoSite,
   runLive,
@@ -61,9 +62,12 @@ const db = createDb(pool);
 const log = (l: string) => console.log(l);
 const deps = { db, config, baseUrl: config.APP_BASE_URL };
 
+// Ctrl-C stops every mode: no new SIM call starts, the crawl stops where it is (resumable), and
+// the ledger check still runs before exit. `once`: a second Ctrl-C is Node's default hard exit.
 const controller = new AbortController();
+const { signal } = controller;
 process.once('SIGINT', () => {
-  console.log('\nstopping…');
+  console.log('\nstopping… (Ctrl-C again to quit at once)');
   controller.abort();
 });
 
@@ -73,15 +77,23 @@ try {
   console.log(`sim:buyers on ${site.origin} (${site.slug}); every call below is SIM`);
   // Same rule as `defaultCrawlDeps`: an explicit CRAWL_MIN_GAP_MS wins, else the adaptive gap.
   const crawl = process.env.CRAWL_MIN_GAP_MS?.trim() ? { minGapMs: config.CRAWL_MIN_GAP_MS } : {};
-  const live = await ensureLive({ db, config, crawl }, site, (l) => console.log(`  ${l}`));
-  if (live.status === 'made_live') {
+  const live = await ensureLive({ db, config, crawl, signal }, site, (l) =>
+    console.log(`  ${l}`),
+  ).catch((err: unknown) => {
+    if (!(err instanceof EnsureLiveAborted)) throw err;
+    console.log(`  ${err.message}`);
+    return null;
+  });
+  if (live?.status === 'made_live') {
     console.log(
       `  The demo site had no LIVE dataset, so sim:buyers ran the crawl and approved the Listing proposal itself.`,
     );
   }
 
-  if (values.live) {
-    const r = await runLive(deps, site, { signal: controller.signal, seed, log });
+  if (!live) {
+    exitCode = 130;
+  } else if (values.live) {
+    const r = await runLive(deps, site, { signal, seed, log });
     console.log(
       `\n--live ${r.reason === 'all_stopped' ? 'ended: every SIM buyer is out of balance' : 'stopped'}: ` +
         `${r.calls} calls, ${usd(r.chargedMicros)} charged` +
@@ -93,7 +105,12 @@ try {
         target === undefined ? DEFAULT_WEEK_GROSS_MICROS : Math.round(target * 1_000_000),
       seed,
       log,
+      signal,
     });
+    if (r.aborted) {
+      console.log('\nStopped by Ctrl-C: a partial week. Re-run to top it up to the target.');
+      exitCode = 130;
+    }
     console.log(
       `\nWeek ${r.from.toISOString().slice(0, 10)} → ${r.to.toISOString().slice(0, 10)}: ` +
         `${r.calls} SIM calls, ${usd(r.chargedMicros)} charged; SIM week gross ${usd(r.beforeMicros)} → ${usd(r.afterMicros)} ` +

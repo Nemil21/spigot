@@ -26,6 +26,7 @@ import { createRecordedModel } from '../apps/api/src/schema-agent/claude.js';
 import { REQUIRED_ENV } from '../apps/api/src/test/env.js';
 import {
   buildCatalogue,
+  EnsureLiveAborted,
   ensureLive,
   findDemoSite,
   runLive,
@@ -110,6 +111,17 @@ describe.skipIf(!testDatabaseUrl)('SP-036 sim:buyers (Postgres + FakePayPal + de
     await pool?.end();
     await tdb?.drop();
     if (dataDir) await rm(dataDir, { recursive: true, force: true });
+  });
+
+  it('Ctrl-C before ensureLive starts: it stops without crawling or approving anything', async () => {
+    const ac = new AbortController();
+    ac.abort();
+    await expect(
+      ensureLive({ db, config, crawl: { minGapMs: 0 }, signal: ac.signal }, site),
+    ).rejects.toBeInstanceOf(EnsureLiveAborted);
+    const runs = await pool.query<{ n: number }>('SELECT count(*)::int AS n FROM crawl_runs');
+    expect(runs.rows[0]!.n).toBe(0);
+    expect(await soldDatasets(db, site.id)).toHaveLength(0);
   });
 
   it('a freshly seeded DB has no LIVE dataset; ensureLive crawls, proposes and approves the Listing by itself', async () => {
@@ -219,6 +231,44 @@ describe.skipIf(!testDatabaseUrl)('SP-036 sim:buyers (Postgres + FakePayPal + de
     const after = await pool.query<{ n: number }>('SELECT count(*)::int AS n FROM api_calls');
     expect(r.calls).toBe(0);
     expect(after.rows[0]!.n).toBe(before.rows[0]!.n);
+  }, 60_000);
+
+  it('Ctrl-C stops the week: no call starts after the abort, a partial week is reported, ledger OK', async () => {
+    const deps = { db, config, baseUrl: config.APP_BASE_URL };
+    const calls = async () =>
+      (await pool.query<{ n: number }>('SELECT count(*)::int AS n FROM api_calls')).rows[0]!.n;
+
+    // Already aborted: nothing runs.
+    const pre = new AbortController();
+    pre.abort();
+    const n0 = await calls();
+    const none = await runWeek(deps, site, {
+      targetMicros: WEEK_TARGET_MICROS * 3,
+      seed: 38,
+      signal: pre.signal,
+    });
+    expect(none).toMatchObject({ aborted: true, calls: 0 });
+    expect(await calls()).toBe(n0);
+
+    // Aborted mid-run: it returns promptly with fewer calls than planned, and every call it
+    // started is a complete charge (each is its own transaction).
+    const ac = new AbortController();
+    let seen = 0;
+    const r = await runWeek(deps, site, {
+      targetMicros: WEEK_TARGET_MICROS * 3,
+      seed: 39,
+      signal: ac.signal,
+      log: (l) => {
+        if (l.startsWith('SIM gross already')) setTimeout(() => ac.abort(), 300);
+        seen++;
+      },
+    });
+    expect(seen).toBeGreaterThan(0);
+    expect(r.aborted).toBe(true);
+    expect(r.calls).toBeGreaterThan(0);
+    expect(r.afterMicros).toBeLessThan(WEEK_TARGET_MICROS * 3 * 0.8);
+    expect(await calls()).toBe(n0 + r.calls);
+    expect((await ledgerCheck(pool)).mismatches).toEqual([]);
   }, 60_000);
 
   it('a non-SIM buyer passing simulatedAt is rejected, and nothing is stored', async () => {

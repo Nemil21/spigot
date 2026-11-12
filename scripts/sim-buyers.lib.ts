@@ -501,6 +501,8 @@ export interface WeekOptions {
   seed?: number;
   concurrency?: number;
   log?: Log;
+  /** Ctrl-C: no new call starts; calls already in flight finish (each is one transaction). */
+  signal?: AbortSignal;
 }
 
 export interface WeekResult {
@@ -514,6 +516,8 @@ export interface WeekResult {
   /** Buyers stopped by a 402 INSUFFICIENT_BALANCE. */
   stopped: string[];
   skipped: Array<{ buyer: string; reason: string }>;
+  /** Stopped by the signal: a partial week (re-run to top it up to the target). */
+  aborted: boolean;
 }
 
 export async function runWeek(
@@ -557,13 +561,17 @@ export async function runWeek(
   const stopped: string[] = [];
   const queue = new PQueue({ concurrency: opts.concurrency ?? WEEK_CONCURRENCY });
   const byId = new Map(buyers.map((b) => [b.id, b]));
+  const signal = opts.signal;
+  // Queued buyers return at once after an abort (no `queue.clear()`: it rejects their promises).
   await Promise.all(
     [...plan.byBuyer.entries()].map(([buyerId, planned]) =>
       queue.add(async () => {
+        if (signal?.aborted) return;
         const buyer = byId.get(buyerId)!;
         let spent = 0;
         let n = 0;
         for (const p of planned) {
+          if (signal?.aborted) break;
           const { outcome, result } = await simCall(deps, buyer, p.spec, {
             simulatedAt: p.at,
             idempotencyKey: `sim-week:${randomUUID()}`,
@@ -580,7 +588,9 @@ export async function runWeek(
           spent += result.chargedMicros;
         }
         chargedMicros += spent;
-        log(`  ${buyer.name}: ${n} calls, ${usd(spent)}`);
+        log(
+          `  ${buyer.name}: ${n} calls, ${usd(spent)}${signal?.aborted ? ' (stopped by Ctrl-C)' : ''}`,
+        );
       }),
     ),
   );
@@ -599,6 +609,7 @@ export async function runWeek(
       ...noKey.map((s) => ({ buyer: s.email, reason: s.reason })),
       ...plan.skipped.map((s) => ({ buyer: names.get(s.buyerId) ?? s.buyerId, reason: s.reason })),
     ],
+    aborted: signal?.aborted === true,
   };
 }
 
@@ -701,6 +712,13 @@ export interface EnsureLiveDeps {
   /** Polling while another process proposes (default 1 s, up to 10 min). */
   pollMs?: number;
   maxWaitMs?: number;
+  /** Ctrl-C: the crawl stops where it is (resumable, like a killed process) and nothing is approved. */
+  signal?: AbortSignal;
+}
+
+/** `ensureLive` stopped by its signal before anything was approved. */
+export class EnsureLiveAborted extends Error {
+  override name = 'EnsureLiveAborted';
 }
 
 export type EnsureLiveResult =
@@ -739,12 +757,21 @@ export async function ensureLive(
     (await db.pool.query<{ status: string }>('SELECT status FROM sites WHERE id = $1', [site.id]))
       .rows[0]!.status;
 
+  const stopIfAborted = () => {
+    if (deps.signal?.aborted) {
+      throw new EnsureLiveAborted(
+        'stopped (Ctrl-C) before the demo site went LIVE; re-run to continue',
+      );
+    }
+  };
+
   let status = await siteStatus();
   if (status === 'PENDING_VERIFY')
     throw new Error(`${site.origin} isn't verified: re-run seed:demo`);
   if (status === 'PAUSED') throw new Error(`${site.origin} is PAUSED: resume it on W03 first`);
 
   if (status === 'VERIFIED') {
+    stopIfAborted();
     step(`no LIVE dataset on ${site.origin}: running the discovery crawl (crawlSite, in-process)…`);
     const run = await crawlSite(
       { siteId: site.id, trigger: 'MANUAL' },
@@ -754,8 +781,10 @@ export async function ensureLive(
         allowLocal: config.ALLOW_LOCAL_ORIGINS,
         appBaseUrl: config.APP_BASE_URL,
         ...deps.crawl,
+        ...(deps.signal ? { signal: deps.signal } : {}),
       },
     );
+    stopIfAborted();
     const c = run.counters;
     step(
       `crawl ${run.runId}: ${run.status}, ${c.pages_fetched + c.pages_not_modified}/${c.pages_total} pages`,
@@ -770,7 +799,9 @@ export async function ensureLive(
 
   const model = deps.model ?? schemaModelFor(config);
   const deadline = Date.now() + (deps.maxWaitMs ?? 10 * 60_000);
+  stopIfAborted();
   while (status === 'PROPOSING') {
+    stopIfAborted();
     const r = await proposeForSite({ db, model }, site.id, { trigger: 'ADMIN' });
     if (r.status === 'done') {
       step(`schema agent (${model.mode}): ${r.proposals} proposal(s), site ${r.siteStatus}`);
@@ -817,6 +848,7 @@ export async function ensureLive(
     );
   }
 
+  stopIfAborted();
   const approved = await approveDataset(
     db,
     { appBaseUrl: config.APP_BASE_URL },
