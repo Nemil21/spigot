@@ -30,8 +30,10 @@ describe('HostQueue', () => {
     await Promise.all(
       Array.from({ length: 6 }, () => q.run(async () => void starts.push(performance.now()))),
     );
+    // Slots are reserved minGapMs apart; one start that wakes late on a busy runner shortens the
+    // gap to the next, but no start is ever early. So assert the cumulative spacing.
     for (let i = 1; i < starts.length; i++) {
-      expect(starts[i]! - starts[i - 1]!).toBeGreaterThanOrEqual(13); // timer slack
+      expect(starts[i]! - starts[0]!).toBeGreaterThanOrEqual(15 * i - 2); // timer slack
     }
   });
 
