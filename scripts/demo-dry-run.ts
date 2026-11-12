@@ -4,6 +4,7 @@
 //   npm run demo:dry-run                                   # one run; Claude Code CLI is the buyer agent
 //   npm run demo:dry-run -- --runs 2                       # run, demo:reset, run again (the SP-039b gate)
 //   npm run demo:dry-run -- --topup wallet                 # wait for a person to top up $20 in W11
+//                                                          # (the default unless PAYPAL_MODE=stub)
 //   npm run demo:dry-run -- --agent sdk                    # scripted MCP calls instead of `claude -p`
 //   npm run demo:dry-run -- --out /tmp/dry-run.md          # also write the report to a file
 //
@@ -27,7 +28,9 @@ import { randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { loadDotenv } from '../apps/api/src/env.js';
 import {
   ALLOWED_TOOLS,
   HIDDEN_FIELDS,
@@ -45,7 +48,11 @@ import {
 const { values } = parseArgs({
   options: {
     runs: { type: 'string', default: '1' },
-    topup: { type: 'string', default: 'sim' }, // sim | wallet | skip
+    // sim | wallet | skip. Default: sim on PAYPAL_MODE=stub, else wallet (the W11 approval).
+    topup: { type: 'string' },
+    // `--topup sim` against the PayPal sandbox: a SIM-trigger card capture instead of the W11
+    // wallet top-up the checklist expects. Refused unless asked for explicitly.
+    'allow-sandbox-sim': { type: 'boolean', default: false },
     agent: { type: 'string', default: 'claude' }, // claude | sdk
     'publisher-email': { type: 'string', default: 'owner@bluebonnet-rentals.example.com' },
     'buyer-email': { type: 'string', default: 'acme@acme-agents.example.com' },
@@ -57,9 +64,13 @@ const { values } = parseArgs({
   },
 });
 
+const REPO = fileURLToPath(new URL('..', import.meta.url));
+// The repo .env decides the PayPal mode (the npm scripts this spawns load it too).
+loadDotenv(REPO);
 const API = (process.env.SPIGOT_API_BASE ?? 'http://localhost:3000').replace(/\/+$/, '');
 const SITE = (process.env.DEMO_SITE_URL ?? 'http://localhost:4100').replace(/\/+$/, '');
-const REPO = new URL('..', import.meta.url).pathname;
+const stub = (process.env.PAYPAL_MODE ?? '').trim().toLowerCase() === 'stub';
+const topup = values.topup ?? (stub ? 'sim' : 'wallet');
 const runs = Number(values.runs);
 const pubPassword = process.env.DRY_RUN_PUBLISHER_PASSWORD;
 const buyerPassword = process.env.DRY_RUN_BUYER_PASSWORD;
@@ -69,7 +80,15 @@ if (!pubPassword || !buyerPassword) {
   );
   process.exit(2);
 }
-if (!['sim', 'wallet', 'skip'].includes(values.topup!)) throw new Error('--topup sim|wallet|skip');
+if (!['sim', 'wallet', 'skip'].includes(topup)) throw new Error('--topup sim|wallet|skip');
+if (topup === 'sim' && !stub && !values['allow-sandbox-sim']) {
+  console.error(
+    '--topup sim funds Acme with a server-side SIM card capture. On the PayPal sandbox the ' +
+      'checklist expects the W11 wallet top-up: use --topup wallet (the default), or pass ' +
+      '--allow-sandbox-sim to rehearse without a person.',
+  );
+  process.exit(2);
+}
 if (!['claude', 'sdk'].includes(values.agent!)) throw new Error('--agent claude|sdk');
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -271,6 +290,7 @@ async function runOnce(n: number): Promise<StepResult[]> {
   let keyId = '';
   let apiKey = '';
   let payoutBatchId = '';
+  let events: ReturnType<typeof watchEvents> | undefined;
 
   try {
     await step('0.4', 'API + demo site up, publisher and buyer sign in', async () => {
@@ -463,6 +483,11 @@ async function runOnce(n: number): Promise<StepResult[]> {
           let w = await week([]);
           if (w.gross && w.gross.after - w.gross.before < 1) {
             // The SIM buyers are out of balance (demo:reset doesn't re-fund them): $30 each.
+            if (!stub) {
+              log(
+                `  ⚠ re-funding ${SIM_BUYER_EMAILS.length} SIM buyers with PayPal SANDBOX card captures (as seed:demo does)`,
+              );
+            }
             await simTopups(3000, SIM_BUYER_EMAILS, true);
             w = await week(['--target-usd', String(Math.ceil(w.gross.after + 300))]);
             return `${w.line} (after re-funding ${SIM_BUYER_EMAILS.length} SIM buyers $30 each)`;
@@ -473,11 +498,11 @@ async function runOnce(n: number): Promise<StepResult[]> {
       );
     }
 
-    await step('5.2', `Acme top-up $20 (${values.topup})`, async () => {
+    await step('5.2', `Acme top-up $20 (${topup})`, async () => {
       const bal0 = (await buyer('GET', '/api/buyer/balance')).json;
       const b0 = Number(bal0.balanceMicros ?? 0);
-      if (values.topup === 'skip') return `skipped · balance ${usd(b0)}`;
-      if (values.topup === 'sim') {
+      if (topup === 'skip') return `skipped · balance ${usd(b0)}`;
+      if (topup === 'sim') {
         // Stub / rehearsal only: a server-side SIM card top-up stands in for the wallet approval.
         const ids = (await simTopups(2000, [values['buyer-email']!]))[0]!.replace(/^\S+ /, '');
         const b1 = Number((await buyer('GET', '/api/buyer/balance')).json.balanceMicros);
@@ -515,7 +540,7 @@ async function runOnce(n: number): Promise<StepResult[]> {
     });
 
     // W08's live row: the publisher event stream sees `call.charged` when the agent pays.
-    const events = watchEvents(pub);
+    const ev = (events = watchEvents(pub));
     let agentDoneAt = 0;
     await step('6.2', `Buyer agent (${values.agent}) runs the prompt card over /mcp`, async () => {
       const bal0 = Number((await buyer('GET', '/api/buyer/balance')).json.balanceMicros);
@@ -532,8 +557,8 @@ async function runOnce(n: number): Promise<StepResult[]> {
       '7.1',
       'W08 sees the charge (call.charged event)',
       async () => {
-        const at = await events.firstChargedAt;
-        events.stop();
+        const at = await ev.firstChargedAt;
+        ev.stop();
         if (!at) throw new Error('no call.charged event within the window');
         const e = await pub('GET', '/api/publishers/me/earnings');
         const k = e.json.kpis ?? { grossMicros: 0, commissionMicros: 0, netMicros: 0 };
@@ -586,6 +611,8 @@ async function runOnce(n: number): Promise<StepResult[]> {
   } catch (err) {
     if (!(err instanceof StopRun)) throw err;
   } finally {
+    // A required step failing before 7.1 must not leave the SSE fetch and its timer open.
+    events?.stop();
     if (keyId) await buyer('DELETE', `/api/buyer/keys/${keyId}`).catch(() => undefined);
   }
 
@@ -619,9 +646,13 @@ function watchEvents(pub: ReturnType<typeof session>) {
     }).catch(() => null);
     if (!r?.body) return resolveAt(null);
     const dec = new TextDecoder();
+    // An event can straddle two chunks: keep the end of the previous one.
+    let tail = '';
     try {
       for await (const chunk of r.body as unknown as AsyncIterable<Uint8Array>) {
-        if (dec.decode(chunk).includes('call.charged')) return resolveAt(Date.now());
+        const text = tail + dec.decode(chunk, { stream: true });
+        if (text.includes('call.charged')) return resolveAt(Date.now());
+        tail = text.slice(-64);
       }
     } catch {
       /* aborted */
@@ -757,7 +788,7 @@ for (let n = 1; n <= runs; n++) {
   failed += steps.filter((s) => !s.ok).length;
   reports.push(
     reportMarkdown(
-      `Run ${n} (${new Date(rt0).toISOString()}, agent ${values.agent}, top-up ${values.topup})`,
+      `Run ${n} (${new Date(rt0).toISOString()}, agent ${values.agent}, top-up ${topup})`,
       steps,
       Date.now() - rt0,
     ),

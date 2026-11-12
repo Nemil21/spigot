@@ -20,7 +20,7 @@ loadDotenv();
 const args = process.argv.slice(2);
 const weekStart = args[0] === '--week-start';
 const [cents, ...emails] = weekStart ? args.slice(1) : args;
-if (!cents || !emails.length) {
+if (!cents || !/^\d+$/.test(cents) || !emails.length) {
   console.error('usage: demo-dry-run.topup.ts <amount-cents> <buyer-email>...');
   process.exit(2);
 }
