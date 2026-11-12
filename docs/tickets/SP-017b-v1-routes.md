@@ -25,6 +25,7 @@ The product's REST surface, as thin routes over SP-017a.
 - [ ] No key on `/records` → 402 with the gate-shaped body.
 - [ ] 61st call in a minute → 429.
 - [ ] Unknown filter → 400 `UNSUPPORTED_FILTER` listing valid fields.
+- [ ] W15 copy in 402 bodies matches `@spigot/shared/copy` exactly (imported, not retyped).
 
 ## Test plan
-Integration (supertest) per route; CI `db` job line.
+Integration (supertest) per route as `*.db.test.ts`; add `security/tenancy/v1.cases.ts`.

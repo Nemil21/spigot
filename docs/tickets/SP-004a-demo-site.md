@@ -19,7 +19,11 @@ A believable fictional listings site we own, with three record types (one with J
 - ETag (hash of rendered HTML) on every page and `304` on `If-None-Match`.
 - Footer on every page: "Fictional demo site for Spigot. Not a real business."
 - A mount point for the gate (`app.use(gate)` before routes) that is a no-op until SP-006b.
-- Simple access log (method, path, UA, status, concurrent-request gauge) to stdout, used by SP-009a's "≤ 2 concurrent" check.
+- Simple access log (method, path, UA, status, concurrent-request gauge) to stdout, used by SP-009a2's "≤ 2 concurrent" check.
+- **Leased listings render as data:** `Offer.availability` (`https://schema.org/InStock` / `…/SoldOut`) in JSON-LD **and** a visible `.status-badge` ("Available" / "Leased"), so the Listing proposal extracts a `status` field and a lease is a real change.
+- **Demo query population:** the seed guarantees a known subset (≥ 60 listings) with `city=Austin`, `bedrooms ≥ 3`, `price_usd < 2000`, so the video's "3-bed under $2k in Austin that changed today" has matches (SP-004b `--focus` picks from it).
+- `DEMO_SEED_SCALE` (default 1) scales all counts for CI (0.05 → ~117 / 4 / 2); the 2,341 / 88 / 40 criterion is at scale 1.
+- State lives in a data directory (`DEMO_DATA_DIR`, a Render disk in SP-040) so a restart doesn't silently undo mutations; on boot the site rebuilds from the seed plus the mutation log (SP-004b).
 
 ## Out of scope
 Gate middleware (SP-006b), mutate script (SP-004b), `DEMO_LAYOUT=v2` (SP-052a).
@@ -30,6 +34,8 @@ Gate middleware (SP-006b), mutate script (SP-004b), `DEMO_LAYOUT=v2` (SP-052a).
 - [ ] A listing page's JSON-LD parses and validates as schema.org `Apartment`/`Offer`.
 - [ ] `curl -H 'If-None-Match: <etag>'` → 304.
 - [ ] No real business, brand, person or phone number (grep check on generated data for non-555 phones and non-example.com emails).
+- [ ] A leased listing shows `SoldOut` in JSON-LD and a "Leased" badge.
+- [ ] The seed has ≥ 60 listings matching `city=Austin, bedrooms ≥ 3, price_usd < 2000`.
 
 ## Test plan
 Unit: seed counts, determinism, phone/email ranges. Integration: supertest pages, sitemap, 304. Manual: browse D01–D03.

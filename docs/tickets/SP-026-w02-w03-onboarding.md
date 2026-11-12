@@ -3,7 +3,7 @@
 - **Priority:** P0
 - **Wave:** 5
 - **Estimate:** 1.5
-- **Depends on:** SP-024, SP-008b, SP-009b
+- **Depends on:** SP-024b, SP-008b, SP-009b
 - **Spec refs:** screens.md §W02, §W03; features/03 §User stories
 
 ## Goal
@@ -23,3 +23,7 @@ A site owner signs up, connects their site, installs the gate, verifies and watc
 
 ## Test plan
 Component tests per state (fixtures); manual end to end.
+
+## Notes & risks
+- On camera (features/12 video 0:20–0:45, "Owner connects the site"), so it is tagged **D** and dispatched ahead of SP-034/SP-043.
+- Owns its fixtures under `src/fixtures/`; replaces only its own page files.

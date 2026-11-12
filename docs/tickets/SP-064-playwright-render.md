@@ -1,9 +1,9 @@
 # SP-064: Playwright render for JS-heavy templates
 
 - **Priority:** P1 (feature 03 P1)
-- **Wave:** 3
+- **Wave:** 4
 - **Estimate:** 1.5
-- **Depends on:** SP-009a
+- **Depends on:** SP-009a2
 - **Spec refs:** features/03 §Logic 9; README §P2 (KERNEL cloud browsers stay P2)
 
 ## Goal

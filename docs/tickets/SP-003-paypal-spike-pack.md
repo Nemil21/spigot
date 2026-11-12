@@ -7,7 +7,7 @@
 - **Spec refs:** README.md §New PayPal spikes needed; features/08 §PayPal pieces; features/09; features/10; spikes/paypal-spikes.mjs; spikes/s7-results.md (Holdfast)
 
 ## Goal
-Prove the five PayPal calls Spigot needs that Holdfast never ran with `intent: CAPTURE`, and record replay/error codes so SP-001b's fake and SP-018/020/049 behave like the sandbox.
+Prove the five PayPal calls Spigot needs that Holdfast never ran with `intent: CAPTURE`, and record replay/error codes so SP-001b's fake and SP-018a/020/049 behave like the sandbox.
 
 ## Files / modules
 `scripts/spikes-spigot.mjs` (same shape as `spikes/paypal-spikes.mjs`: reads `.env`, plain `fetch`, no deps), `spikes/spigot-results.md` (result table + evidence: request id, HTTP, body status, issue, debug id).
@@ -26,7 +26,7 @@ Prove the five PayPal calls Spigot needs that Holdfast never ran with `intent: C
 
 ## Acceptance criteria
 - [ ] `spikes/spigot-results.md` has PASS/FAIL per step with evidence rows and a "Decision / fallback" column.
-- [ ] A RECONCILE table for CAPTURE-intent calls (create replay, capture replay, MIT replay, refund replay, payout duplicate) is handed to SP-001b / SP-018 / SP-020 / SP-049.
+- [ ] A RECONCILE table for CAPTURE-intent calls (create replay, capture replay, MIT replay, refund replay, payout duplicate) is handed to SP-001b / SP-018a / SP-020 / SP-049.
 - [ ] Every order created is captured or left un-approved; nothing needs cleanup.
 - [ ] No secret in the committed results (debug ids are fine).
 

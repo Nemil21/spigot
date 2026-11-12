@@ -1,9 +1,9 @@
 # SP-006b: Gate middleware: fail-open, policy refresher, hit flusher, SIM flag; installed on the demo site
 
 - **Priority:** P0
-- **Wave:** 3
+- **Wave:** 2
 - **Estimate:** 1.5
-- **Depends on:** SP-006a, SP-004a
+- **Depends on:** SP-006a, SP-004a, SP-001d
 - **Spec refs:** features/02-gate-middleware.md §Design, §Hit counting, §Edge cases; features/15 §Live simulators; api.md §Gate endpoints
 
 ## Goal
@@ -25,9 +25,10 @@
 - [ ] `curl -A GPTBot /listings/x` → 402 JSON with price and API link; with `Accept: text/html` → D04 page.
 - [ ] Flusher memory stays bounded with 50k distinct bot names.
 - [ ] Our crawler's requests (valid `X-Spigot-Key`) are never 402.
+- [ ] Our crawler's requests appear in the flushed counts as `decision=SPIGOT_CRAWLER` (spec 03's acceptance criterion).
 
 ## Test plan
-Integration: demo site + gate with a stub policy server in three failure modes; flush payload shape test against SP-008b's zod schema (import the schema from `@spigot/shared` once SP-008b lands; until then a local copy with a TODO).
+Integration: demo site + gate with a stub policy server in three failure modes; flush payload shape test against the hits zod schema in `@spigot/shared/gate` (SP-001d), including `isSimulated`.
 
 ## Notes & risks
 Gate hit posts are rate-limited server-side to 1 per 5 s per site (SP-008b); the flusher's 10 s interval stays under it.

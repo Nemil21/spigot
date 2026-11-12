@@ -25,3 +25,6 @@ Numbers for W08 (and W12 later), read from the ledger and `api_calls`.
 
 ## Test plan
 Integration on fixtures produced through `chargeAndRecord`.
+
+## Notes & risks
+Add `security/tenancy/earnings.cases.ts` and `usage.cases.ts`.

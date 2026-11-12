@@ -1,7 +1,7 @@
-# SP-013: Records upsert, versions, JSON Patch, watermark (`extractPage`, `extractTemplate`, `publishWatermark`)
+# SP-013: Records upsert, versions, JSON Patch, watermark locks (`extractPage`, `extractTemplate`, `publishWatermark`)
 
 - **Priority:** P0
-- **Wave:** 3
+- **Wave:** 2
 - **Estimate:** 2
 - **Depends on:** SP-011, SP-002
 - **Spec refs:** features/05-records-changes-feed.md §Logic 1–3, §Acceptance criteria; data-model.md §records, §record_versions, rules 7–8; features/03 §Render Workflows layout
@@ -22,15 +22,21 @@ The extractor owns records. Only real changes create versions; a reader never se
 - `extractTemplate(datasetId, runId)`: all snapshots of the template in batches of 200, each batch its own transaction, then `publishWatermark`.
 - `publishWatermark(datasetId)`: `pg_advisory_xact_lock(dataset)`; `published_seq = max(seq)` — called only after all the run's batches committed.
 - Guard: **no model call anywhere in this module** (`crawl_runs.ai_calls` untouched; test asserts it).
+- **Watermark safety with concurrent writers** (approve-time `extractTemplate`, a crawl, a ping or a scheduled re-crawl can overlap): every extract batch transaction takes `pg_advisory_xact_lock_shared(hash('dataset', datasetId))`; `publishWatermark` takes the **exclusive** lock on the same key before reading `max(seq)`. The exclusive lock waits for every in-flight batch to commit, so no lower seq can commit below a published watermark.
+- Every write carries a `runId`: `extractTemplate` is called with a `crawl_runs` row of `trigger = APPROVE` (created by SP-014a), so `record_versions.crawl_run_id` is always set.
+- `records.updated_at` is set to `now()` **only** when the content hash changed (insert, update, remove, revive); the freshness-only path updates `crawled_at` alone.
+- `extractPage` skips all writes while the dataset is `LIVE_STALE` (the drift rule SP-052a uses).
 
 ## Acceptance criteria
-- [ ] After SP-004b `demo:mutate --prices 30 --leased 5 --new 3` and a re-extract: exactly 35 `update` + 3 `add` versions, no others.
+- [ ] On **fixture snapshot sets** (a base set, and a mutated set = 30 price changes + 5 leased + 3 extra pages inserted): extracting base then mutated writes exactly 35 `update` + 3 `add` versions, no others. (The real mutate → crawl → changes test is SP-014a's.)
 - [ ] Re-extract with no changes writes 0 versions.
 - [ ] Concurrency test: 2 parallel extract batches + a reader polling `seq <= published_seq` → seen seqs are contiguous, none skipped.
 - [ ] Full re-extract of 2,341 pages: `ai_calls = 0` and no Anthropic client constructed (spy).
+- [ ] Re-extracting the same snapshot with a different crawl time writes no version and doesn't move `records.updated_at`.
+- [ ] Overlap test: an `extractTemplate` (APPROVE run) and a crawl run writing the same dataset concurrently, with a reader polling the feed → seen seqs are contiguous up to every published watermark.
 
 ## Test plan
-Integration on Postgres with demo-site snapshots inserted as fixtures; mutate → re-extract test.
+Integration (`*.db.test.ts`) with fixture snapshot sets inserted directly.
 
 ## Notes & risks
-Wiring `fetchPage → extractPage` for LIVE templates happens in SP-014 (needs the approve state).
+Wiring `fetchPage → extractPage` for LIVE templates happens in SP-014a (needs the approve state).

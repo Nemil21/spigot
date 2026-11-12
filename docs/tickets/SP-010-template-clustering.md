@@ -1,16 +1,16 @@
 # SP-010: Template clustering + cleaned DOM outline (pure)
 
 - **Priority:** P0
-- **Wave:** 2
+- **Wave:** 1
 - **Estimate:** 1
-- **Depends on:** SP-001a
+- **Depends on:** none
 - **Spec refs:** features/04-ai-schema-extractor.md §1 Template clustering, §2 Proposal (input); data-model.md §templates
 
 ## Goal
 Group pages into templates with plain code, and prepare the compact page view Claude reads.
 
 ## Files / modules
-`packages/shared/src/cluster.ts` (`clusterUrls(urls, jsonLdTypesByUrl) → Template[]`), `apps/api/src/schema-agent/outline.ts` (`jsonLdBlocks(html)`, `domOutline(html)` with cheerio), fixtures from the demo site HTML (`apps/api/src/schema-agent/__fixtures__/`).
+`packages/shared/src/cluster.ts` (`clusterUrls(urls, jsonLdTypesByUrl) → Template[]`), `apps/api/src/schema-agent/outline.ts` (`jsonLdBlocks(html)`, `domOutline(html)` with cheerio), hand-written fixture HTML in `apps/api/src/schema-agent/__fixtures__/` that follows features/01's markup exactly (JSON-LD shape, `.agent-name`, `dl.facts dd[data-k=available]`, `<time datetime>`). SP-012a's golden test re-runs on real SP-004a pages.
 
 ## Scope
 - Split paths into segments; segments varying across ≥ 20 pages with slug/number shapes become `:param` → regex `url_pattern`; split groups by JSON-LD `@type` when mixed; drop groups with < 10 pages; pick 5 random `sample_page_ids` (seeded).
@@ -27,3 +27,4 @@ Unit on fixture URL lists and HTML.
 
 ## Notes & risks
 DOM-fingerprint confirmation is P1 (SP-065).
+- **Wave 1 start:** pure module; starts against the agreed layout and rebases on SP-001a before merging. Fixtures are hand-written from features/01 rather than waiting for SP-004a (see INDEX §Review responses).

@@ -24,3 +24,6 @@ The submission text ready before the video, so the last hours are only for recor
 
 ## Test plan
 Read-through against the shipped feature list at freeze.
+
+## Notes & risks
+- **Human step:** pasting the draft into Devpost needs the human's account; the spec's deadline is 08:00 PST = 21:30 IST, this ticket aims for 19:00 IST. Listed in INDEX §Time budget point 7.

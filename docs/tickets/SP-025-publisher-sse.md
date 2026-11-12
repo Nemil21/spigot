@@ -16,7 +16,8 @@ Live dashboard updates (hits, charges, payouts, proposals, crawl progress) for t
 - Payload `{publisherId, type, ids, at}`; types `hits`, `call.charged`, `payout.updated`, `proposal.ready`, `crawl.progress`.
 - Event ids monotonic per process; `Last-Event-ID` → events since that id from a 5-min in-memory ring, else a `resync` event (client refetches).
 - Heartbeat every 15 s; tenancy: only the session publisher's events.
-- Producers already call `notify('publisher_events', …)` (SP-008b, SP-012a, SP-016, SP-021, SP-009a).
+- Producers already call `notify('publisher_events', …)` (SP-008b, SP-012a, SP-016, SP-021, SP-009a2).
+- Payload type and channel name come from `@spigot/shared/events` (SP-001d); producers already import the same type, so nothing here changes their code.
 
 ## Acceptance criteria
 - [ ] A charge committed in another process reaches the stream within 2 s.

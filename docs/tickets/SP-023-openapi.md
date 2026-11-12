@@ -15,6 +15,7 @@ A valid OpenAPI document for `/v1`, generated from the same Zod schemas the rout
 ## Scope
 - All `/v1` routes, params, filter syntax documented, Bearer security scheme, 402/409/410/429 responses with the error envelope, Spigot-* response headers.
 - CI check: regenerated file equals the committed one.
+- Document the idempotency rule: without an `Idempotency-Key`, retries are deduplicated only within the same minute (`autoKey`); send the header for exact retry safety.
 
 ## Acceptance criteria
 - [ ] `openapi.yaml` validates (`@redocly/cli lint` or `swagger-parser`).

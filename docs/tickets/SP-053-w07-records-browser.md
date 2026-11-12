@@ -1,9 +1,9 @@
 # SP-053: W07 Records browser (server-side rows, version history)
 
 - **Priority:** P1 (spec P1 #6)
-- **Wave:** 3
+- **Wave:** 4
 - **Estimate:** 2
-- **Depends on:** SP-024, SP-015
+- **Depends on:** SP-024b, SP-015
 - **Spec refs:** screens.md §W07; features/13 §Screens; features/05
 
 ## Goal

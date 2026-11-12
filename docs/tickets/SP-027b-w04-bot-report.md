@@ -1,9 +1,9 @@
-# SP-027b: W04 Overview / bot report (AG Grid + AG Charts, live)
+# SP-027b: W04 Overview / bot report (AG Grid + AG Charts, live, activity feed)
 
 - **Priority:** P0
 - **Wave:** 6
 - **Estimate:** 1.5
-- **Depends on:** SP-024, SP-027a, SP-025
+- **Depends on:** SP-024b, SP-027a, SP-025
 - **Spec refs:** screens.md §W04; features/13 §1; features/12 video 0:20–0:45
 
 ## Goal
@@ -16,7 +16,7 @@ The video's opening owner shot: "who's crawling you", live.
 - KPI row: Bot visits (7 d), "1 bot per N human visits", Bots sent to your API (402s), Bandwidth avoided (est.), **Earned this week** ("incl. $X SIM" on hover).
 - AG Charts stacked area by category.
 - AG Grid Enterprise "Who's crawling you": Bot, Category badge, Hits (7 d), Decision (Passed / Sent to API), Last seen, Bytes, "Would have paid" (italic estimate), SIM chip; row grouping by category; sparkline cell (24 h); live via SSE `hits` → refetch delta + `applyTransactionAsync` + row flash.
-- Activity feed (proposal ready, call charged, payout sent).
+- Activity feed: initial load from `GET /api/publishers/me/activity` (SP-027a), then SSE events prepended live (proposal ready, call charged, payout sent).
 - States: empty ("Install the gate to see who's crawling you" → W03), installed-no-bots, live, unverified banner; include-simulated toggle; filter by category; row → detail drawer.
 
 ## Acceptance criteria

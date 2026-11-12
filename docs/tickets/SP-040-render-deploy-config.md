@@ -1,4 +1,4 @@
-# SP-040: Render deploy config: `render.yaml`, paid Postgres, env, migrate on deploy, demo site service
+# SP-040: Render deploy config: `render.yaml`, paid Postgres, env, migrate on deploy, demo site service + disk
 
 - **Priority:** P0
 - **Wave:** 2
@@ -16,9 +16,10 @@ A blueprint that deploys the API (serving the web app), the demo site and a paid
 ## Scope
 - Services: `spigot-api` (web, Node, build all, `npm run migrate && npm start`, health `/api/healthz`), `bluebonnet-rentals` (web, demo site, paid starter so it doesn't sleep, env `SPIGOT_GATE_KEY`, `SPIGOT_API_BASE`, `SPIGOT_VERIFY_TOKEN`, `SPIGOT_GATE_DEMO=1`), Postgres **paid** plan (free expires before judging ends Dec 21).
 - Env groups; secrets `sync: false`; `PAYPAL_API_BASE` sandbox; `WORKFLOWS_MODE=inproc` default.
-- Workflows service stub entry (SP-041 completes it).
+- Workflows service stub entry (SP-041a completes it).
 - Smoke script: healthz, catalog, a gate 402 from the demo site, policy fetch.
 - Auto-deploy off for the recording window (documented).
+- The demo-site service gets a small **Render disk** mounted at `DEMO_DATA_DIR` (mutation log survives restarts, SP-004a/004b) and `DEMO_ADMIN_TOKEN`; the API service gets `DEMO_SITE_URL` + the same token (SP-038).
 
 ## Acceptance criteria
 - [ ] `render blueprint validate` (or the dashboard preview) accepts the file.

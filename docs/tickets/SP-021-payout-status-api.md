@@ -1,4 +1,4 @@
-# SP-021: Payout status poll + item reconcile, payouts API, "Run payout now" endpoint
+# SP-021: Payout status poll + item reconcile (incl. UNCLAIMED → SUCCESS / RETURNED), payouts API, run-now
 
 - **Priority:** P0
 - **Wave:** 4
@@ -22,12 +22,20 @@ Payout pills flip Sent → Paid out from PayPal's real item statuses, with the l
 - `notify('publisher_events', {type: 'payout.updated'})`; audit with PayPal ids.
 - Run-now endpoints call `payoutRun('MANUAL_DEMO', {thresholdCentsOverride: 100})`; publisher route only for `is_demo` publisher (seeded) and labelled "demo control".
 - `GET /api/publishers/me/payouts`: batches → items with statuses, ids, statement figures; next-payout card data (payable, threshold, next Monday).
+- Transitions added: **`UNCLAIMED → SUCCESS`** (the receiver signs up and claims; posts `PAYOUT_SETTLED`) and `UNCLAIMED → RETURNED` (30 days; `PAYOUT_RETURNED`).
+- **Daily poll** of every non-terminal batch (PENDING / PROCESSING / any item UNCLAIMED) after the 30-minute window, so UNCLAIMED items resolve without webhooks and the "skip publishers with an UNCLAIMED item" rule (SP-020) can't block a publisher forever. A `*.job.ts` file.
+- Return key `payout_returned:<itemId>` (shared with SP-020); settle key `payout_settled:<itemId>`.
+- Store `payout_items.fee_cents` from the item's `payout_item_fee`.
+- `POST /admin/payouts/:batchId/reconcile` for SP-020's `needs_reconcile` batches.
+- Add `security/tenancy/payouts.cases.ts`.
 
 ## Acceptance criteria
 - [ ] Sandbox: run now → PENDING → SUCCESS within the poll window; ledger check passes with in-flight = 0.
 - [ ] UNCLAIMED (S10 unregistered email) shows as UNCLAIMED and stays in flight.
 - [ ] Applying the same status twice posts one ledger txn.
 - [ ] Non-demo publisher can't call run-now (403).
+- [ ] UNCLAIMED → SUCCESS (fake `claimPayout`) posts one `PAYOUT_SETTLED`; UNCLAIMED → RETURNED (fake `returnPayout`) posts one `PAYOUT_RETURNED` and the publisher is eligible again next run.
+- [ ] `fee_cents` is stored on SUCCESS.
 
 ## Race / idempotency tests (FakePayPal)
 Poller and a simulated webhook applying SUCCESS for the same item concurrently → one `PAYOUT_SETTLED`.

@@ -15,13 +15,14 @@ Route `PUT /api/buyer/auto-topup`; `apps/web/src/pages/buyer/AutoTopupCard.tsx`;
 ## Scope
 - PUT validates (requires a vaulted method; amount 500–50,000; cap ≥ amount).
 - W11 card: threshold, amount, monthly cap, saved method ("PayPal · sb-buyer@…" or "Visa ••1111"), remaining this month; cap-reached and declined banners (W15 copy).
-- MCP `top_up` / `POST /v1/topups`: vault + within cap → MIT (`trigger=MCP`) → COMPLETED; else approval link (SP-022b).
+- MCP `top_up` / `POST /v1/topups`: vault → `reserveVaultTopup()` from SP-047a (same VAULT_MIT cap and one-in-flight rule; `trigger=MCP`) → COMPLETED; cap reached → tool error with W15 copy; no vault → approval link (SP-022b).
 - `npm run demo:decline`: flags the buyer so the next AUTO top-up sends `PayPal-Mock-Response INSTRUMENT_DECLINED` (only `DEMO_MODE` + `ALLOW_MOCK_DECLINE` + sandbox).
 
 ## Acceptance criteria
 - [ ] Enabling without a vault → 422 with explanation.
 - [ ] Claude Desktop `top_up` with a vault returns COMPLETED and the balance rises.
 - [ ] `demo:decline` then a short call → W11 shows the declined banner.
+- [ ] An agent looping on `top_up` stops at the monthly cap (not only at the 30/min rate limit).
 
 ## Test plan
 Integration (FakePayPal), component tests, sandbox once.

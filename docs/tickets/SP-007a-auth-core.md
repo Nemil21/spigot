@@ -1,9 +1,9 @@
-# SP-007a: Auth core: publisher + buyer sessions, error envelope, CSRF, rate limits, audit + tenancy helpers, log redaction
+# SP-007a: Auth core: sessions, error envelope, CSRF, rate limits, audit (`AuditAction`) + tenancy helpers, log redaction
 
 - **Priority:** P0
 - **Wave:** 2
 - **Estimate:** 1.5
-- **Depends on:** SP-001a, SP-002
+- **Depends on:** SP-001a, SP-002, SP-001d
 - **Spec refs:** features/14-auth-security-ops.md §Auth, §Tenancy rules, §Security checklist, §Audit and ops; api.md §Auth, §Errors, §Publisher endpoints (auth), §Buyer portal endpoints (signup)
 
 ## Goal
@@ -21,6 +21,8 @@ The plumbing every route uses: who is calling, what they may see, how errors loo
 - `audit(tx, {actorType, actorId, publisherId, entity, entityId, action, paypalId?, data})`.
 - `forPublisher(sessionPublisherId)` query helper; ids always from the session, never the body.
 - Log redaction: API keys (`sk_spg_`, `gk_`, `ck_`), emails, PayPal tokens/`EC-` ids.
+- `AuditAction` union exported from `apps/api/src/audit/actions.ts` with **every** action feature 14 lists (`SITE_CONNECTED`, `SITE_VERIFIED`, `CRAWL_RUN_DONE`, `SCHEMA_PROPOSED`, `SCHEMA_APPROVED`, `DATASET_PUBLISHED`, `DATASET_UNPUBLISHED`, `TOPUP_CREATED`, `TOPUP_COMPLETED`, `TOPUP_FAILED`, `CALL_CHARGED`, `CLAIM_DECIDED`, `REFUND_REQUESTED`, `REFUND_COMPLETED`, `PAYOUT_SENT`, `PAYOUT_SETTLED`, `PAYOUT_RETURNED`, plus `DEMO_RESET`, `ALERT`); `audit()` only accepts members. Each owning ticket writes its rows; SP-016 owns the SIM sampling rule for `CALL_CHARGED`.
+- Add `security/tenancy/auth.cases.ts`.
 
 ## Acceptance criteria
 - [ ] Signup → login → `/api/auth/me` works for both roles; wrong password → 401 `UNAUTHENTICATED`.

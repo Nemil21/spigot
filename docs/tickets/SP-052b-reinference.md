@@ -1,7 +1,7 @@
 # SP-052b: Re-inference (`/reinfer`), approve v(n+1), W06 stale banner
 
 - **Priority:** P1 (spec P1 #5)
-- **Wave:** 6
+- **Wave:** 7
 - **Estimate:** 1.5
 - **Depends on:** SP-052a, SP-012b, SP-029
 - **Spec refs:** features/04 §7; api.md §`POST /api/datasets/:id/reinfer`; screens.md §W06 (stale), §W15 (stale copy)

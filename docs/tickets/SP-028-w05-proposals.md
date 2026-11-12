@@ -1,9 +1,9 @@
 # SP-028: W05 Record types found (hero)
 
 - **Priority:** P0
-- **Wave:** 5
+- **Wave:** 6
 - **Estimate:** 1.5
-- **Depends on:** SP-024, SP-014
+- **Depends on:** SP-024b, SP-014b
 - **Spec refs:** screens.md §W05; features/04 §Purpose; features/13 §2; features/12 video 0:45–1:15
 
 ## Goal
@@ -13,7 +13,7 @@ The delight moment on screen: **"I found 3 kinds of records on your site."**
 `apps/web/src/pages/RecordTypes.tsx`, `components/ProposalCard.tsx`.
 
 ## Scope
-- Headline from the proposals count; one card per proposal: type name + record count ("Listing · 2,341"), URL pattern, source badge (JSON-LD / CSS / auto (no AI)), 4 key fields, field quality bar (null rates), suggested price, tiny AG Grid of 5 sample rows (auto columns), Review → W06, Reject.
+- Data from `GET /api/sites/:id/proposals` (SP-014b). Headline from the proposals count; one card per proposal: type name + record count ("Listing · 2,341"), URL pattern, source badge (JSON-LD / CSS / auto (no AI)), 4 key fields, field quality bar (null rates), suggested price, tiny AG Grid of 5 sample rows (auto columns), Review → W06, Reject.
 - "How this works": "Claude wrote the extractor once. It now runs with no AI on each page."; expandable agent rationale.
 - States: proposing (cards stream in via SSE `proposal.ready`, a "reading 5 sample pages…" line per template), ready, one failed ("Couldn't find consistent fields on /blog/*; skipped"), none.
 

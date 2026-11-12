@@ -1,9 +1,9 @@
 # SP-057: W01 Landing page
 
 - **Priority:** P1 (spec P1 #9)
-- **Wave:** 3
+- **Wave:** 4
 - **Estimate:** 1.5
-- **Depends on:** SP-024
+- **Depends on:** SP-024b
 - **Spec refs:** screens.md §W01; features/16 §Landing
 
 ## Goal

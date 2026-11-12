@@ -3,7 +3,7 @@
 - **Priority:** P0
 - **Wave:** 5
 - **Estimate:** 1.5
-- **Depends on:** SP-024, SP-030a, SP-025
+- **Depends on:** SP-024b, SP-030a, SP-025
 - **Spec refs:** screens.md §W08; features/13 §4; features/12 video 1:50–2:25
 
 ## Goal

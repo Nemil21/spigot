@@ -1,7 +1,7 @@
 # SP-051: Gate reverse-DNS verification for search crawlers (async, cached)
 
 - **Priority:** P1 (spec P1 #4)
-- **Wave:** 4
+- **Wave:** 3
 - **Estimate:** 1
 - **Depends on:** SP-006b
 - **Spec refs:** features/02 §Classification rules 5

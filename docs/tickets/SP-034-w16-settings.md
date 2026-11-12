@@ -3,7 +3,7 @@
 - **Priority:** P0
 - **Wave:** 5
 - **Estimate:** 1
-- **Depends on:** SP-024, SP-008b
+- **Depends on:** SP-024b, SP-008b
 - **Spec refs:** screens.md §W16; features/02 §Edge cases (owner turns a category to PASS, key leaked); features/09 §Edge cases (payout email change)
 
 ## Goal

@@ -3,7 +3,7 @@
 - **Priority:** P1 (spec P1 #6)
 - **Wave:** 5
 - **Estimate:** 1.5
-- **Depends on:** SP-024, SP-009b
+- **Depends on:** SP-024b, SP-009b
 - **Spec refs:** screens.md §W10; features/03 §Screens; features/04 §6 (AI calls column)
 
 ## Goal

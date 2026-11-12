@@ -3,7 +3,7 @@
 - **Priority:** P1 (feature 14 P1)
 - **Wave:** 4
 - **Estimate:** 1.5
-- **Depends on:** SP-043, SP-024
+- **Depends on:** SP-043, SP-024b
 - **Spec refs:** screens.md §W14; features/14 §Audit and ops
 
 ## Goal

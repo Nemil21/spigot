@@ -1,9 +1,9 @@
 # SP-046: Demo video + Devpost submission (after code freeze)
 
 - **Priority:** P0
-- **Wave:** 7
+- **Wave:** 8
 - **Estimate:** 3
-- **Depends on:** SP-039, SP-038, SP-044, SP-045, SP-036, SP-037, SP-027b, SP-028, SP-029, SP-030b, SP-031, SP-032
+- **Depends on:** SP-039b, SP-038, SP-044b, SP-045, SP-036, SP-037, SP-026, SP-027b, SP-028, SP-029, SP-030b, SP-031, SP-032
 - **Spec refs:** features/12-buyer-agent-demo.md §Video script, §Rules for the recording, §Acceptance criteria; features/16 §Devpost
 
 ## Goal
@@ -13,7 +13,8 @@ The video carries the submission: owner problem → AI schema → scraper 402 �
 `docs/demo/video-script.md` (final), YouTube link in README and Devpost.
 
 ## Scope
-- First, the local end-to-end dry run from SP-039's checklist (seed → crawl → approve → top-up → Claude Desktop call → W08 row → payout), with ids and timings recorded in the checklist. It can start as soon as the dependencies are merged, before the freeze.
+- The local end-to-end dry run is SP-039b (before the freeze). This ticket repeats it on Render.
+- Fill in SP-044's README placeholders: deployed URLs and which Workflows mode ran the demo.
 - After deploy (18:00–19:30 IST): `demo:reset`, `seed:demo`, `sim:bots`, `sim:buyers --live` on Render; two full dry runs.
 - Record ≤ 3:00 per the script; say which numbers are simulated; keep the PayPal approval screen visible 2 s; no real brands, no copyrighted music.
 - Upload public to YouTube; final README links; Devpost submitted by **23:30 IST** (hard deadline 01:30 IST Nov 13 = 12:00 PST Nov 12).

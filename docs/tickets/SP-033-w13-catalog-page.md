@@ -17,6 +17,7 @@ Every 402 points here, and it tells a scraper author exactly how to get the data
 - `Accept: application/json` → the catalog JSON (`catalog()` from SP-017a).
 - `/c/:site/terms`: contract terms for factual data, no resale, attribution optional.
 - < 50 KB, no login, responsive to 375 px.
+- Stale / paused / unpublished copy from `@spigot/shared/copy`.
 
 ## Acceptance criteria
 - [ ] Every URL in the gate's and API's 402 bodies resolves (test follows them).

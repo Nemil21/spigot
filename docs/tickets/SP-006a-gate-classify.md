@@ -1,9 +1,9 @@
 # SP-006a: Gate core: pure `classify`, UA table, 402 body builder (JSON + D04 HTML), bench
 
 - **Priority:** P0
-- **Wave:** 2
+- **Wave:** 1
 - **Estimate:** 1
-- **Depends on:** SP-001a
+- **Depends on:** none
 - **Spec refs:** features/02-gate-middleware.md §Design, §Classification rules, §402 response, §Performance budget; api.md §The 402 contract; screens.md §D04
 
 ## Goal
@@ -32,3 +32,4 @@ Unit fixture table; bench test in `check` job.
 
 ## Notes & risks
 Stealth scrapers with browser UAs pass, by design; README states it (SP-044).
+- **Wave 1 start:** this is a pure module in its own workspace, so it starts against the agreed layout and rebases on SP-001a before merging (same rule as SP-002).
