@@ -276,8 +276,10 @@ export async function reserveRefund(
   try {
     return await deps.db.tx(async (tx) => {
       // Serialises this buyer's refund requests (and a same-key double-click) before anything is read.
+      // NO KEY UPDATE, not UPDATE: FOR UPDATE would also block the buyer_id foreign-key checks of
+      // concurrent charges and credits and can deadlock them (autoTopup.ts §Lock order).
       const buyer = await tx.query<{ autoTopup: boolean }>(
-        `SELECT auto_topup_enabled AS "autoTopup" FROM buyers WHERE id = $1 FOR UPDATE`,
+        `SELECT auto_topup_enabled AS "autoTopup" FROM buyers WHERE id = $1 FOR NO KEY UPDATE`,
         [input.buyerId],
       );
       if (!buyer.rows[0]) throw new ApiError('NOT_FOUND', 'No such buyer.');
