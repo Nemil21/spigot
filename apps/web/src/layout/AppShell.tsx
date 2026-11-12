@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router';
 import { api } from '../api/client';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -37,6 +37,21 @@ export function AppShell<T extends { name: string; email: string }>({
   const location = useLocation();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
+  // Below 1024 px the sidebar collapses to a top bar whose button opens the same nav.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const menuButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   if (session.status === 'signedOut') {
     const next = `${location.pathname}${location.search}`;
@@ -54,68 +69,95 @@ export function AppShell<T extends { name: string; email: string }>({
   }
 
   return (
-    <div className="page-band flex min-h-screen bg-canvas text-body">
+    <div className="page-band min-h-screen bg-canvas text-body lg:flex">
       <nav
         aria-label={area}
-        className="sticky top-4 m-4 mr-0 flex h-[calc(100vh-2rem)] w-58 shrink-0 flex-col rounded-[20px] border border-white/8 bg-surface/80 p-3 pt-5 backdrop-blur-xl"
+        className="sticky top-0 z-30 flex flex-col border-b border-white/8 bg-surface/90 backdrop-blur-xl lg:top-4 lg:m-4 lg:mr-0 lg:h-[calc(100vh-2rem)] lg:w-58 lg:shrink-0 lg:rounded-[20px] lg:border lg:bg-surface/80 lg:p-3 lg:pt-5"
       >
-        <p className="mb-6 px-2">
+        <div className="flex h-14 items-center justify-between px-4 lg:mb-6 lg:h-auto lg:px-2">
           <Logo suffix={brand === 'Spigot' ? undefined : 'for agents'} />
-        </p>
-        <p className="mb-2 px-3 text-[11px] font-medium tracking-[0.1em] text-muted uppercase">
-          {area}
-        </p>
-        <ul className="space-y-0.5">
-          {nav.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-[10px] border px-3 py-2.5 text-sm ${isActive ? 'border-white/10 bg-white/8 font-medium text-ink [&>svg]:text-accent' : 'border-transparent text-body hover:bg-white/5 [&>svg]:opacity-60'}`
-                }
-              >
-                <NavIcon label={item.label} />
-                {item.label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-auto space-y-3 rounded-[14px] border border-white/8 bg-white/4 p-3 text-sm">
-          {session.status === 'ready' ? (
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span
-                aria-hidden="true"
-                className="grid size-8.5 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-sim text-xs font-semibold text-on-accent"
-              >
-                {initials(session.session.name)}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate font-medium text-ink">{session.session.name}</p>
-                <p className="truncate text-xs text-muted">{session.session.email}</p>
-              </div>
-            </div>
-          ) : (
-            <div aria-hidden="true">
-              <Skeleton className="block h-4 w-28" />
-              <Skeleton className="mt-1 block h-3 w-36" />
-            </div>
-          )}
-          {session.status === 'ready' && badge?.(session.session) && (
-            <p className="inline-block rounded-full bg-accent-tint px-2.5 py-0.5 text-xs font-medium text-accent">
-              {badge(session.session)}
-            </p>
-          )}
-          <div className="flex items-center justify-between border-t border-white/8 pt-3 text-xs">
-            <ThemeToggle />
-            <button
-              type="button"
-              onClick={logout}
-              disabled={loggingOut || session.status !== 'ready'}
-              className="text-muted hover:text-ink disabled:opacity-60"
+          <button
+            ref={menuButton}
+            type="button"
+            className="grid size-9 place-items-center rounded-md text-body hover:bg-white/8 hover:text-ink lg:hidden"
+            aria-expanded={menuOpen}
+            aria-controls={menuId}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <svg
+              aria-hidden="true"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
             >
-              Log out
-            </button>
+              <path d={menuOpen ? 'M6 6l12 12M18 6 6 18' : 'M4 7h16M4 12h16M4 17h16'} />
+            </svg>
+          </button>
+        </div>
+        <div
+          id={menuId}
+          className={`${menuOpen ? 'flex' : 'hidden'} max-h-[calc(100vh-3.5rem)] flex-1 flex-col overflow-y-auto px-3 pb-3 lg:flex lg:max-h-none lg:overflow-visible lg:px-0 lg:pb-0`}
+        >
+          <p className="mb-2 px-3 text-[11px] font-medium tracking-[0.1em] text-muted uppercase">
+            {area}
+          </p>
+          <ul className="space-y-0.5">
+            {nav.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-[10px] border px-3 py-2.5 text-sm ${isActive ? 'border-white/10 bg-white/8 font-medium text-ink [&>svg]:text-accent' : 'border-transparent text-body hover:bg-white/5 [&>svg]:opacity-60'}`
+                  }
+                >
+                  <NavIcon label={item.label} />
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-auto space-y-3 rounded-[14px] border border-white/8 bg-white/4 p-3 text-sm">
+            {session.status === 'ready' ? (
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className="grid size-8.5 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-sim text-xs font-semibold text-on-accent"
+                >
+                  {initials(session.session.name)}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-ink">{session.session.name}</p>
+                  <p className="truncate text-xs text-muted">{session.session.email}</p>
+                </div>
+              </div>
+            ) : (
+              <div aria-hidden="true">
+                <Skeleton className="block h-4 w-28" />
+                <Skeleton className="mt-1 block h-3 w-36" />
+              </div>
+            )}
+            {session.status === 'ready' && badge?.(session.session) && (
+              <p className="inline-block rounded-full bg-accent-tint px-2.5 py-0.5 text-xs font-medium text-accent">
+                {badge(session.session)}
+              </p>
+            )}
+            <div className="flex items-center justify-between border-t border-white/8 pt-3 text-xs">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={logout}
+                disabled={loggingOut || session.status !== 'ready'}
+                className="text-muted hover:text-ink disabled:opacity-60"
+              >
+                Log out
+              </button>
+            </div>
           </div>
         </div>
       </nav>

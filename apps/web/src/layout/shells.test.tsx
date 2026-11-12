@@ -106,6 +106,31 @@ describe('PublisherShell', () => {
     expect(calls.find(([u]) => u === '/api/auth/logout')?.[1].method).toBe('POST');
   });
 
+  it('opens the phone menu, closes it on navigation and on Escape', async () => {
+    handler = () => json(200, publisherMe);
+    const router = renderApp('/app');
+    const toggle = await screen.findByRole('button', { name: 'Open menu' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAccessibleName('Close menu');
+    expect(document.getElementById(toggle.getAttribute('aria-controls')!)).toContainElement(
+      screen.getByRole('link', { name: 'Earnings' }),
+    );
+
+    await userEvent.click(screen.getByRole('link', { name: 'Earnings' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/app/earnings'));
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-expanded', 'false'));
+    expect(toggle).toHaveAccessibleName('Open menu');
+
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.keyboard('{Escape}');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveFocus();
+  });
+
   it('switches between light and dark and remembers the choice', async () => {
     handler = () => json(200, publisherMe);
     applyThemeMode('light');

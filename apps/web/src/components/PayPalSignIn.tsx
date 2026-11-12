@@ -36,8 +36,8 @@ export function PayPalNotice({ reason }: { reason: string | null }) {
   return (
     <p
       role={m.ok ? 'status' : 'alert'}
-      className={`mt-4 rounded-md px-3 py-2 text-sm ${
-        m.ok ? 'bg-positive-tint text-positive' : 'bg-danger-tint text-danger'
+      className={`mt-4 rounded-md border px-3 py-2.5 text-sm text-ink ${
+        m.ok ? 'border-positive/25 bg-positive-tint' : 'border-danger/25 bg-danger-tint'
       }`}
     >
       {m.text}
@@ -46,7 +46,7 @@ export function PayPalNotice({ reason }: { reason: string | null }) {
 }
 
 const buttonClass =
-  'flex w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 font-medium text-ink hover:bg-surface-2';
+  'flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 text-base font-medium text-ink shadow-card transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
 
 export function PayPalButton({
   label,
@@ -59,11 +59,25 @@ export function PayPalButton({
 }) {
   return (
     <a href={href} className={`${buttonClass} ${className}`}>
-      <span aria-hidden="true" className="font-bold italic text-accent">
-        P
-      </span>
+      <PayPalGlyph />
       {label}
     </a>
+  );
+}
+
+/** PayPal's double-P monogram, drawn in its brand blues. */
+function PayPalGlyph() {
+  return (
+    <svg aria-hidden="true" width="14" height="16" viewBox="0 0 14 16" className="shrink-0">
+      <path
+        d="M11.6 1.4C10.9.6 9.6.2 7.9.2H3.2c-.3 0-.6.2-.7.6L.6 12.9c0 .2.1.4.4.4h2.9l.7-4.6v.1c.1-.3.4-.6.7-.6h1.4c2.7 0 4.8-1.1 5.4-4.3V3.6c.2-1 0-1.6-.5-2.2"
+        fill="#003087"
+      />
+      <path
+        d="M12.1 3.7c-.6 3.2-2.7 4.3-5.4 4.3H5.3c-.3 0-.6.3-.7.6l-.9 5.9-.3 1.7c0 .2.1.4.3.4h2.4c.3 0 .6-.2.6-.5v-.1l.5-3v-.2c0-.3.3-.5.6-.5h.4c2.4 0 4.2-1 4.7-3.8.2-1.2.1-2.1-.5-2.8-.2-.2-.4-.3-.6-.5"
+        fill="#0070e0"
+      />
+    </svg>
   );
 }
 

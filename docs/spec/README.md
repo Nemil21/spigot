@@ -297,4 +297,4 @@ Holdfast leads Agentic Commerce and Most Creative. Spigot leads **Most Impactful
 - The demo site is fictional; simulated traffic and buyers are labelled SIM.
 
 ## Designs
-No Figma file yet. Reuse Holdfast's design system approach (semantic colour tokens, Tailwind) but a different palette so the two submissions don't look alike. Screens are listed in [screens.md](screens.md); build W05 (proposals) and W08 (earnings) first.
+No Figma file yet. Reuse Holdfast's design system approach (semantic colour tokens, Tailwind) but a different palette so the two submissions don't look alike. Since 2026-11-12 (owner decision) Spigot also shares Holdfast v4's system ideas (mono labels, serif accent word, hairlines, square radii) while keeping its own palette, fonts, shell and mark; see [features/13 §6](features/13-publisher-dashboard.md). Screens are listed in [screens.md](screens.md); build W05 (proposals) and W08 (earnings) first.

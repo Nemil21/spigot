@@ -5,6 +5,8 @@ import { EmptyState, ErrorBanner, errorMessage, SkeletonText } from '../componen
 import type { AuthMe } from '../layout/session';
 import { PAYPAL_CONNECT, PayPalButton, PayPalNotice } from '../components/PayPalSignIn';
 import { paths } from '../routes';
+import { PAGE, PageHeader } from './Panel';
+import { LABEL } from '../theme/label';
 
 /**
  * W16 Settings (SP-034; screens.md §W16). Four tabs, `?tab=` in the URL:
@@ -245,33 +247,38 @@ export default function SettingsPage({ client = defaultApi }: { client?: ApiClie
   }
 
   return (
-    <section className="mx-auto max-w-3xl px-6 py-8" data-screen="W16">
-      <h1 className="text-2xl font-semibold text-ink">Settings</h1>
-      <div role="tablist" aria-label="Settings" className="mt-6 flex gap-1 border-b border-line">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            id={`settings-tab-${t.id}`}
-            aria-selected={tab === t.id}
-            aria-controls={`settings-panel-${t.id}`}
-            onClick={() => setParams({ tab: t.id }, { replace: true })}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
-              tab === t.id
-                ? 'border-accent text-accent'
-                : 'border-transparent text-muted hover:text-ink'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+    <section className={PAGE} data-screen="W16">
+      <PageHeader
+        title="Settings"
+        description="Your account, where PayPal sends your earnings, how the gate treats each kind of bot, and your site keys."
+      />
+      <div className="max-w-3xl">
+        <div role="tablist" aria-label="Settings" className="flex gap-6 border-b border-line">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              id={`settings-tab-${t.id}`}
+              aria-selected={tab === t.id}
+              aria-controls={`settings-panel-${t.id}`}
+              onClick={() => setParams({ tab: t.id }, { replace: true })}
+              className={`-mb-px shrink-0 border-b-2 pb-3 pt-1 ${LABEL} transition-colors ${
+                tab === t.id
+                  ? 'border-accent text-ink'
+                  : 'border-transparent text-muted hover:text-ink'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-6">{body}</div>
       </div>
-      <div className="mt-6">{body}</div>
       {toast && (
         <div
           role="status"
-          className="fixed right-6 bottom-6 rounded-md bg-ink px-4 py-2 text-sm text-surface shadow-card"
+          className="fixed right-6 bottom-6 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-surface"
         >
           {toast}
         </div>
@@ -286,7 +293,7 @@ const inputCls =
   'mt-1 w-full max-w-md rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-2 focus:outline-focus aria-invalid:border-danger';
 const buttonCls =
   'rounded-md bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60';
-const cardCls = 'rounded-lg border border-line bg-surface p-6 shadow-card';
+const cardCls = 'rounded-lg border border-line bg-surface p-6';
 
 function FieldError({ id, message }: { id: string; message?: string | null }) {
   if (!message) return null;

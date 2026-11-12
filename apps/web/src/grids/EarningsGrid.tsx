@@ -36,6 +36,8 @@ export interface EarningsGridProps {
   /** A leaf row was clicked ("open call detail"). */
   onOpenRow?: (row: EarningsGridRow) => void;
   height?: number | string;
+  /** Drawn inside a panel (no grid frame). */
+  bare?: boolean;
 }
 
 /** Give up waiting for the rows to be drawn after ~1 s (60 frames) and flash what's there. */
@@ -171,6 +173,7 @@ export function EarningsGrid({
   onReady,
   onOpenRow,
   height = 440,
+  bare = false,
 }: EarningsGridProps) {
   const apiRef = useRef<GridApi<EarningsGridRow> | null>(null);
   const pending = useRef<FlashRequest | null>(null);
@@ -227,6 +230,7 @@ export function EarningsGrid({
   return (
     <SpigotGrid<EarningsGridRow>
       height={height}
+      bare={bare}
       rowData={rows}
       columnDefs={columnDefs}
       defaultColDef={defaultColDef}

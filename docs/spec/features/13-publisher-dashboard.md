@@ -27,7 +27,7 @@ W04 Overview / bot report · W05 Record types found · W06 Dataset editor · W07
    - Publish → progress (extractTemplate) → endpoint card.
 4. **W08 earnings:** KPI tiles; AG Charts stacked bars per day by dataset; AG Grid with row grouping (Buyer → Dataset), aggregations (sum calls, records, gross, net), pivot mode toggle, SIM filter, CSV export; ledger tab (server-side row model over `ledger_entries` for this publisher).
 5. **W09 payouts:** AG Grid master/detail (batch → items) with status pills and PayPal id cells (copy); "Run payout now" with a confirm modal showing payable, commission already taken, net, threshold.
-6. **Theme:** AG Grid Quartz theme customized with our tokens (light + dark); custom cell renderers for status pills, SIM chip, money (tabular numbers). Don't copy Holdfast's look.
+6. **Theme:** AG Grid Quartz theme customized with our tokens (light + dark); custom cell renderers for status pills, SIM chip, money (tabular numbers). **Look (owner decision, 2026-11-12):** Spigot is a *sibling* of Holdfast v4, not a clone. It shares v4's system ideas: mono UPPERCASE letter-spaced labels and buttons, one serif-italic accent word per heading, marker highlights, 1 px hairlines, 2–6 px radii, a 1120 px column. It keeps its own identity: teal accent and brass money colour (Holdfast is orange/charcoal), Instrument Sans + JetBrains Mono + Instrument Serif (Holdfast is Geist), a left-sidebar shell (Holdfast uses a top nav), and the Spigot tap mark. Never reuse Holdfast's palette, fonts, logo, imagery or screen layouts.
 
 ## Data
 `GET /api/sites/:id/bots`, `/proposals`, `PATCH/POST /api/datasets/*`, `/api/publishers/me/earnings`, `/ledger`, `/payouts`, SSE `/api/publishers/me/events` (api.md).

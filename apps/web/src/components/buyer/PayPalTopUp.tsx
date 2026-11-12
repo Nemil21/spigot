@@ -3,6 +3,7 @@ import { formatCents } from '@spigot/shared/money';
 import { useEffect, useRef, useState } from 'react';
 import { api as defaultApi, ApiError, type ApiClient } from '../../api/client';
 import { errorMessage } from '../ErrorBanner';
+import * as ui from './ui';
 import {
   loadPayPalSdk as defaultLoadSdk,
   type LoadPayPalSdk,
@@ -198,38 +199,30 @@ export function PayPalTopUp({
   const inFlight = phase === 'approving' || phase === 'capturing';
 
   return (
-    <section
-      aria-labelledby="topup-title"
-      className="rounded-lg border border-line bg-surface p-5 shadow-card"
-    >
-      <h2 id="topup-title" className="text-lg font-semibold text-ink">
+    <section aria-labelledby="topup-title" className={ui.panelBody}>
+      <h2 id="topup-title" className={ui.panelTitle}>
         {TOP_UP_WITH_PAYPAL}
       </h2>
-      <p className="mt-1 text-sm text-muted">
-        Your agent spends this balance call by call. Minimum $5.
-      </p>
+      <p className={ui.panelDesc}>Your agent spends this balance call by call. Minimum $5.</p>
 
       <fieldset className="mt-4" disabled={inFlight}>
         <legend className="sr-only">Amount</legend>
-        <div className="flex flex-wrap gap-2">
+        <div className={ui.segmented}>
           {TOPUP_AMOUNTS_CENTS.map((cents) => (
             <button
               key={cents}
               type="button"
               aria-pressed={amountCents === cents}
               onClick={() => setAmountCents(cents)}
-              className={`rounded-full border px-4 py-1.5 text-sm font-medium tabular-nums ${
-                amountCents === cents
-                  ? 'border-accent bg-accent text-on-accent'
-                  : 'border-border bg-surface text-ink hover:bg-surface-2'
-              }`}
+              className={ui.segment(amountCents === cents)}
             >
               {formatCents(cents)}
             </button>
           ))}
         </div>
-        <label className="mt-3 flex items-center gap-2 text-sm text-body">
+        <label className={`mt-4 ${ui.checkboxLabel}`}>
           <input
+            className={ui.checkbox}
             type="checkbox"
             checked={saveForAutoTopup}
             onChange={(e) => setSaveForAutoTopup(e.target.checked)}
@@ -239,7 +232,7 @@ export function PayPalTopUp({
       </fieldset>
 
       <div className="mt-4 min-h-12" aria-busy={phase === 'loading'}>
-        <div ref={slot} className="max-w-xs" />
+        <div ref={slot} className="max-w-sm" />
         {phase === 'loading' && <p className="text-sm text-muted">Loading PayPal…</p>}
       </div>
 
@@ -264,54 +257,53 @@ function TopUpStatus({
   amountCents: number;
   completedCents: number | null;
 }) {
-  const box = 'mt-3 rounded-md px-3 py-2 text-sm';
   switch (phase) {
     case 'unavailable':
       return (
-        <p role="status" className={`${box} bg-surface-2 text-body`}>
+        <p role="status" className={`mt-4 ${ui.notice.neutral}`}>
           {problem ??
             'The PayPal button needs the PayPal sandbox; this server runs PayPal as a stub.'}
         </p>
       );
     case 'approving':
       return (
-        <p role="status" className={`${box} bg-info-tint text-info`}>
+        <p role="status" className={`mt-4 ${ui.notice.info}`}>
           Approve {formatCents(amountCents)} in the PayPal window.
         </p>
       );
     case 'capturing':
       return (
-        <p role="status" className={`${box} bg-info-tint text-info`}>
+        <p role="status" className={`mt-4 ${ui.notice.info}`}>
           Approved in PayPal. Adding it to your balance…
         </p>
       );
     case 'completed':
       return (
-        <p role="status" className={`${box} bg-positive-tint text-positive`}>
+        <p role="status" className={`mt-4 ${ui.notice.positive}`}>
           {formatCents(completedCents ?? amountCents)} added via PayPal.
         </p>
       );
     case 'pending':
       return (
-        <p role="status" className={`${box} bg-warning-tint text-warning`}>
+        <p role="status" className={`mt-4 ${ui.notice.warning}`}>
           PayPal is still processing this payment. Your balance updates when it completes.
         </p>
       );
     case 'cancelled':
       return (
-        <p role="status" className={`${box} bg-surface-2 text-body`}>
+        <p role="status" className={`mt-4 ${ui.notice.neutral}`}>
           {topupStatusLabel('ABANDONED')}. Nothing was taken.
         </p>
       );
     case 'declined':
       return (
-        <p role="alert" className={`${box} bg-danger-tint text-danger`}>
+        <p role="alert" className={`mt-4 ${ui.notice.danger}`}>
           {DECLINED_COPY}. Try another payment method in PayPal.
         </p>
       );
     case 'error':
       return (
-        <p role="alert" className={`${box} bg-danger-tint text-danger`}>
+        <p role="alert" className={`mt-4 ${ui.notice.danger}`}>
           {problem ?? 'Something went wrong.'}
         </p>
       );
