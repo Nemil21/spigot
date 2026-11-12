@@ -23,6 +23,8 @@ export interface RunEveryOptions {
   onError?: (err: unknown) => void;
   /** Called after each tick this process ran (tests and metrics). */
   onRun?: (tick: number) => void;
+  /** Called once this process's attempt at a tick has finished: ran, skipped or failed (tests). */
+  onSettled?: (tick: number) => void;
 }
 
 const NAME_RE = /^[a-z][a-z0-9_.:-]*$/i;
@@ -86,6 +88,7 @@ export function runEvery(
           .catch(onError)
           .finally(() => {
             inFlight = undefined;
+            opts.onSettled?.(t);
           });
       }
       schedule();
