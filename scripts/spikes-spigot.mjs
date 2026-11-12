@@ -8,6 +8,7 @@
 //   s9      partial refund with PayPal-Request-Id, replay, refund above the remaining amount
 //   s10     one Payouts batch, 3 items (publisher, 2nd valid, unregistered), poll, resubmit sender_batch_id
 //   s11     verify-webhook-signature call shape (dry run; `s11 <delivery.json>` with a real delivery in SP-059)
+//   s11-register <https://host/webhooks/paypal>  register the sandbox webhook (SP-059; external change, run by hand)
 //   all     s7b + s8b approval links first, then s7a s8a s8c s9 s10 s11, then poll the wallet orders, check, render
 //   resume  capture wallet orders (s7b/s8b) approved after their run ended; records PENDING-HUMAN otherwise
 //   check   GET every order this spike created: each must be COMPLETED or never approved
@@ -75,7 +76,7 @@ async function auth() {
 }
 
 // Every call returns a compact record; evidence never keeps the raw body (it can echo card or payer data).
-async function pp(method, path, { body, requestId, headers = {}, label } = {}) {
+async function pp(method, path, { body, rawBody, requestId, headers = {}, label } = {}) {
   await auth();
   const rid = method === 'GET' ? undefined : (requestId ?? randomUUID());
   const t0 = Date.now();
@@ -90,7 +91,8 @@ async function pp(method, path, { body, requestId, headers = {}, label } = {}) {
         ...(rid ? { 'PayPal-Request-Id': rid } : {}),
         ...headers,
       },
-      body: body ? JSON.stringify(body) : undefined,
+      // rawBody: sent byte for byte (S11's webhook_event must be the delivery exactly as received).
+      body: rawBody ?? (body ? JSON.stringify(body) : undefined),
     });
     text = await res.text();
   } catch (e) {
@@ -799,11 +801,14 @@ async function s11(file) {
     transmission_sig: h['paypal-transmission-sig'],
     transmission_time: h['paypal-transmission-time'],
     webhook_id: env.PAYPAL_WEBHOOK_ID || '0SPIKEDRYRUN00000',
-    webhook_event: JSON.parse(delivery.rawBody),
   };
+  // SP-059: splice the delivery in verbatim. JSON.parse + JSON.stringify can change spacing, key
+  // order or number formatting, and PayPal signs a CRC32 of the exact bytes it sent.
+  const head = Object.entries(body).map(([k, v]) => `${JSON.stringify(k)}:${JSON.stringify(v)}`);
+  const rawBody = `{${head.join(',')},"webhook_event":${delivery.rawBody}}`;
   const r = await pp('POST', '/v1/notifications/verify-webhook-signature', {
     label: `verify-webhook-signature (${file ? 'real delivery' : 'dry run'})`,
-    body,
+    rawBody,
   });
   log(r, `verification_status ${r.json.verification_status ?? '–'}`);
   const result = file
@@ -819,9 +824,47 @@ async function s11(file) {
       verificationStatus: r.json.verification_status,
       name: r.name,
       issue: r.issue,
-      requestKeys: Object.keys(body),
+      requestKeys: [...Object.keys(body), 'webhook_event'],
     },
   });
+}
+
+// ---------- S11 setup (SP-059): register the webhook for the Render URL ----------
+// `node scripts/spikes-spigot.mjs s11-register https://<render-host>/webhooks/paypal` creates the
+// webhook on the sandbox app (an external change: run it by hand, once) and prints its id for
+// PAYPAL_WEBHOOK_ID. Event types are the ones api.md §Webhooks handles.
+const S11_EVENT_TYPES = [
+  'CHECKOUT.ORDER.APPROVED',
+  'PAYMENT.CAPTURE.COMPLETED',
+  'PAYMENT.CAPTURE.DENIED',
+  'PAYMENT.CAPTURE.DECLINED',
+  'PAYMENT.CAPTURE.REFUNDED',
+  'PAYMENT.PAYOUTSBATCH.SUCCESS',
+  'PAYMENT.PAYOUTSBATCH.DENIED',
+  'PAYMENT.PAYOUTSBATCH.PROCESSING',
+  'PAYMENT.PAYOUTS-ITEM.SUCCEEDED',
+  'PAYMENT.PAYOUTS-ITEM.UNCLAIMED',
+  'PAYMENT.PAYOUTS-ITEM.FAILED',
+  'PAYMENT.PAYOUTS-ITEM.BLOCKED',
+  'PAYMENT.PAYOUTS-ITEM.DENIED',
+  'PAYMENT.PAYOUTS-ITEM.RETURNED',
+  'PAYMENT.PAYOUTS-ITEM.REFUNDED',
+  'PAYMENT.PAYOUTS-ITEM.CANCELED',
+  'PAYMENT.PAYOUTS-ITEM.HELD',
+  'CUSTOMER.DISPUTE.CREATED',
+];
+async function s11Register(url) {
+  if (!url || !/^https:\/\/[^/]+\/webhooks\/paypal$/.test(url)) {
+    throw new Error('usage: s11-register https://<render-host>/webhooks/paypal');
+  }
+  const r = await pp('POST', '/v1/notifications/webhooks', {
+    label: 'register webhook',
+    body: { url, event_types: S11_EVENT_TYPES.map((name) => ({ name })) },
+  });
+  if (r.http !== 201)
+    throw new Error(`register failed: HTTP ${r.http} ${r.name ?? ''} ${r.issue ?? ''}`);
+  console.log(`webhook id: ${r.json.id} (set PAYPAL_WEBHOOK_ID on the Render API service)`);
+  return r.json.id;
 }
 
 // ---------- check: nothing left approved-but-uncaptured ----------
@@ -952,6 +995,7 @@ const commands = {
   s9,
   s10,
   s11: () => s11(arg),
+  's11-register': () => s11Register(arg),
   all,
   resume,
   check,
