@@ -51,13 +51,15 @@ const MACHINES = {
     REFUNDED: [],
     FAILED: [],
   },
+  // PAYMENT_REQUIRED | REJECTED -> RECEIVED: a retry with the same Idempotency-Key and request
+  // re-attempts the charge on the same row (SP-016), e.g. 402 -> top-up -> retry -> CHARGED.
   api_calls: {
     RECEIVED: ['REJECTED', 'PAYMENT_REQUIRED', 'CHARGED', 'NOT_CHARGED'],
     CHARGED: ['PARTIALLY_CREDITED', 'CREDITED'],
     PARTIALLY_CREDITED: ['CREDITED'],
     CREDITED: [],
-    REJECTED: [],
-    PAYMENT_REQUIRED: [],
+    REJECTED: ['RECEIVED'],
+    PAYMENT_REQUIRED: ['RECEIVED'],
     NOT_CHARGED: [],
   },
   claims: {
