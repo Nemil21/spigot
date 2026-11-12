@@ -97,9 +97,11 @@ export function AuditGrid({ events }: { events: AuditEvent[] }) {
     <SpigotGrid<AuditEvent>
       rowData={events}
       columnDefs={columns}
-      defaultColDef={{ flex: 1, sortable: true, resizable: true }}
+      defaultColDef={{ flex: 1, sortable: true, resizable: true, suppressHeaderMenuButton: true }}
       getRowId={rowId}
-      height={480}
+      // A page of events sizes to its rows (no empty band); longer lists scroll in the grid.
+      height={events.length <= 15 ? 'auto' : 520}
+      domLayout={events.length <= 15 ? 'autoHeight' : 'normal'}
       tooltipShowDelay={300}
       // Seven columns: render them all, so the PayPal id is always in the DOM (and findable).
       suppressColumnVirtualisation
