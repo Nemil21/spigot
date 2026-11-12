@@ -459,7 +459,8 @@ describe('W03 first crawl', () => {
     expect((posts[0]![1].headers as Record<string, string>)['Idempotency-Key']).toMatch(
       /^w03-crawl-/,
     );
-    expect(FakeEventSource.last?.url).toBe('/api/crawl-runs/r9/events');
+    // The stream opens in a passive effect, which can run after the progress text is on screen.
+    await waitFor(() => expect(FakeEventSource.last?.url).toBe('/api/crawl-runs/r9/events'));
   });
 
   it('a crawl already running (409 CRAWL_IN_PROGRESS) is joined, not duplicated', async () => {
