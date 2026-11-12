@@ -29,6 +29,9 @@ export const AUDIT_ACTIONS = [
   'ALERT',
   // Written by SP-020 (payouts/submit.ts, merged before this union existed) for payout-run alerts.
   'PAYOUT_ALERT',
+  // SP-034 (settings/settings.ts): W16 account, payout email and gate policy edits; key rotation.
+  'SETTINGS_CHANGED',
+  'SITE_KEY_ROTATED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -6,15 +6,21 @@ import { createHash, createHmac } from 'node:crypto';
  * key back: it is **derived** from `SESSION_SECRET` and the site id instead. SP-008a generates the
  * key with `deriveCrawlKey` and stores `crawlKeyHash(key)`; rotating `SESSION_SECRET` rotates
  * every crawl key (the gate then sees the new hash on its next policy refresh).
+ *
+ * One site's key rotates with `sites.crawl_key_version` (SP-034, W16 Keys): the crawler derives
+ * the key for the site's current version, so after a rotation it sends the new key and the old
+ * one matches nothing. Version 1 is the original derivation (no suffix), so existing keys stay.
  */
 
 const PREFIX = 'ck_';
 
-export function deriveCrawlKey(siteId: string, secret: string): string {
+export function deriveCrawlKey(siteId: string, secret: string, version = 1): string {
   if (!secret) throw new Error('deriveCrawlKey: secret is empty');
-  const mac = createHmac('sha256', secret)
-    .update(`spigot-crawl-key:v1:${siteId}`)
-    .digest('base64url');
+  if (!Number.isSafeInteger(version) || version < 1) {
+    throw new Error(`deriveCrawlKey: bad version ${version}`);
+  }
+  const input = `spigot-crawl-key:v1:${siteId}${version === 1 ? '' : `:${version}`}`;
+  const mac = createHmac('sha256', secret).update(input).digest('base64url');
   return `${PREFIX}${mac}`;
 }
 

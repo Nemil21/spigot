@@ -87,6 +87,7 @@ interface PageRow {
   content_hash: string | null;
   removed_at: Date | null;
   site_id: string;
+  crawl_key_version: number;
   origin: string;
   last_gate_seen_at: Date | null;
   run_status: string;
@@ -112,7 +113,7 @@ export async function fetchPage(
 
   const { rows } = await db.pool.query<PageRow>(
     `SELECT p.id, p.url, p.etag, p.content_hash, p.removed_at,
-            s.id AS site_id, s.origin, s.last_gate_seen_at, r.status AS run_status
+            s.id AS site_id, s.crawl_key_version, s.origin, s.last_gate_seen_at, r.status AS run_status
        FROM pages p
        JOIN sites s ON s.id = p.site_id
        JOIN crawl_runs r ON r.id = $2 AND r.site_id = s.id
@@ -131,7 +132,7 @@ export async function fetchPage(
     sleep: deps.sleep,
   });
   const headers: Record<string, string> = {
-    'x-spigot-key': deriveCrawlKey(page.site_id, deps.crawlSecret),
+    'x-spigot-key': deriveCrawlKey(page.site_id, deps.crawlSecret, page.crawl_key_version),
     'user-agent': crawlerUserAgent(deps.appBaseUrl),
     accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
   };

@@ -260,10 +260,11 @@ async function runCrawl(runId: string, siteId: string, deps: CrawlDeps): Promise
   }
   const startedAt = run.started_at!;
 
-  const { rows: siteRows } = await db.pool.query<{ origin: string; sitemap_url: string | null }>(
-    'SELECT origin, sitemap_url FROM sites WHERE id = $1',
-    [siteId],
-  );
+  const { rows: siteRows } = await db.pool.query<{
+    origin: string;
+    sitemap_url: string | null;
+    crawl_key_version: number;
+  }>('SELECT origin, sitemap_url, crawl_key_version FROM sites WHERE id = $1', [siteId]);
   const site = siteRows[0]!;
 
   let sitemap;
@@ -273,7 +274,7 @@ async function runCrawl(runId: string, siteId: string, deps: CrawlDeps): Promise
       resolver: deps.resolver,
       fetch: deps.fetch,
       headers: {
-        'x-spigot-key': deriveCrawlKey(siteId, deps.crawlSecret),
+        'x-spigot-key': deriveCrawlKey(siteId, deps.crawlSecret, site.crawl_key_version),
         'user-agent': crawlerUserAgent(deps.appBaseUrl),
       },
     });
