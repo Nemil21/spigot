@@ -89,10 +89,12 @@ function sendPaid(reply: FastifyReply, r: PaidReadResult): FastifyReply {
     reply.header('Spigot-Records', String(r.count));
     if (r.callId) reply.header('Spigot-Call-Id', r.callId);
     if (r.replay) reply.header('Spigot-Replay', 'true');
+    if (r.autoTopupCents !== undefined) {
+      reply.header('Spigot-Auto-Topup', String(r.autoTopupCents));
+    }
   } else {
     send402(reply, r.headers);
   }
-  if (r.autoTopupCents !== undefined) reply.header('Spigot-Auto-Topup', String(r.autoTopupCents));
   return reply.code(r.status).send(r.body);
 }
 

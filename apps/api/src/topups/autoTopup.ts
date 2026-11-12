@@ -44,7 +44,10 @@ import { TOPUP_COLUMNS, type TopupRow } from './row.js';
 /** Step 3's budget: past this the buyer gets the 402 and the top-up finishes in the background. */
 export const AUTO_TOPUP_TIMEOUT_MS = 10_000;
 
-/** How often a call queued behind another call's in-flight top-up re-checks. */
+/**
+ * How often a call queued behind another call's in-flight top-up re-checks. It waits only while
+ * that top-up is younger than `AUTO_TOPUP_TIMEOUT_MS`; an older CREATED row is an orphan.
+ */
 const IN_FLIGHT_POLL_MS = 50;
 
 /**
@@ -102,8 +105,8 @@ export type Reservation =
   | { kind: 'DISABLED' }
   /** No saved PayPal method. */
   | { kind: 'NO_VAULT' }
-  /** Another `VAULT_MIT` top-up (AUTO or MCP) is CREATED for this buyer. */
-  | { kind: 'IN_FLIGHT'; topupId: string }
+  /** Another `VAULT_MIT` top-up (AUTO or MCP) is CREATED for this buyer; `ageMs` since it was. */
+  | { kind: 'IN_FLIGHT'; topupId: string; ageMs: number }
   | { kind: 'CAP_REACHED'; monthlyCapCents: number; usedCents: number; amountCents: number }
   /** `balance + amount < price`: a top-up wouldn't make this call affordable. */
   | { kind: 'WOULD_NOT_HELP'; balanceMicros: number; amountCents: number };
@@ -139,13 +142,17 @@ export async function reserveVaultTopup(
     if (input.trigger === 'AUTO' && !b.enabled) return { kind: 'DISABLED' };
     if (!b.vaultId) return { kind: 'NO_VAULT' };
 
-    const inFlight = await tx.query<{ id: string }>(
-      `SELECT id FROM topups
+    // Age by the database clock: the row's `created_at` is too.
+    const inFlight = await tx.query<{ id: string; ageMs: number }>(
+      `SELECT id, (extract(epoch FROM clock_timestamp() - created_at) * 1000)::float8 AS "ageMs"
+         FROM topups
         WHERE buyer_id = $1 AND method = 'VAULT_MIT' AND status = 'CREATED'
+        ORDER BY created_at
         LIMIT 1`,
       [input.buyerId],
     );
-    if (inFlight.rows[0]) return { kind: 'IN_FLIGHT', topupId: inFlight.rows[0].id };
+    const flying = inFlight.rows[0];
+    if (flying) return { kind: 'IN_FLIGHT', topupId: flying.id, ageMs: Number(flying.ageMs) };
 
     const amountCents = input.amountCents ?? b.amountCents;
     const { start, end } = utcMonthWindow(input.now ?? new Date());
@@ -391,7 +398,10 @@ export async function autoTopUp(
       case 'WOULD_NOT_HELP':
         return { result: 'SKIPPED', reason: r.kind };
       case 'IN_FLIGHT':
-        if (Date.now() + IN_FLIGHT_POLL_MS >= deadline) {
+        // Wait only for a top-up that can still land: past `AUTO_TOPUP_TIMEOUT_MS` its own call
+        // has given up and the row waits for SP-047c's sweep, so skip at once (rule 11) rather
+        // than poll the buyer row lock for the whole budget.
+        if (r.ageMs >= AUTO_TOPUP_TIMEOUT_MS || Date.now() + IN_FLIGHT_POLL_MS >= deadline) {
           return { result: 'SKIPPED', reason: 'IN_FLIGHT', topupId: r.topupId };
         }
         await sleep(IN_FLIGHT_POLL_MS);

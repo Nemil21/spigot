@@ -19,13 +19,16 @@ export interface PayPalWebhookEvent {
 
 export type HandleResult = 'HANDLED' | 'SKIPPED';
 
+/** Top-up ids are uuids; anything else isn't ours (and `id = $1` keeps the PK index). */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** `resource.custom_id` is the top-up id (`purchase_units[].custom_id`). */
 export async function handle(tx: Tx, event: PayPalWebhookEvent): Promise<HandleResult> {
   if (!(eventTypes as readonly string[]).includes(event.event_type)) return 'SKIPPED';
   const topupId = event.resource.custom_id;
-  if (typeof topupId !== 'string' || topupId === '') return 'SKIPPED';
+  if (typeof topupId !== 'string' || !UUID.test(topupId)) return 'SKIPPED';
   const { rows } = await tx.query<{ method: string | null }>(
-    `SELECT method FROM topups WHERE id::text = $1`,
+    `SELECT method FROM topups WHERE id = $1`,
     [topupId],
   );
   if (rows[0]?.method !== 'VAULT_MIT') return 'SKIPPED';

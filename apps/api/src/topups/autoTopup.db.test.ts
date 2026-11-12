@@ -422,6 +422,23 @@ describe.skipIf(!testDatabaseUrl)(
       expect(await topups(w)).toHaveLength(1);
     });
 
+    it('an orphaned CREATED vault top-up (older than the budget) → prompt plain 402, no PayPal call', async () => {
+      const w = await world();
+      // A top-up whose call timed out a minute ago, still waiting for SP-047c's sweep.
+      await priorVaultTopup(w, 2_000, {
+        trigger: 'AUTO',
+        status: 'CREATED',
+        createdAt: new Date(Date.now() - 60_000).toISOString(),
+      });
+      const started = Date.now();
+      const r = await read(w);
+      expect(Date.now() - started).toBeLessThan(2_000);
+      expect(r.status).toBe(402);
+      expect((r.body as { error: { code: string } }).error.code).toBe('INSUFFICIENT_BALANCE');
+      expect(creates()).toHaveLength(0);
+      expect(await topups(w)).toHaveLength(1);
+    });
+
     it('MCP top_up from the vault racing an AUTO top-up → one VAULT_MIT order; the cap counts it', async () => {
       const w = await world({ capCents: 3_000 });
       fake.latencyMs = 40;
