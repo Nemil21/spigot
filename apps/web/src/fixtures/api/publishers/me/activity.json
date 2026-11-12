@@ -1,0 +1,85 @@
+{
+  "events": [
+    {
+      "id": "1210",
+      "at": "2026-11-12T08:59:00.000Z",
+      "action": "CALL_CHARGED",
+      "entity": "api_call",
+      "entityId": "00000000-0000-4000-8000-000000001210",
+      "isSimulated": false,
+      "line": "Acme Agents: $0.0555 charged for 37 Listing records"
+    },
+    {
+      "id": "1209",
+      "at": "2026-11-12T08:56:00.000Z",
+      "action": "CALL_CHARGED",
+      "entity": "api_call",
+      "entityId": "00000000-0000-4000-8000-000000001209",
+      "isSimulated": true,
+      "line": "Lone Star Leads: $0.3000 charged for 200 Listing records"
+    },
+    {
+      "id": "1208",
+      "at": "2026-11-12T08:48:00.000Z",
+      "action": "TOPUP_COMPLETED",
+      "entity": "topup",
+      "entityId": "00000000-0000-4000-8000-000000001208",
+      "isSimulated": false,
+      "line": "Acme Agents added $20 via PayPal"
+    },
+    {
+      "id": "1207",
+      "at": "2026-11-12T08:22:00.000Z",
+      "action": "CALL_CHARGED",
+      "entity": "api_call",
+      "entityId": "00000000-0000-4000-8000-000000001207",
+      "isSimulated": true,
+      "line": "Prairie Data Co: $1.5000 charged for 1,000 Listing records"
+    },
+    {
+      "id": "1206",
+      "at": "2026-11-12T07:25:00.000Z",
+      "action": "DATASET_PUBLISHED",
+      "entity": "dataset",
+      "entityId": "00000000-0000-4000-8000-000000001206",
+      "isSimulated": false,
+      "line": "Listing published · 2,341 records live"
+    },
+    {
+      "id": "1205",
+      "at": "2026-11-12T07:10:00.000Z",
+      "action": "SCHEMA_PROPOSED",
+      "entity": "schema_version",
+      "entityId": "00000000-0000-4000-8000-000000001205",
+      "isSimulated": false,
+      "line": "Proposal ready: Listing · 2,341 records"
+    },
+    {
+      "id": "1204",
+      "at": "2026-11-12T07:09:00.000Z",
+      "action": "SCHEMA_PROPOSED",
+      "entity": "schema_version",
+      "entityId": "00000000-0000-4000-8000-000000001204",
+      "isSimulated": false,
+      "line": "Proposal ready: Agent · 88 records"
+    },
+    {
+      "id": "1203",
+      "at": "2026-11-12T06:40:00.000Z",
+      "action": "CRAWL_RUN_DONE",
+      "entity": "crawl_run",
+      "entityId": "00000000-0000-4000-8000-000000001203",
+      "isSimulated": false,
+      "line": "Crawl finished · 2,469 pages, 2,469 records changed"
+    },
+    {
+      "id": "1202",
+      "at": "2026-11-10T09:00:00.000Z",
+      "action": "PAYOUT_SETTLED",
+      "entity": "payout_item",
+      "entityId": "00000000-0000-4000-8000-000000001202",
+      "isSimulated": true,
+      "line": "$412.75 paid out via PayPal"
+    }
+  ]
+}

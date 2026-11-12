@@ -122,11 +122,12 @@ Keys are shown once (W03).
               "bytesSavedEstimate": 2.1e9, "wouldHaveEarnedMicros": 13815000,
               "estimate": true, "estimateBasis": { "perGatedPageMicros": 1500, "priceSource": "LIVE" } },
   "byBot": [ { "botName": "GPTBot", "category": "AI_TRAINING", "hits": 6120, "decision": "QUOTE_402",
-               "lastSeen": "…", "bytes": 6.1e8, "wouldHavePaid": 9180000, "isSimulated": true } ],
+               "lastSeen": "…", "bytes": 6.1e8, "wouldHavePaid": 9180000, "isSimulated": true,
+               "hits24h": [0, 3, 12, "…24 hourly counts, oldest first"] } ],
   "series": [ { "bucket": "…", "category": "AI_TRAINING", "hits": 41 } ],
   "earnedThisWeek": { "micros": 412000000, "simMicros": 380000000, "simShare": 0.9223 } }
 ```
-`wouldHaveEarnedMicros` = gated page hits × records per page × price (labelled "estimate"). Gated page hits are the `QUOTE_402` hits (`bot_hits` keeps no path); records per page is 1 for a detail template and `record_count / page_count` for a list template; the price is the page-count-weighted average over LIVE / LIVE_STALE datasets, else over proposals, else the default $1.50 / 1,000 (`estimateBasis`). `botHits` counts every category but `HUMAN`; `byBot` (no HUMAN rows) sums to it. `bytesSavedEstimate` sums `bytes` of QUOTE_402 rows.
+`wouldHaveEarnedMicros` = gated page hits × records per page × price (labelled "estimate"). Gated page hits are the `QUOTE_402` hits (`bot_hits` keeps no path); records per page is 1 for a detail template and `record_count / page_count` for a list template; the price is the page-count-weighted average over LIVE / LIVE_STALE datasets, else over proposals, else the default $1.50 / 1,000 (`estimateBasis`). `botHits` counts every category but `HUMAN`; `byBot` (no HUMAN rows) sums to it. Each `byBot` row's `hits24h` is its hits per hour over the 24 h ending at `to`, oldest first (W04 sparkline; SP-027b); for a range shorter than 24 h it still covers the full 24 h, so it may include hits before `from`. `bytesSavedEstimate` sums `bytes` of QUOTE_402 rows.
 Range: half-open `[from, to)`, default the 7 days ending now, at most 92 days; `series` buckets are minutes up to 3 h, hours up to 7 days, days beyond (UTC). `includeSim=false` drops SIM rows everywhere, including `earnedThisWeek` (the publisher's net share of calls charged on this site in the last 7 days, demo-hidden calls excluded). Another publisher's site → `404`. (SP-027a)
 
 ### `GET /api/publishers/me/activity?limit=50`

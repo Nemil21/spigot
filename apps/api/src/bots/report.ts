@@ -13,7 +13,8 @@ import { forPublisher } from '../tenancy.js';
  *   the page's estimated size) and `wouldHaveEarnedMicros`, an **estimate**: quoted 402 hits ×
  *   records per gated page × price per record (see `pageValue`).
  * - `byBot`: one row per (bot, category, decision, SIM), largest first. Their `hits` sum to
- *   `totals.botHits`.
+ *   `totals.botHits`. `hits24h` is the row's hits per hour over the 24 h ending at `to`, oldest
+ *   first (24 numbers; W04's sparkline cell, SP-027b).
  * - `series`: hits per time bucket and category (HUMAN included, so the chart can show it or
  *   not); the bucket size follows the range (`bucketSizeFor`).
  * - `earnedThisWeek`: the publisher's net share of calls charged on this site's datasets in the
@@ -33,6 +34,9 @@ export const BY_BOT_LIMIT = 500;
 export const DEFAULT_PRICE_PER_RECORD_MICROS = 1500;
 
 export type BucketSize = 'minute' | 'hour' | 'day';
+
+/** Hourly points in each `byBot[].hits24h` sparkline. */
+export const SPARKLINE_HOURS = 24;
 
 /** ≤ 3 h → minute buckets, ≤ 7 d → hourly (the default range: 168 points), longer → daily. */
 export function bucketSizeFor(rangeMs: number): BucketSize {
@@ -96,6 +100,8 @@ export interface BotsReport {
     bytes: number;
     wouldHavePaid: number;
     isSimulated: boolean;
+    /** Hits per hour over the 24 h ending at `range.to`, oldest first (`SPARKLINE_HOURS` long). */
+    hits24h: number[];
   }[];
   series: { bucket: string; category: string; hits: number }[];
   earnedThisWeek: { micros: number; simMicros: number; simShare: number };
@@ -105,6 +111,8 @@ export interface BotsReport {
 export type PriceSource = 'LIVE' | 'PROPOSED' | 'DEFAULT';
 
 const num = (v: unknown): number => (v == null ? 0 : Number(v));
+const botKey = (bot: string, category: string, decision: string, sim: boolean) =>
+  JSON.stringify([bot, category, decision, sim]);
 
 /**
  * What one quoted page is worth, in micros: the average over the site's datasets, weighted by
@@ -154,8 +162,9 @@ export async function botsReport(
   const params = [siteId, from, to, includeSim];
   const where = `site_id = $1 AND bucket >= $2 AND bucket < $3 AND ($4::bool OR NOT is_simulated)`;
   const weekFrom = new Date(now.getTime() - DEFAULT_RANGE_MS);
+  const sparkFrom = new Date(to.getTime() - SPARKLINE_HOURS * 3_600_000);
 
-  const [totalsRes, byBotRes, seriesRes, earnedRes, value] = await Promise.all([
+  const [totalsRes, byBotRes, seriesRes, earnedRes, value, sparkRes] = await Promise.all([
     q.query<Record<string, string | null>>(
       `SELECT sum(hits) FILTER (WHERE category <> 'HUMAN') AS bot_hits,
               sum(hits) FILTER (WHERE category = 'HUMAN') AS human_hits,
@@ -208,7 +217,32 @@ export async function botsReport(
       [siteId, weekFrom, now, includeSim],
     ),
     pageValue(q, siteId),
+    q.query<{
+      bot_name: string;
+      category: string;
+      decision: string;
+      is_simulated: boolean;
+      idx: number;
+      hits: string;
+    }>(
+      // Hour slots counted back from `to`, so the last point is always the latest hour.
+      `SELECT bot_name, category, decision, is_simulated,
+              floor(extract(epoch FROM bucket - $2::timestamptz) / 3600)::int AS idx,
+              sum(hits) AS hits
+         FROM bot_hits WHERE ${where} AND category <> 'HUMAN'
+        GROUP BY 1, 2, 3, 4, 5`,
+      [siteId, sparkFrom, to, includeSim],
+    ),
   ]);
+
+  const spark = new Map<string, number[]>();
+  for (const r of sparkRes.rows) {
+    if (r.idx < 0 || r.idx >= SPARKLINE_HOURS) continue;
+    const key = botKey(r.bot_name, r.category, r.decision, r.is_simulated);
+    let points = spark.get(key);
+    if (!points) spark.set(key, (points = new Array<number>(SPARKLINE_HOURS).fill(0)));
+    points[r.idx] = num(r.hits);
+  }
 
   const t = totalsRes.rows[0] ?? {};
   const botHits = num(t.bot_hits);
@@ -239,6 +273,9 @@ export async function botsReport(
       bytes: num(r.bytes),
       wouldHavePaid: num(r.quoted) * value.micros,
       isSimulated: r.is_simulated,
+      hits24h:
+        spark.get(botKey(r.bot_name, r.category, r.decision, r.is_simulated)) ??
+        new Array<number>(SPARKLINE_HOURS).fill(0),
     })),
     series: seriesRes.rows.map((r) => ({
       bucket: r.bucket.toISOString(),
