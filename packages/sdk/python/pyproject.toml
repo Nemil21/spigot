@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spigot-sdk"
+version = "0.1.0"
+description = "Client for Spigot's buyer /v1 API: structured records from publisher sites, paid per record from a PayPal-funded balance."
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.setuptools]
+packages = ["spigot_sdk"]
