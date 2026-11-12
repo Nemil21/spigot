@@ -1,5 +1,6 @@
 <%- include('partials/head') %>
-<article class="post">
+<article class="post prose">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/blog">Renter notes</a></nav>
   <h1><%= post.title %></h1>
   <p class="muted"><%= date(post.published_on) %></p>
   <% post.paragraphs.forEach(function (para) { %><p><%= para %></p><% }) %>

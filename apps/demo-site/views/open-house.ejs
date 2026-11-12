@@ -1,17 +1,25 @@
 <%- include('partials/head') %>
 <article class="open-house">
+  <% if (listing) { %><nav class="crumbs" aria-label="Breadcrumb"><a href="/listings/<%= listing.slug %>"><%= listing.title %></a> / Open house</nav><% } %>
   <h1>Open house<% if (listing) { %>: <%= listing.title %><% } %></h1>
-  <dl class="facts">
-    <dt>Date</dt><dd data-k="date"><time class="oh-start" datetime="<%= openHouse.starts_at %>"><%= day(openHouse.starts_at) %></time></dd>
-    <dt>Time</dt><dd data-k="time"><%= time(openHouse.starts_at) %> to <time class="oh-end" datetime="<%= openHouse.ends_at %>"><%= time(openHouse.ends_at) %></time> (Central)</dd>
-    <% if (listing) { %>
-    <dt>Listing</dt><dd data-k="listing"><a class="oh-listing" href="/listings/<%= listing.slug %>"><%= listing.street_address %>, <%= listing.city %></a></dd>
-    <dt>Rent</dt><dd data-k="rent"><%= money(listing.price_usd) %> / month</dd>
+  <div class="layout-2">
+    <div>
+      <dl class="facts">
+        <dt>Date</dt><dd data-k="date"><time class="oh-start" datetime="<%= openHouse.starts_at %>"><%= day(openHouse.starts_at) %></time></dd>
+        <dt>Time</dt><dd data-k="time"><%= time(openHouse.starts_at) %> to <time class="oh-end" datetime="<%= openHouse.ends_at %>"><%= time(openHouse.ends_at) %></time> (Central)</dd>
+        <% if (listing) { %>
+        <dt>Listing</dt><dd data-k="listing"><a class="oh-listing" href="/listings/<%= listing.slug %>"><%= listing.street_address %>, <%= listing.city %></a></dd>
+        <dt>Rent</dt><dd data-k="rent"><%= money(listing.price_usd) %> / month</dd>
+        <% } %>
+        <% if (agent) { %>
+        <dt>Host</dt><dd data-k="host"><a class="oh-host" href="/agents/<%= agent.slug %>"><%= agent.name %></a>, <span class="agent-phone"><%= agent.phone %></span></dd>
+        <% } %>
+      </dl>
+      <p class="oh-notes"><%= openHouse.notes %></p>
+    </div>
+    <% if (listing) { var a = art(listing); %>
+    <aside><svg class="art oh-art" viewBox="0 0 320 180" style="<%= a.style %>" aria-hidden="true" focusable="false"><use href="/art.svg#h-<%= a.kind %>" width="320" height="180"<%- a.flip ? ' transform="translate(320 0) scale(-1 1)"' : '' %>/></svg></aside>
     <% } %>
-    <% if (agent) { %>
-    <dt>Host</dt><dd data-k="host"><a class="oh-host" href="/agents/<%= agent.slug %>"><%= agent.name %></a>, <span class="agent-phone"><%= agent.phone %></span></dd>
-    <% } %>
-  </dl>
-  <p class="oh-notes"><%= openHouse.notes %></p>
+  </div>
 </article>
 <%- include('partials/foot') %>

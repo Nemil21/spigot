@@ -1,6 +1,9 @@
 <%- include('partials/head') %>
+<div class="prose">
 <h1>Renter notes</h1>
-<ul>
+<p class="lede">Practical notes on renting around Austin.</p>
+<ul class="posts">
   <% posts.forEach(function (p) { %><li><a href="/blog/<%= p.slug %>"><%= p.title %></a> <span class="muted">· <%= date(p.published_on) %></span></li><% }) %>
 </ul>
+</div>
 <%- include('partials/foot') %>

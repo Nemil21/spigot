@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { createAccessLog, type AccessLog } from './accessLog.js';
 import { createAdminRouter } from './admin.js';
 import type { Store } from './data/store.js';
+import type { Listing } from './data/types.js';
 import { sendWithEtag } from './etag.js';
 import { noopGate } from './gate.js';
 import { jsonLdScript, listingJsonLd } from './jsonld.js';
@@ -11,7 +12,19 @@ import { PAGE_SIZE, parseSearchQuery, searchListings } from './search.js';
 export const SITE_NAME = 'Bluebonnet Rentals';
 export const FOOTER_NOTICE = 'Fictional demo site for Spigot. Not a real business.';
 
+/** Facade colours: sky, wall, roof, door, glass, ground, tree. Warm Hill Country limestone, sage, brick. */
+const ART_PALETTES = [
+  ['#dfe7ef', '#efe6d6', '#5b4a3f', '#2c3d8f', '#b9c9d9', '#c9d3b5', '#6f8a5a'],
+  ['#e4ebe4', '#c9d6c4', '#3e4a44', '#b35d3c', '#f3efe6', '#b9c4a3', '#55704d'],
+  ['#e9e4ef', '#b9654c', '#3a3536', '#f1e7d6', '#d8e1ea', '#cbcfb0', '#667f55'],
+  ['#e7ebf3', '#3b4a6b', '#222a3d', '#e3b04b', '#d9e2ee', '#c2cba9', '#5f7c55'],
+  ['#f1e8dd', '#f6f1e7', '#a5553a', '#2f5d50', '#c4d1da', '#d3cfae', '#708f5b'],
+  ['#e5e8ea', '#d7dadc', '#2e3438', '#c98a3a', '#9fb3c2', '#c0c8ab', '#5c7752'],
+] as const;
+
 const VIEWS_DIR = fileURLToPath(new URL('../views', import.meta.url));
+/** /site.css and /art.svg: styles and facade art live outside the page HTML that gets crawled. */
+const PUBLIC_DIR = fileURLToPath(new URL('../public', import.meta.url));
 
 export interface AppOptions {
   store: Store;
@@ -55,6 +68,16 @@ const helpers = {
   beds: (n: number) => (n === 0 ? 'Studio' : `${n} bed${n === 1 ? '' : 's'}`),
   baths: (n: number) => `${n} bath${n === 1 ? '' : 's'}`,
   num: (n: number) => n.toLocaleString('en-US'),
+  /** The listing's illustrated facade: building type by size, colours fixed per listing id. */
+  art: (l: Pick<Listing, 'id' | 'bedrooms'>) => {
+    const kind = l.bedrooms <= 1 ? 'apartment' : l.bedrooms === 2 ? 'bungalow' : 'house';
+    const [sky, wall, roof, door, glass, ground, tree] = ART_PALETTES[l.id % ART_PALETTES.length]!;
+    return {
+      kind,
+      flip: Math.floor(l.id / ART_PALETTES.length) % 2 === 1,
+      style: `--sky:${sky};--wall:${wall};--roof:${roof};--door:${door};--glass:${glass};--ground:${ground};--tree:${tree}`,
+    };
+  },
 };
 
 function origin(req: Request): string {
@@ -100,6 +123,9 @@ export function createApp({
 
   const notFound = (req: Request, res: Response) => page(req, res, 'not-found', { title: 'Page not found' }, 404);
 
+  // Static assets sit before the access log and the gate: they aren't data, and a browser
+  // rendering a page must never get a 402 for its stylesheet.
+  app.use(express.static(PUBLIC_DIR, { index: false, maxAge: '1h' }));
   app.use(accessLog.middleware);
   // Admin sits before the gate: the CLI isn't a browser and must never get a 402.
   app.use('/admin', adminToken ? createAdminRouter({ store, token: adminToken }) : notFound);
