@@ -40,6 +40,10 @@ case "$state" in
       docker inspect "$CONTAINER" >/dev/null || { echo "Could not start $CONTAINER" >&2; exit 1; }
     }
     ;;
+  paused)
+    echo "Unpausing container $CONTAINER" >&2
+    docker unpause "$CONTAINER" >/dev/null
+    ;;
   *)
     echo "Starting stopped container $CONTAINER" >&2
     docker start "$CONTAINER" >/dev/null 2>&1 || true

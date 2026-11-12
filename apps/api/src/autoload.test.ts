@@ -39,7 +39,7 @@ beforeAll(async () => {
     import { z } from ${JSON.stringify(zodModule)};
     export default async function errors(app) {
       app.get('/api/boom/api', async () => {
-        throw new ApiError(409, 'STATE_CONFLICT', 'Nope.', { reason: 'test' });
+        throw new ApiError('STATE_CONFLICT', 'Nope.', { reason: 'test' });
       });
       app.get('/api/boom/zod', async () => z.object({ n: z.number() }).parse({ n: 'x' }));
       app.get('/api/boom/crash', async () => { throw new Error('secret internals'); });

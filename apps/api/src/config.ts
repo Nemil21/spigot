@@ -217,6 +217,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     ...parsed,
     // Mock declines are a sandbox-only demo aid: never allowed against a live base.
     ALLOW_MOCK_DECLINE: paypalIsSandbox ? parsed.ALLOW_MOCK_DECLINE : false,
+    // Turns off the crawler's SSRF guard for a local demo site: never in production.
+    ALLOW_LOCAL_ORIGINS: parsed.NODE_ENV === 'production' ? false : parsed.ALLOW_LOCAL_ORIGINS,
     paypalIsSandbox,
   });
 }

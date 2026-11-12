@@ -130,6 +130,18 @@ describe('loadConfig', () => {
   });
 });
 
+describe('ALLOW_LOCAL_ORIGINS', () => {
+  it('is honoured in development and forced off in production', () => {
+    expect(loadConfig({ ...REQUIRED_ENV, ALLOW_LOCAL_ORIGINS: 'true' }).ALLOW_LOCAL_ORIGINS).toBe(
+      true,
+    );
+    expect(
+      loadConfig({ ...REQUIRED_ENV, ALLOW_LOCAL_ORIGINS: 'true', NODE_ENV: 'production' })
+        .ALLOW_LOCAL_ORIGINS,
+    ).toBe(false);
+  });
+});
+
 describe('feature keys', () => {
   const config = loadConfig({ ...REQUIRED_ENV, CLAUDE_MODEL: 'claude-test' });
 

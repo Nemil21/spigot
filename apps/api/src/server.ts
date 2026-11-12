@@ -38,7 +38,10 @@ export async function buildServer(
 ): Promise<FastifyInstance> {
   const app = Fastify({
     logger: opts.logger === false ? false : { level: config.LOG_LEVEL },
-    trustProxy: true,
+    // Render terminates TLS one hop in front: trust exactly that hop in production and none
+    // elsewhere, so a client-sent X-Forwarded-For can't spoof req.ip (rate limits, gate, logs).
+    trustProxy:
+      config.NODE_ENV === 'production' ? (_addr: string, hop: number) => hop === 0 : false,
   });
   app.decorate('config', config);
   registerErrorHandler(app);
