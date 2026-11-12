@@ -18,17 +18,18 @@ The window is 11.5 h. With 4 workers that is ~46 worker-h, against **77.5 worker
 
 | Workers | Kill-criterion loop green (crawl → AI proposal → approve → records → top-up → paid MCP call) | All P0 code merged | Everything incl. P1 | P0 tickets still open at 18:00 |
 |---|---|---|---|---|
-| 4 | 17:30 | **06:30 +1d** | 16:15 +1d | SP-004b, SP-006b, SP-008b, SP-009b, SP-012b, SP-017b, SP-019, SP-022b, SP-023, SP-024, SP-025, SP-026, SP-027a, SP-027b, SP-028, SP-029, SP-030a, SP-030b, SP-031, SP-032, SP-033, SP-034, SP-035, SP-036, SP-037, SP-038, SP-039, SP-040, SP-041, SP-042, SP-043, SP-044 |
-| 6 | 15:45 | 23:30 | 05:30 +1d | SP-012b, SP-019, SP-022b, SP-023, SP-026, SP-027a, SP-027b, SP-028, SP-029, SP-030b, SP-031, SP-032, SP-033, SP-034, SP-036, SP-041, SP-042, SP-043 |
-| 8 | 15:45 | **19:30** | 00:30 +1d | SP-012b, SP-019, SP-022b, SP-023, SP-026, SP-034, SP-041, SP-042, SP-043 |
+| 4 | 17:30 | **06:45 +1d** | 16:15 +1d | SP-004b, SP-006b, SP-009b, SP-012b, SP-017b, SP-019, SP-022b, SP-023, SP-024, SP-025, SP-026, SP-027a, SP-027b, SP-028, SP-029, SP-030a, SP-030b, SP-031, SP-032, SP-033, SP-034, SP-035, SP-036, SP-037, SP-038, SP-039, SP-040, SP-041, SP-042, SP-043, SP-044 |
+| 6 | 16:30 | 23:15 | 05:30 +1d | SP-004b, SP-012b, SP-019, SP-022b, SP-023, SP-026, SP-027b, SP-028, SP-029, SP-030b, SP-031, SP-033, SP-034, SP-036, SP-037, SP-038, SP-039, SP-041, SP-042, SP-043, SP-044 |
+| 8 | 15:45 | **19:30** | 00:45 +1d | SP-012b, SP-019, SP-022b, SP-023, SP-026, SP-034, SP-041, SP-042, SP-043 |
 
 What this means:
 1. **At 4 workers, the backend spine makes it by 18:00 and almost nothing on screen does**: no dashboard (W04/W05/W06/W08/W09), no buyer portal (W11), no gate middleware on the demo site, no seed, no Render blueprint, no README. That isn't a demoable submission.
-2. **Recommended: run 8 workers from the start until 18:00.** Every **D** ticket (everything on screen in the video) then merges by ~17:45, the spine is green at ~15:45, and all P0 code lands by ~19:30. The tickets still open at 18:00 are the ones the video can live without for an hour (self-check/repair polish, poller, OpenAPI, onboarding UI, settings, Workflows adapter, security tests, admin endpoints). Note the laptop limit (16 GB, several workers): keep `vitest --maxWorkers=2`, no dev servers left running. If 8 is too many, 6 workers is the floor that gets every **D** screen merged by ~21:00 at the cost of the video window.
+2. **Recommended: run 8 workers from the start until 18:00.** Every **D** ticket (everything on screen in the video) then merges by ~17:45, the spine is green at ~15:45, and all P0 code lands by ~19:30. The tickets still open at 18:00 are the ones the video can live without for an hour (self-check/repair polish, poller, OpenAPI, onboarding UI, settings, Workflows adapter, security tests, admin endpoints). Note the laptop limit (16 GB, several workers): keep `vitest --maxWorkers=2`, no dev servers left running. If 8 is too many, 6 workers is the floor that gets every **D** screen merged by ~20:30 at the cost of the video window.
 3. **If the human keeps 4 workers**, a decision is needed now: either move the code freeze to ~21:00 IST and compress deploy + video + Devpost into 21:00–23:30 (very tight; the video alone was budgeted at 2.5 h), or accept that P0 screens slip and the video shows the API/MCP loop over a thinner UI. Nothing is removed from the ticket set either way.
 4. **P1 does not fit today on any worker count we can run.** Even at 8 workers, P1 finishes after midnight. P1 tickets stay in the set, ordered, and are dispatched only when no P0 ticket is ready. The best value per hour is P1 #1 auto top-up (SP-047a, ready from Wave 4).
 5. **The spec's kill criterion is stale, and its replacement depends on the worker decision.** The spec said "loop working by Nov 11 18:00 PST", which is 07:30 IST today, one hour after we start. The loop is the same in every case: on a laptop, crawl → AI proposal → approve → one real sandbox top-up → paid Claude Desktop call. The time depends on workers:
-   - **6 or 8 workers: kill checkpoint at 16:00 IST** (2:30 PST). The loop is projected green at ~15:45, which leaves 15 minutes of slack.
+   - **8 workers: kill checkpoint at 16:00 IST** (2:30 PST). The loop is projected green at ~15:45, which leaves 15 minutes of slack.
+   - **6 workers: kill checkpoint at ~16:45 IST** (3:15 PST). The loop is projected green at ~16:30.
    - **4 workers (the default on line 7): the loop is projected green at ~17:30.** A 16:00 checkpoint would fail by design, and a 17:30 one leaves 30 minutes before the freeze. Neither is a useful go/no-go. If the human stays at 4, take the go/no-go **now, at dispatch time**: the projection already shows no screens, no gate on the demo site and no seed by 18:00. Either commit to the later freeze in point 3 (the checkpoint then moves to ~17:30 as a pure loop check), or don't start Spigot.
    - Either way, if the loop isn't green at its checkpoint, stopping Spigot is the human's call (the spec says to fold effort back into Holdfast).
 6. **Render deploy is after the freeze.** SP-040 lands the blueprint and smoke script before 18:00 so the deploy is one click; any surprise there comes out of the video window. Render Workflows (SP-041) is the riskiest P0 ticket and the in-process mode stays the demo default unless it is green.
@@ -53,84 +54,84 @@ Tag: **S** = spine (kill-criterion loop and money out, dispatched first) · **D*
 | ID | Title | Pri | Tag | Wave | Est (h) | Proj. merge @4 | Proj. merge @8 | Depends on |
 |---|---|---|---|---|---|---|---|---|
 | [SP-001a](SP-001a-repo-skeleton-ci.md) | Repo skeleton, tooling, CI (check/db/security), gitleaks, config, shared money helpers | P0 | S | 1 | 1.5 | 08:15 | 08:15 | none |
-| [SP-001b](SP-001b-paypal-client-fake.md) | PayPal client + FakePayPal stub ported from Holdfast (CAPTURE top-ups, refunds, payouts, webhook verify) | P0 | S | 2 | 2 | 10:30 | 10:30 | SP-001a |
+| [SP-001b](SP-001b-paypal-client-fake.md) | PayPal client + FakePayPal stub ported from Holdfast (CAPTURE top-ups, refunds, payouts, webhook verify) | P0 | S | 2 | 2 | 11:45 | 10:30 | SP-001a |
 | [SP-002](SP-002-postgres-schema.md) | Postgres schema, migrations and db helpers (tx, transition, advisory locks, job runner) | P0 | S | 1 | 2 | 08:45 | 08:45 | none |
 | [SP-003](SP-003-paypal-spike-pack.md) | PayPal spike pack S7–S10 (+S11 script) for Spigot's CAPTURE / vault / refund / payout calls | P0 | – | 1 | 1.5 | 09:00 | 08:15 | none |
 | [SP-004a](SP-004a-demo-site.md) | Demo site "Bluebonnet Rentals" (Express + EJS, seeded 2,341 / 88 / 40, JSON-LD, sitemap, ETag) | P0 | D | 1 | 1.5 | 08:15 | 08:15 | none |
-| [SP-004b](SP-004b-demo-mutate.md) | `demo:mutate` script (prices, leased, new; reproducible seed) | P0 | D | 2 | 1 | 21:45 | 09:30 | SP-004a |
-| [SP-005](SP-005-ledger-core.md) | Ledger core: `ledger.post`, accounts, balance check, ledger-check function | P0 | S | 2 | 1.5 | 10:30 | 10:30 | SP-001a, SP-002 |
+| [SP-004b](SP-004b-demo-mutate.md) | `demo:mutate` script (prices, leased, new; reproducible seed) | P0 | D | 2 | 1 | 01:00 +1d | 09:30 | SP-004a |
+| [SP-005](SP-005-ledger-core.md) | Ledger core: `ledger.post`, accounts, balance check, ledger-check function | P0 | S | 2 | 1.5 | 10:45 | 10:30 | SP-001a, SP-002 |
 | [SP-006a](SP-006a-gate-classify.md) | Gate core: pure `classify`, UA table, 402 body builder (JSON + D04 HTML), bench | P0 | D | 2 | 1 | 17:30 | 09:30 | SP-001a |
-| [SP-006b](SP-006b-gate-middleware.md) | Gate middleware: fail-open, policy refresher, hit flusher, SIM flag; installed on the demo site | P0 | D | 3 | 1.5 | 20:00 | 11:45 | SP-006a, SP-004a |
+| [SP-006b](SP-006b-gate-middleware.md) | Gate middleware: fail-open, policy refresher, hit flusher, SIM flag; installed on the demo site | P0 | D | 3 | 1.5 | 20:45 | 11:45 | SP-006a, SP-004a |
 | [SP-007a](SP-007a-auth-core.md) | Auth core: publisher + buyer sessions, error envelope, CSRF, rate limits, audit + tenancy helpers, log redaction | P0 | S | 2 | 1.5 | 11:45 | 11:15 | SP-001a, SP-002 |
 | [SP-007b](SP-007b-buyer-api-keys.md) | Buyer API keys: create / revoke, Bearer auth, scopes | P0 | S | 3 | 1 | 15:15 | 12:30 | SP-007a |
 | [SP-008a](SP-008a-sites-connect-verify.md) | Sites: connect, verify, gate + crawl keys | P0 | D | 3 | 1 | 16:30 | 12:30 | SP-007a |
-| [SP-008b](SP-008b-gate-endpoints.md) | Gate endpoints: `GET /api/gate/policy`, `POST /api/gate/hits`, gate-status | P0 | D | 4 | 1 | 19:30 | 13:45 | SP-008a |
-| [SP-009a](SP-009a-crawler-core.md) | Crawler core: sitemap, pages, `fetchPage` (ETag, snapshots), in-process queue, SSRF guard | P0 | S | 2 | 2 | 11:15 | 11:00 | SP-001a, SP-002 |
-| [SP-009b](SP-009b-crawl-api.md) | Crawl API: `POST /crawl`, runs list, progress SSE, verify → discovery crawl | P0 | D | 4 | 1 | 20:30 | 13:45 | SP-009a, SP-008a |
-| [SP-010](SP-010-template-clustering.md) | Template clustering + cleaned DOM outline (pure) | P0 | S | 2 | 1 | 12:30 | 09:30 | SP-001a |
+| [SP-008b](SP-008b-gate-endpoints.md) | Gate endpoints: `GET /api/gate/policy`, `POST /api/gate/hits`, gate-status | P0 | D | 4 | 1 | 17:45 | 13:45 | SP-008a |
+| [SP-009a](SP-009a-crawler-core.md) | Crawler core: sitemap, pages, `fetchPage` (ETag, snapshots), in-process queue, SSRF guard | P0 | S | 2 | 2 | 11:00 | 11:00 | SP-001a, SP-002 |
+| [SP-009b](SP-009b-crawl-api.md) | Crawl API: `POST /crawl`, runs list, progress SSE, verify → discovery crawl | P0 | D | 4 | 1 | 22:00 | 13:45 | SP-009a, SP-008a |
+| [SP-010](SP-010-template-clustering.md) | Template clustering + cleaned DOM outline (pure) | P0 | S | 2 | 1 | 09:30 | 09:30 | SP-001a |
 | [SP-011](SP-011-extractor-dsl.md) | Extractor DSL `extract.ts`, transforms whitelist, canonical JSON + hash (pure) | P0 | S | 2 | 1.5 | 10:00 | 10:00 | SP-001a |
-| [SP-012a](SP-012a-schema-agent-propose.md) | Schema agent: Claude `propose_schema`, PII / rights guard, persist proposals, crawl hook | P0 | S | 3 | 2 | 14:45 | 13:15 | SP-010, SP-011, SP-009a, SP-002 |
-| [SP-012b](SP-012b-schema-selfcheck-repair.md) | Schema agent self-check + repair, injection fixture, JSON-LD-only fallback | P0 | – | 4 | 1.5 | 04:15 +1d | 18:30 | SP-012a |
-| [SP-013](SP-013-records-versions-watermark.md) | Records upsert, versions, JSON Patch, watermark (`extractPage`, `extractTemplate`, `publishWatermark`) | P0 | S | 3 | 2 | 14:30 | 12:15 | SP-011, SP-002 |
-| [SP-014](SP-014-approve-api.md) | Proposals / dataset PATCH / approve / unpublish API (filter indexes, re-extract, policy bump) | P0 | S | 4 | 1.5 | 16:30 | 15:00 | SP-012a, SP-013, SP-007a, SP-009a |
-| [SP-015](SP-015-records-query-changes.md) | Records query (filters → SQL, keyset cursor) + changes reader (watermark, hidden-field stripping) | P0 | S | 2 | 1.5 | 12:15 | 11:15 | SP-001a, SP-002 |
-| [SP-016](SP-016-metering-charge.md) | Metering: `chargeAndRecord`, client idempotency, charge-on-2xx, commission split | P0 | S | 3 | 1.5 | 12:15 | 12:15 | SP-005 |
+| [SP-012a](SP-012a-schema-agent-propose.md) | Schema agent: Claude `propose_schema`, PII / rights guard, persist proposals, crawl hook | P0 | S | 3 | 2 | 14:00 | 13:15 | SP-010, SP-011, SP-009a, SP-002 |
+| [SP-012b](SP-012b-schema-selfcheck-repair.md) | Schema agent self-check + repair, injection fixture, JSON-LD-only fallback | P0 | – | 4 | 1.5 | 03:30 +1d | 18:30 | SP-012a |
+| [SP-013](SP-013-records-versions-watermark.md) | Records upsert, versions, JSON Patch, watermark (`extractPage`, `extractTemplate`, `publishWatermark`) | P0 | S | 3 | 2 | 14:00 | 12:15 | SP-011, SP-002 |
+| [SP-014](SP-014-approve-api.md) | Proposals / dataset PATCH / approve / unpublish API (filter indexes, re-extract, policy bump) | P0 | S | 4 | 1.5 | 16:15 | 15:00 | SP-012a, SP-013, SP-007a, SP-009a |
+| [SP-015](SP-015-records-query-changes.md) | Records query (filters → SQL, keyset cursor) + changes reader (watermark, hidden-field stripping) | P0 | S | 2 | 1.5 | 12:30 | 11:15 | SP-001a, SP-002 |
+| [SP-016](SP-016-metering-charge.md) | Metering: `chargeAndRecord`, client idempotency, charge-on-2xx, commission split | P0 | S | 3 | 1.5 | 12:45 | 12:15 | SP-005 |
 | [SP-017a](SP-017a-paid-read-service.md) | Paid-read service layer: `paidRead`, `quote`, catalog, 402 contract builder | P0 | S | 4 | 1.5 | 15:45 | 14:00 | SP-015, SP-016 |
-| [SP-017b](SP-017b-v1-routes.md) | Buyer data API `/v1` routes, Spigot-* headers, max price, rate limit | P0 | D | 5 | 1.5 | 19:15 | 15:45 | SP-017a, SP-007b |
-| [SP-018](SP-018-topup-core.md) | Top-up core: wallet order, capture, `creditTopup`, card vault, return URL | P0 | S | 3 | 2 | 14:00 | 13:30 | SP-001b, SP-005, SP-007a |
-| [SP-019](SP-019-jobs-poller-sweeps.md) | Jobs: top-up poller, ABANDONED sweep, response-body purge, change retention | P0 | – | 4 | 1 | 05:45 +1d | 19:30 | SP-018 |
-| [SP-020](SP-020-payout-run.md) | `payoutRun`: batch build, PAYOUT_SENT, `pp.payout`, crash-resume, INSUFFICIENT_FUNDS | P0 | S | 3 | 1.5 | 14:00 | 12:15 | SP-001b, SP-005 |
-| [SP-021](SP-021-payout-status-api.md) | Payout status poll + item reconcile, payouts API, "Run payout now" endpoint | P0 | S | 4 | 1.5 | 16:15 | 14:00 | SP-020, SP-007a |
+| [SP-017b](SP-017b-v1-routes.md) | Buyer data API `/v1` routes, Spigot-* headers, max price, rate limit | P0 | D | 5 | 1.5 | 21:00 | 15:45 | SP-017a, SP-007b |
+| [SP-018](SP-018-topup-core.md) | Top-up core: wallet order, capture, `creditTopup`, card vault, return URL | P0 | S | 3 | 2 | 14:45 | 13:30 | SP-001b, SP-005, SP-007a |
+| [SP-019](SP-019-jobs-poller-sweeps.md) | Jobs: top-up poller, ABANDONED sweep, response-body purge, change retention | P0 | – | 4 | 1 | 06:00 +1d | 19:30 | SP-018 |
+| [SP-020](SP-020-payout-run.md) | `payoutRun`: batch build, PAYOUT_SENT, `pp.payout`, crash-resume, INSUFFICIENT_FUNDS | P0 | S | 3 | 1.5 | 14:30 | 12:15 | SP-001b, SP-005 |
+| [SP-021](SP-021-payout-status-api.md) | Payout status poll + item reconcile, payouts API, "Run payout now" endpoint | P0 | S | 4 | 1.5 | 16:30 | 14:00 | SP-020, SP-007a |
 | [SP-022a](SP-022a-mcp-server-read-tools.md) | MCP server `/mcp`: auth, rate limit, list / describe / quote / search_records / get_changes | P0 | S | 5 | 1.5 | 17:30 | 15:45 | SP-017a, SP-007b |
-| [SP-022b](SP-022b-mcp-balance-topup.md) | MCP `get_balance` + `top_up` (approval link) | P0 | – | 6 | 1 | 04:30 +1d | 18:15 | SP-022a, SP-018 |
-| [SP-023](SP-023-openapi.md) | OpenAPI 3.1 from Zod, served at `/v1/openapi.yaml` | P0 | – | 6 | 1 | 05:15 +1d | 18:30 | SP-017b |
-| [SP-024](SP-024-web-scaffold.md) | Web scaffold: React + Vite + Tailwind, AG Grid / AG Charts, tokens, shell, shared components | P0 | D | 2 | 1.5 | 19:15 | 10:00 | SP-001a |
-| [SP-025](SP-025-publisher-sse.md) | Publisher SSE event bus (`/api/publishers/me/events`) | P0 | D | 3 | 1 | 20:45 | 13:00 | SP-007a |
-| [SP-026](SP-026-w02-w03-onboarding.md) | W02 sign up + connect and W03 install + verify + first crawl | P0 | – | 5 | 1.5 | 04:00 +1d | 18:15 | SP-024, SP-008b, SP-009b |
-| [SP-027a](SP-027a-bots-api.md) | Bots API: `GET /api/sites/:id/bots` (totals, byBot, series, estimates) | P0 | D | 5 | 1 | 01:15 +1d | 16:00 | SP-008b |
-| [SP-027b](SP-027b-w04-bot-report.md) | W04 Overview / bot report (AG Grid + AG Charts, live) | P0 | D | 6 | 1.5 | 03:00 +1d | 17:45 | SP-024, SP-027a, SP-025 |
-| [SP-028](SP-028-w05-proposals.md) | W05 Record types found (hero) | P0 | D | 5 | 1.5 | 02:30 +1d | 17:15 | SP-024, SP-014 |
-| [SP-029](SP-029-w06-dataset-editor.md) | W06 Dataset editor + publish (schema-driven AG Grid) | P0 | D | 5 | 2 | 00:15 +1d | 17:15 | SP-024, SP-014 |
-| [SP-030a](SP-030a-earnings-ledger-usage-api.md) | Earnings, ledger and buyer-usage read APIs | P0 | D | 4 | 1 | 20:30 | 13:30 | SP-016, SP-007a |
-| [SP-030b](SP-030b-w08-earnings.md) | W08 Earnings (KPIs, AG Charts, grouped AG Grid, ledger tab) | P0 | D | 5 | 1.5 | 00:45 +1d | 15:30 | SP-024, SP-030a, SP-025 |
-| [SP-031](SP-031-w09-payouts.md) | W09 Payouts (master/detail grid, Run payout now) | P0 | D | 5 | 1.5 | 02:00 +1d | 16:45 | SP-024, SP-021 |
-| [SP-032](SP-032-w11-buyer-portal.md) | W11 Buyer portal: balance, Top up with PayPal (JS SDK v6), keys, Claude Desktop config | P0 | D | 4 | 2 | 00:00 +1d | 15:45 | SP-024, SP-018, SP-007b |
-| [SP-033](SP-033-w13-catalog-page.md) | W13 public catalog page `/c/:site` + terms | P0 | D | 5 | 1 | 03:15 +1d | 17:00 | SP-017a |
-| [SP-034](SP-034-w16-settings.md) | W16 Settings (account, payout email, gate policy, key rotation) | P0 | – | 5 | 1 | 06:30 +1d | 19:30 | SP-024, SP-008b |
-| [SP-035](SP-035-seed-demo.md) | `seed:demo`: publisher, site, Acme + 20 SIM buyers, SIM sandbox top-ups | P0 | D | 4 | 1.5 | 18:15 | 15:15 | SP-018, SP-008a, SP-007b |
-| [SP-036](SP-036-sim-buyers.md) | `sim:buyers` (backdated week + `--live`) | P0 | D | 6 | 1 | 23:00 | 17:00 | SP-035, SP-017b |
-| [SP-037](SP-037-sim-bots.md) | `sim:bots` (real HTTP with bot UAs, SIM-flagged) | P0 | D | 5 | 1 | 21:45 | 15:00 | SP-006b, SP-008b |
-| [SP-038](SP-038-demo-reset-payout.md) | `demo:reset` + `demo:payout` | P0 | D | 5 | 1 | 23:00 | 16:30 | SP-035, SP-021 |
-| [SP-039](SP-039-buyer-agent-demo-kit.md) | Buyer agent demo kit: `scraper-demo.py`, Claude Desktop config, prompt card, dry run | P0 | D | 6 | 1 | 22:00 | 17:00 | SP-022a, SP-006b |
-| [SP-040](SP-040-render-deploy-config.md) | Render deploy config: `render.yaml`, paid Postgres, env, migrate on deploy, demo site service | P0 | D | 2 | 1.5 | 18:15 | 11:15 | SP-001a, SP-002, SP-004a |
-| [SP-041](SP-041-render-workflows-adapter.md) | Render Workflows adapter (`WORKFLOWS_MODE=workflows`) for crawl, extract and payout tasks | P0 | – | 5 | 2 | 06:30 +1d | 19:30 | SP-009b, SP-014, SP-020, SP-040 |
+| [SP-022b](SP-022b-mcp-balance-topup.md) | MCP `get_balance` + `top_up` (approval link) | P0 | – | 6 | 1 | 04:15 +1d | 18:15 | SP-022a, SP-018 |
+| [SP-023](SP-023-openapi.md) | OpenAPI 3.1 from Zod, served at `/v1/openapi.yaml` | P0 | – | 6 | 1 | 04:45 +1d | 18:15 | SP-017b |
+| [SP-024](SP-024-web-scaffold.md) | Web scaffold: React + Vite + Tailwind, AG Grid / AG Charts, tokens, shell, shared components | P0 | D | 2 | 1.5 | 18:15 | 10:00 | SP-001a |
+| [SP-025](SP-025-publisher-sse.md) | Publisher SSE event bus (`/api/publishers/me/events`) | P0 | D | 3 | 1 | 18:45 | 13:00 | SP-007a |
+| [SP-026](SP-026-w02-w03-onboarding.md) | W02 sign up + connect and W03 install + verify + first crawl | P0 | – | 5 | 1.5 | 03:00 +1d | 18:30 | SP-024, SP-008b, SP-009b |
+| [SP-027a](SP-027a-bots-api.md) | Bots API: `GET /api/sites/:id/bots` (totals, byBot, series, estimates) | P0 | D | 5 | 1 | 19:00 | 15:00 | SP-008b |
+| [SP-027b](SP-027b-w04-bot-report.md) | W04 Overview / bot report (AG Grid + AG Charts, live) | P0 | D | 6 | 1.5 | 00:00 +1d | 17:00 | SP-024, SP-027a, SP-025 |
+| [SP-028](SP-028-w05-proposals.md) | W05 Record types found (hero) | P0 | D | 5 | 1.5 | 23:45 | 16:45 | SP-024, SP-014 |
+| [SP-029](SP-029-w06-dataset-editor.md) | W06 Dataset editor + publish (schema-driven AG Grid) | P0 | D | 5 | 2 | 22:15 | 17:15 | SP-024, SP-014 |
+| [SP-030a](SP-030a-earnings-ledger-usage-api.md) | Earnings, ledger and buyer-usage read APIs | P0 | D | 4 | 1 | 20:00 | 13:30 | SP-016, SP-007a |
+| [SP-030b](SP-030b-w08-earnings.md) | W08 Earnings (KPIs, AG Charts, grouped AG Grid, ledger tab) | P0 | D | 5 | 1.5 | 00:30 +1d | 15:30 | SP-024, SP-030a, SP-025 |
+| [SP-031](SP-031-w09-payouts.md) | W09 Payouts (master/detail grid, Run payout now) | P0 | D | 5 | 1.5 | 22:45 | 16:30 | SP-024, SP-021 |
+| [SP-032](SP-032-w11-buyer-portal.md) | W11 Buyer portal: balance, Top up with PayPal (JS SDK v6), keys, Claude Desktop config | P0 | D | 4 | 2 | 22:15 | 15:45 | SP-024, SP-018, SP-007b |
+| [SP-033](SP-033-w13-catalog-page.md) | W13 public catalog page `/c/:site` + terms | P0 | D | 5 | 1 | 02:30 +1d | 17:45 | SP-017a |
+| [SP-034](SP-034-w16-settings.md) | W16 Settings (account, payout email, gate policy, key rotation) | P0 | – | 5 | 1 | 06:45 +1d | 19:30 | SP-024, SP-008b |
+| [SP-035](SP-035-seed-demo.md) | `seed:demo`: publisher, site, Acme + 20 SIM buyers, SIM sandbox top-ups | P0 | D | 4 | 1.5 | 20:00 | 15:15 | SP-018, SP-008a, SP-007b |
+| [SP-036](SP-036-sim-buyers.md) | `sim:buyers` (backdated week + `--live`) | P0 | D | 6 | 1 | 01:15 +1d | 17:00 | SP-035, SP-017b, SP-014 |
+| [SP-037](SP-037-sim-bots.md) | `sim:bots` (real HTTP with bot UAs, SIM-flagged) | P0 | D | 5 | 1 | 01:15 +1d | 16:45 | SP-006b, SP-008b |
+| [SP-038](SP-038-demo-reset-payout.md) | `demo:reset` + `demo:payout` | P0 | D | 5 | 1 | 01:45 +1d | 17:00 | SP-035, SP-021 |
+| [SP-039](SP-039-buyer-agent-demo-kit.md) | Buyer agent demo kit: `scraper-demo.py`, Claude Desktop config, prompt card, dry-run checklist | P0 | D | 6 | 1 | 02:15 +1d | 17:00 | SP-022a, SP-006b |
+| [SP-040](SP-040-render-deploy-config.md) | Render deploy config: `render.yaml`, paid Postgres, env, migrate on deploy, demo site service | P0 | D | 2 | 1.5 | 19:15 | 11:15 | SP-001a, SP-002, SP-004a |
+| [SP-041](SP-041-render-workflows-adapter.md) | Render Workflows adapter (`WORKFLOWS_MODE=workflows`) for crawl, extract and payout tasks | P0 | – | 5 | 2 | 06:00 +1d | 19:15 | SP-009b, SP-014, SP-020, SP-040 |
 | [SP-042](SP-042-security-tests.md) | Security tests: cross-tenant matrix, hidden-field sweep, revoked keys, SSRF, checklist | P0 | – | 6 | 1.5 | 06:00 +1d | 19:30 | SP-017b, SP-022a, SP-014 |
-| [SP-043](SP-043-admin-ops-endpoints.md) | Admin ops endpoints: audit search, ledger check, health | P0 | – | 3 | 1 | 04:15 +1d | 18:15 | SP-005, SP-007a |
-| [SP-044](SP-044-readme-license.md) | README + LICENSE (MIT) | P0 | D | 3 | 1.5 | 21:45 | 14:45 | SP-040 |
+| [SP-043](SP-043-admin-ops-endpoints.md) | Admin ops endpoints: audit search, ledger check, health | P0 | – | 3 | 1 | 03:45 +1d | 18:15 | SP-005, SP-007a |
+| [SP-044](SP-044-readme-license.md) | README + LICENSE (MIT) | P0 | D | 3 | 1.5 | 00:00 +1d | 14:45 | SP-040 |
 | [SP-045](SP-045-devpost-draft.md) | Devpost draft | P0 | – | 1 | 0.5 | 07:15 | 07:15 | none |
-| [SP-046](SP-046-video-devpost-submission.md) | Demo video + Devpost submission (after code freeze) | P0 | D | 7 | 3 | 02:15 +1d | 20:15 | SP-039, SP-038, SP-044, SP-045, SP-036, SP-037 |
-| [SP-047a](SP-047a-auto-topup-core.md) | Auto top-up core: vault MIT inside `chargeAndRecord`, monthly cap, one in flight | P1 | – | 4 | 1.5 | 08:15 +1d | 21:15 | SP-016, SP-018 |
-| [SP-047b](SP-047b-auto-topup-settings-ui.md) | Auto top-up settings API, W11 card, MCP `top_up` from vault, `demo:decline` | P1 | – | 7 | 1.5 | 11:45 +1d | 23:00 | SP-047a, SP-032, SP-022b |
-| [SP-048a](SP-048a-claims-core.md) | Claims core: `/v1/claims`, MCP `report_bad_record`, deterministic checks, CREDIT | P1 | – | 6 | 2 | 08:00 +1d | 20:30 | SP-017b, SP-009a, SP-022a |
-| [SP-048b](SP-048b-claims-triage-agent.md) | Claims triage agent (Claude recommendation) + publisher decide endpoint | P1 | – | 7 | 1.5 | 13:45 +1d | 23:30 | SP-048a |
+| [SP-046](SP-046-video-devpost-submission.md) | Demo video + Devpost submission (after code freeze) | P0 | D | 7 | 3 | 05:30 +1d | 20:30 | SP-039, SP-038, SP-044, SP-045, SP-036, SP-037, SP-027b, SP-028, SP-029, SP-030b, SP-031, SP-032 |
+| [SP-047a](SP-047a-auto-topup-core.md) | Auto top-up core: vault MIT inside `chargeAndRecord`, monthly cap, one in flight | P1 | – | 4 | 1.5 | 07:45 +1d | 20:15 | SP-016, SP-018 |
+| [SP-047b](SP-047b-auto-topup-settings-ui.md) | Auto top-up settings API, W11 card, MCP `top_up` from vault, `demo:decline` | P1 | – | 7 | 1.5 | 13:45 +1d | 23:30 | SP-047a, SP-032, SP-022b |
+| [SP-048a](SP-048a-claims-core.md) | Claims core: `/v1/claims`, MCP `report_bad_record`, deterministic checks, CREDIT | P1 | – | 6 | 2 | 08:15 +1d | 20:30 | SP-017b, SP-009a, SP-022a |
+| [SP-048b](SP-048b-claims-triage-agent.md) | Claims triage agent (Claude recommendation) + publisher decide endpoint | P1 | – | 7 | 1.5 | 12:00 +1d | 22:15 | SP-048a |
 | [SP-049](SP-049-refund-unused-balance.md) | Refund unused balance via PayPal Refunds | P1 | – | 4 | 1.5 | 07:45 +1d | 20:15 | SP-018 |
-| [SP-050](SP-050-w12-usage-claims-refund.md) | W12 Buyer usage & claims (refund button) + publisher claims tab | P1 | – | 7 | 2 | 10:15 +1d | 22:45 | SP-048a, SP-049, SP-032, SP-030b |
-| [SP-051](SP-051-gate-reverse-dns.md) | Gate reverse-DNS verification for search crawlers (async, cached) | P1 | – | 4 | 1 | 16:00 +1d | 00:15 +1d | SP-006b |
-| [SP-052a](SP-052a-drift-detection.md) | Drift detection, LIVE_STALE, `DEMO_LAYOUT=v2` | P1 | – | 5 | 1.5 | 08:15 +1d | 20:15 | SP-013, SP-014, SP-004b |
-| [SP-052b](SP-052b-reinference.md) | Re-inference (`/reinfer`), approve v(n+1), W06 stale banner | P1 | – | 6 | 1.5 | 12:00 +1d | 22:00 | SP-052a, SP-012b, SP-029 |
-| [SP-053](SP-053-w07-records-browser.md) | W07 Records browser (server-side rows, version history) | P1 | – | 3 | 2 | 10:30 +1d | 21:45 | SP-024, SP-015 |
-| [SP-054](SP-054-w10-crawls-health.md) | W10 Crawls & health | P1 | – | 5 | 1.5 | 12:15 +1d | 22:00 | SP-024, SP-009b |
-| [SP-055](SP-055-cms-ping.md) | CMS ping `POST /api/sites/:id/ping` + `demo:mutate --ping` | P1 | – | 5 | 1 | 16:15 +1d | 00:30 +1d | SP-009b, SP-004b |
-| [SP-056](SP-056-apimatic-sdk.md) | APIMatic TypeScript + Python SDK from `openapi.yaml` | P1 | – | 7 | 1.5 | 14:00 +1d | 23:45 | SP-023, SP-040 |
-| [SP-057](SP-057-w01-landing.md) | W01 Landing page | P1 | – | 3 | 1.5 | 10:00 +1d | 21:15 | SP-024 |
+| [SP-050](SP-050-w12-usage-claims-refund.md) | W12 Buyer usage & claims (refund button) + publisher claims tab | P1 | – | 7 | 2 | 10:30 +1d | 22:45 | SP-048a, SP-049, SP-032, SP-030b |
+| [SP-051](SP-051-gate-reverse-dns.md) | Gate reverse-DNS verification for search crawlers (async, cached) | P1 | – | 4 | 1 | 16:15 +1d | 00:45 +1d | SP-006b |
+| [SP-052a](SP-052a-drift-detection.md) | Drift detection, LIVE_STALE, `DEMO_LAYOUT=v2` | P1 | – | 5 | 1.5 | 08:30 +1d | 21:00 | SP-013, SP-014, SP-004b |
+| [SP-052b](SP-052b-reinference.md) | Re-inference (`/reinfer`), approve v(n+1), W06 stale banner | P1 | – | 6 | 1.5 | 13:30 +1d | 23:00 | SP-052a, SP-012b, SP-029 |
+| [SP-053](SP-053-w07-records-browser.md) | W07 Records browser (server-side rows, version history) | P1 | – | 3 | 2 | 10:00 +1d | 21:45 | SP-024, SP-015 |
+| [SP-054](SP-054-w10-crawls-health.md) | W10 Crawls & health | P1 | – | 5 | 1.5 | 10:15 +1d | 21:15 | SP-024, SP-009b |
+| [SP-055](SP-055-cms-ping.md) | CMS ping `POST /api/sites/:id/ping` + `demo:mutate --ping` | P1 | – | 5 | 1 | 15:00 +1d | 00:00 +1d | SP-009b, SP-004b |
+| [SP-056](SP-056-apimatic-sdk.md) | APIMatic TypeScript + Python SDK from `openapi.yaml` | P1 | – | 7 | 1.5 | 11:45 +1d | 22:00 | SP-023, SP-040 |
+| [SP-057](SP-057-w01-landing.md) | W01 Landing page | P1 | – | 3 | 1.5 | 14:00 +1d | 23:45 | SP-024 |
 | [SP-058](SP-058-login-with-paypal.md) | Log in with PayPal for publishers | P1 | – | 6 | 2 | 10:00 +1d | 21:45 | SP-007a, SP-026 |
-| [SP-059](SP-059-paypal-webhooks.md) | PayPal webhooks: verify, dedupe, handlers; spike S11 | P1 | – | 5 | 1.5 | 13:30 +1d | 23:30 | SP-018, SP-021, SP-040 |
-| [SP-060](SP-060-weekly-payout-cron.md) | Weekly payout cron + failed-item retry | P1 | – | 5 | 1 | 14:45 +1d | 23:15 | SP-021 |
-| [SP-061](SP-061-scheduled-recrawl-nightly-check.md) | Scheduled re-crawl (15 min) + nightly ledger check | P1 | – | 5 | 1 | 15:00 +1d | 00:00 +1d | SP-009b, SP-043 |
-| [SP-062](SP-062-w14-admin-audit.md) | W14 Admin / audit screen | P1 | – | 4 | 1.5 | 15:15 +1d | 23:45 | SP-043, SP-024 |
-| [SP-063](SP-063-card-fields-topup.md) | Card-fields top-up (JS SDK v6 card fields, vaulted) | P1 | – | 5 | 1.5 | 13:30 +1d | 23:00 | SP-032 |
-| [SP-064](SP-064-playwright-render.md) | Playwright render for JS-heavy templates | P1 | – | 3 | 1.5 | 11:45 +1d | 22:00 | SP-009a |
-| [SP-065](SP-065-dom-fingerprint-clustering.md) | DOM-fingerprint cluster confirmation | P1 | – | 3 | 1 | 15:15 +1d | 00:15 +1d | SP-010 |
+| [SP-059](SP-059-paypal-webhooks.md) | PayPal webhooks: verify, dedupe, handlers; spike S11 | P1 | – | 5 | 1.5 | 15:15 +1d | 23:45 | SP-018, SP-021, SP-040 |
+| [SP-060](SP-060-weekly-payout-cron.md) | Weekly payout cron + failed-item retry | P1 | – | 5 | 1 | 14:45 +1d | 23:30 | SP-021 |
+| [SP-061](SP-061-scheduled-recrawl-nightly-check.md) | Scheduled re-crawl (15 min) + nightly ledger check | P1 | – | 5 | 1 | 16:00 +1d | 00:15 +1d | SP-009b, SP-043 |
+| [SP-062](SP-062-w14-admin-audit.md) | W14 Admin / audit screen | P1 | – | 4 | 1.5 | 11:45 +1d | 22:00 | SP-043, SP-024 |
+| [SP-063](SP-063-card-fields-topup.md) | Card-fields top-up (JS SDK v6 card fields, vaulted) | P1 | – | 5 | 1.5 | 13:30 +1d | 23:30 | SP-032 |
+| [SP-064](SP-064-playwright-render.md) | Playwright render for JS-heavy templates | P1 | – | 3 | 1.5 | 12:15 +1d | 22:45 | SP-009a |
+| [SP-065](SP-065-dom-fingerprint-clustering.md) | DOM-fingerprint cluster confirmation | P1 | – | 3 | 1 | 15:15 +1d | 00:00 +1d | SP-010 |
 
 ## Dependency graph
 
@@ -277,6 +278,7 @@ flowchart LR
   n007b --> n035
   n035 --> n036
   n017b --> n036
+  n014 --> n036
   n006b --> n037
   n008b --> n037
   n035 --> n038
@@ -302,6 +304,12 @@ flowchart LR
   n045 --> n046
   n036 --> n046
   n037 --> n046
+  n027b --> n046
+  n028 --> n046
+  n029 --> n046
+  n030b --> n046
+  n031 --> n046
+  n032 --> n046
 ```
 
 P1 (grey) with the P0 tickets they hang off.
@@ -464,12 +472,12 @@ A wave is every ticket whose dependencies are all in earlier waves. With 4–8 w
 | Wave | P0 tickets | P1 tickets (only when no P0 is ready) | P0 worker-h | Last P0 merge @8 | Last P0 merge @4 |
 |---|---|---|---|---|---|
 | 1 | SP-001a, SP-002, SP-003, SP-004a, SP-045 | – | 7 | 08:45 | 09:00 |
-| 2 | SP-001b, SP-004b, SP-005, SP-006a, SP-007a, SP-009a, SP-010, SP-011, SP-015, SP-024, SP-040 | – | 16 | 11:15 | 21:45 |
-| 3 | SP-006b, SP-007b, SP-008a, SP-012a, SP-013, SP-016, SP-018, SP-020, SP-025, SP-043, SP-044 | SP-053, SP-057, SP-064, SP-065 | 16 | 18:15 | 21:45 |
-| 4 | SP-008b, SP-009b, SP-012b, SP-014, SP-017a, SP-019, SP-021, SP-030a, SP-032, SP-035 | SP-047a, SP-049, SP-051, SP-062 | 13.5 | 19:30 | 20:30 |
-| 5 | SP-017b, SP-022a, SP-026, SP-027a, SP-028, SP-029, SP-030b, SP-031, SP-033, SP-034, SP-037, SP-038, SP-041 | SP-052a, SP-054, SP-055, SP-059, SP-060, SP-061, SP-063 | 18 | 19:30 | 23:00 |
-| 6 | SP-022b, SP-023, SP-027b, SP-036, SP-039, SP-042 | SP-048a, SP-052b, SP-058 | 7 | 19:30 | 23:00 |
-| 7 | SP-046 | SP-047b, SP-048b, SP-050, SP-056 | 3 | 20:15 | 02:15 +1d |
+| 2 | SP-001b, SP-004b, SP-005, SP-006a, SP-007a, SP-009a, SP-010, SP-011, SP-015, SP-024, SP-040 | – | 16 | 11:15 | 19:15 |
+| 3 | SP-006b, SP-007b, SP-008a, SP-012a, SP-013, SP-016, SP-018, SP-020, SP-025, SP-043, SP-044 | SP-053, SP-057, SP-064, SP-065 | 16 | 18:15 | 20:45 |
+| 4 | SP-008b, SP-009b, SP-012b, SP-014, SP-017a, SP-019, SP-021, SP-030a, SP-032, SP-035 | SP-047a, SP-049, SP-051, SP-062 | 13.5 | 19:30 | 22:15 |
+| 5 | SP-017b, SP-022a, SP-026, SP-027a, SP-028, SP-029, SP-030b, SP-031, SP-033, SP-034, SP-037, SP-038, SP-041 | SP-052a, SP-054, SP-055, SP-059, SP-060, SP-061, SP-063 | 18 | 19:30 | 23:45 |
+| 6 | SP-022b, SP-023, SP-027b, SP-036, SP-039, SP-042 | SP-048a, SP-052b, SP-058 | 7 | 19:30 | 06:00 +1d |
+| 7 | SP-046 | SP-047b, SP-048b, SP-050, SP-056 | 3 | 20:30 | 05:30 +1d |
 
 Rules:
 - **Wave 1 runs SP-001a, SP-002, SP-003, SP-004a (and SP-045) in parallel.** SP-002 codes against the agreed layout (`db/migrations`, `npm run migrate`, `npm run test:db`) and rebases on SP-001a before merging. SP-004a is its own workspace. **Schema freeze at SP-002's merge (target ~08:45 IST)**; later changes are new migrations reviewed against open tickets.
@@ -486,7 +494,7 @@ Rules:
 | Start | 06:30 | 17:00 Nov 11 | Wave 1 dispatched; human sets up the publisher sandbox account and `.env`. |
 | Schema freeze | ~08:45 | 19:15 | SP-002 merged. |
 | CP1 | ~11:00 | 21:30 | SP-001b PayPal client + fake, SP-005 ledger, SP-009a crawler, SP-007a auth merged; SP-003 S7a/S7b/S8 results in. |
-| **Kill checkpoint** | **16:00** at 6–8 workers · ~17:30 at 4 (see time budget point 5) | **02:30 Nov 12** · ~04:00 | Loop green locally with no hand-edited rows: crawl demo site → AI proposal → approve → ≥ 2,000 records → one real sandbox top-up → Claude Desktop `search_records` charged exactly. At 4 workers the real go/no-go is taken at dispatch (point 5); the 17:30 check only confirms the loop. |
+| **Kill checkpoint** | **16:00** at 8 workers · ~16:45 at 6 · ~17:30 at 4 (see time budget point 5) | **02:30 Nov 12** · ~03:15 · ~04:00 | Loop green locally with no hand-edited rows: crawl demo site → AI proposal → approve → ≥ 2,000 records → one real sandbox top-up → Claude Desktop `search_records` charged exactly. At 4 workers the real go/no-go is taken at dispatch (point 5); the 17:30 check only confirms the loop. |
 | Code freeze | **18:00** | 04:30 | Merge what is green; open PRs that aren't green wait. |
 | Deploy | 18:00–19:30 | 04:30–06:00 | SP-040 blueprint on Render, migrate, seed, smoke. Auto-deploy off. |
 | Record | 19:30–21:30 | 06:00–08:00 | Two dry runs on Render, then record (SP-046). |
@@ -508,9 +516,12 @@ None of these removes a ticket; they change what the demo shows.
 | Topic | Decision | Ticket |
 |---|---|---|
 | Spec layout puts task code in `apps/api` but Workflows needs it too | Task functions stay in `apps/api/src/**`, exported as `@spigot/api/tasks`; `apps/workflows` is a thin Render entry. No `packages/core` | SP-001a, SP-041 |
-| Kill checkpoint date already passed at start | 16:00 IST at 6–8 workers; at 4 workers, go/no-go at dispatch and a ~17:30 loop check | INDEX |
+| Kill checkpoint date already passed at start | 16:00 IST at 8 workers, ~16:45 at 6; at 4 workers, go/no-go at dispatch and a ~17:30 loop check | INDEX |
 | `/v1` service vs routes | Split so MCP doesn't wait for HTTP routes (cuts the critical path by 1.25 h) | SP-017a, SP-017b |
 | Webhooks priority | P1: feature 09 lists webhooks as P1 and pollers cover P0 (api.md) | SP-059 |
+| SP-014 asserting the gate's `gatedPaths` would need SP-008b on the spine | SP-014 asserts the `policy_version` bump only; SP-008b asserts `gatedPaths` from LIVE datasets | SP-014, SP-008b |
+| Where `sim:buyers` gets a LIVE dataset | Depends on SP-014; runs crawl + approve itself when none is LIVE | SP-036 |
+| End-to-end dry run | Executed in SP-046 (which depends on every screen it touches); SP-039 writes the checklist | SP-039, SP-046 |
 | Where the demo reset sends a buyer's balance | A `DEMO_RESET` ledger txn into platform revenue; no entry is deleted | SP-038 |
 | P1 tables | Created in the first migration so P1 never needs a migration | SP-002 |
 | gstack "assignment" (talk to 2 site owners, 2 agent builders) | Not code; quoted in the README only if answers arrive | SP-044 |

@@ -24,7 +24,7 @@ The owner edits and approves a proposal; the dataset goes LIVE, every page is ex
 - [ ] Approve Listing with `agent_phone` hidden → LIVE, 2,341 records, `ai_calls = 0`; the hidden field is in `records.data` but never filterable.
 - [ ] Approve without `rightsAttested` → 400 `VALIDATION_ERROR`; with no visible fields → 400.
 - [ ] Double approve → second is 409 `STATE_CONFLICT`.
-- [ ] After approve the gate policy's `policyVersion` increased and `gatedPaths` includes `^/listings/`.
+- [ ] After approve, `sites.policy_version` increased by one (via `bumpPolicyVersion` or the inline fallback). The policy body (`gatedPaths` includes `^/listings/`) is asserted in SP-008b, which builds it; this ticket doesn't depend on SP-008b so the spine stays short.
 - [ ] After approve, a crawl of a changed page produces a version (fetchPage → extractPage wired).
 
 ## Test plan

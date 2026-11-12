@@ -23,6 +23,7 @@ The two calls the gate makes (never on the request path), and the "gate installe
 - [ ] Gate key of site A can't read site B's policy.
 - [ ] Two posts with the same bucket/key sum hits.
 - [ ] `policyVersion` increments after `bumpPolicyVersion`, and the response changes.
+- [ ] With a LIVE dataset on `/listings/:slug` (fixture rows, or the real approve path once SP-014 has merged), `gatedPaths` includes `^/listings/`; after unpublish it doesn't.
 - [ ] A post within 5 s of the previous one → 429; the gate drops it (SP-006b).
 
 ## Test plan
