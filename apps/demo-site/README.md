@@ -18,6 +18,9 @@ npm run demo:mutate -w @spigot/demo-site -- --prices 30 --leased 5 --new 3 --see
 | `DEMO_DATA_DIR` | `apps/demo-site/data` | Seed snapshot and the mutation log (`mutations.jsonl`). A Render disk in prod |
 | `DEMO_ADMIN_TOKEN` | unset | Bearer token for `/admin/*`; every `/admin` path is a 404 when unset |
 | `SPIGOT_VERIFY_TOKEN` | unset | Served at `/.well-known/spigot.txt`; 404 when unset |
+| `SPIGOT_API_BASE` | unset | Spigot API origin for spigot-gate (policy + hit counts) |
+| `SPIGOT_GATE_KEY` | unset | Site gate key `gk_…` from W03. Gate is off until this and `SPIGOT_API_BASE` are set |
+| `SPIGOT_GATE_DEMO` | unset | `1`: requests with `X-Spigot-Sim: 1` (sim:bots) count as simulated |
 
 ## Pages
 
@@ -35,7 +38,9 @@ npm run demo:mutate -w @spigot/demo-site -- --prices 30 --leased 5 --new 3 --see
 Every response has a strong ETag (hash of the body) and answers `If-None-Match` with `304`. Every request
 logs one JSON line (`method`, `path`, `status`, `ua`, `inflight`, `ms`); `app.locals.accessLog.stats()`
 exposes `maxInFlight` for the crawler's "≤ 2 concurrent" check. `createApp({ gate })` mounts spigot-gate
-after the access log and before every route (a no-op until SP-006b).
+after the access log and before every route; `server.ts` builds it from the env above (SP-006b). It fails
+open: with Spigot down, slow or unconfigured, every request passes. `npm run dev` / `start` need
+`@spigot/gate` built (`npm run build -w @spigot/gate`).
 
 The demo query population ("3-bed under $2k in Austin") is every 32nd listing: 74 at scale 1.
 
