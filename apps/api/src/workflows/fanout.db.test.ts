@@ -213,17 +213,13 @@ describe.skipIf(!testDatabaseUrl)('Render Workflows fan-out (SP-041a)', () => {
     const order: string[] = [];
     onRunFinished((runId) => void order.push(`finished:${runId}`));
     let n = 0;
+    // The API's side: the run handed to "Render" and watched until it ends.
+    const started = await startCrawl(
+      { siteId, trigger: 'CONNECT' },
+      { ...deps, handOff: async () => 'trn-1' },
+    );
     const res = await bodies.crawlSite(
-      {
-        siteId,
-        trigger: 'CONNECT',
-        runId: (
-          await startCrawl(
-            { siteId, trigger: 'CONNECT' },
-            { ...deps, handOff: async () => 'trn-1' },
-          )
-        ).runId,
-      },
+      { siteId, trigger: 'CONNECT', runId: started.runId },
       {
         taskRunId: 'trn-1',
         runFetchBatch: async (batch) => {
@@ -250,6 +246,7 @@ describe.skipIf(!testDatabaseUrl)('Render Workflows fan-out (SP-041a)', () => {
     expect(res.discovery).toBe(false);
     // The run ended (and its hooks fired) only after the surviving batch finished.
     expect(order).toEqual(['batch-1:rejected', 'batch-2:done', `finished:${res.runId}`]);
+    await expect(started.done).resolves.toMatchObject({ status: 'PARTIAL' });
   });
 
   it('Render down: the run falls back to this process and keeps inproc:<id>', async () => {

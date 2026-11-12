@@ -153,6 +153,8 @@ describe.skipIf(!testDatabaseUrl)('SP-009b crawl API (Postgres + demo site)', ()
         DATABASE_URL: db.url,
         ALLOW_LOCAL_ORIGINS: 'true',
         CRAWL_MIN_GAP_MS: '0',
+        // The discovery hand-off starts the schema agent: fixtures, never the live API.
+        SCHEMA_AGENT_MODE: 'recorded',
       }),
       { logStream: new Writable({ write: (_c, _e, cb) => cb() }) },
     );

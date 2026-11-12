@@ -304,6 +304,7 @@ async function waitForEnd(db: Db, runId: string, deps: CrawlDeps): Promise<Crawl
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   for (;;) {
     const run = await readRun(db, runId);
+    if (!run) throw new Error(`crawlSite: run ${runId} not found while waiting for it to end`);
     if (TERMINAL.includes(run.status)) {
       return {
         runId,
