@@ -99,7 +99,7 @@ function setup(fetch: FetchLike, path = '/app') {
     { initialEntries: [path] },
   );
   render(<RouterProvider router={router} />);
-  return { sources, source: () => sources.at(-1)! };
+  return { router, sources, source: () => sources.at(-1)! };
 }
 
 const kpi = (label: string) => screen.getByText(label).closest('div')!;
@@ -116,6 +116,22 @@ const leafRowIds = () =>
   ].filter((id) => !id.startsWith('row-group'));
 const botsCalls = (fetch: ReturnType<typeof vi.fn>) =>
   fetch.mock.calls.map(([u]) => u as string).filter((u) => u.includes('/bots'));
+
+/** Records every grid row that flashes, so checks don't depend on catching AG's 1.5 s fade. */
+function watchFlashes() {
+  const ids = new Set<string>();
+  const observer = new MutationObserver((records) => {
+    for (const r of records) {
+      const el = r.target as HTMLElement;
+      if (el.classList?.contains('ag-cell-data-changed')) {
+        const id = el.closest('.ag-row')?.getAttribute('row-id');
+        if (id) ids.add(id);
+      }
+    }
+  });
+  observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  return { ids, stop: () => observer.disconnect() };
+}
 
 describe('W04 Overview (SP-027b)', () => {
   it('shows the KPI row, the chart, the grouped grid and the activity feed', async () => {
@@ -204,22 +220,8 @@ describe('W04 Overview (SP-027b)', () => {
       r.totals.botHits += 50;
       return r;
     };
-    // Record every row that flashes, so the check doesn't depend on catching AG's 1.5 s fade.
-    const flashed = new Set<string>();
-    const observer = new MutationObserver((records) => {
-      for (const r of records) {
-        const el = r.target as HTMLElement;
-        if (el.classList?.contains('ag-cell-data-changed')) {
-          const id = el.closest('.ag-row')?.getAttribute('row-id');
-          if (id) flashed.add(id);
-        }
-      }
-    });
-    observer.observe(document.body, {
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class'],
-    });
+    const watch = watchFlashes();
+    const flashed = watch.ids;
 
     act(() => {
       source().emit('hits', [SITE.id]);
@@ -233,9 +235,68 @@ describe('W04 Overview (SP-027b)', () => {
     expect(botsCalls(fetch)).toHaveLength(before + 1);
     expect(await screen.findByText('18,530', {}, slow)).toBeInTheDocument();
     await waitFor(() => expect(flashed).toContain('AI_TRAINING|GPTBot|QUOTE_402|sim'), slow);
-    observer.disconnect();
+    watch.stop();
     // Unchanged rows don't flash.
     expect(flashed).not.toContain('SEARCH|Googlebot|PASS|real');
+  });
+
+  it('a filter change after a live update does not flash the rows it brings back', async () => {
+    const { s, fetch } = server();
+    const { source } = setup(fetch);
+    await waitFor(() => expect(gridRow('SEARCH|Googlebot|PASS|real')).not.toBeNull());
+    const flashed = watchFlashes();
+
+    s.bots = () => {
+      const r = clone(BOTS);
+      r.byBot.find((b) => b.botName === 'GPTBot')!.hits += 50;
+      return r;
+    };
+    act(() => source().emit('hits', [SITE.id]));
+    await waitFor(() => expect(flashed.ids).toContain('AI_TRAINING|GPTBot|QUOTE_402|sim'), {
+      timeout: 5_000,
+    });
+    flashed.ids.clear();
+
+    const select = screen.getByRole('combobox', { name: 'Category' });
+    await userEvent.selectOptions(select, 'SCRAPER_TOOL');
+    await waitFor(() => expect(gridRow('SEARCH|Googlebot|PASS|real')).toBeNull());
+    await userEvent.selectOptions(select, 'ALL');
+    await waitFor(() => expect(gridRow('SEARCH|Googlebot|PASS|real')).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 300));
+    flashed.stop();
+    expect([...flashed.ids]).toEqual([]);
+  });
+
+  it("switching ?site= never shows the previous site's report, and closes the drawer", async () => {
+    const OTHER = {
+      ...SITE,
+      id: '00000000-0000-4000-8000-0000000000b2',
+      origin: 'https://other.example',
+    };
+    let release: (r: Response) => void = () => undefined;
+    const { fetch: base } = server({ sites: { sites: [SITE, OTHER] } });
+    const fetch = vi.fn<FetchLike>((url, init) =>
+      url.startsWith(`/api/sites/${OTHER.id}/bots`)
+        ? new Promise<Response>((r) => (release = r))
+        : base(url, init),
+    );
+    const { router } = setup(fetch);
+    await waitFor(() => expect(gridRow('AI_TRAINING|GPTBot|QUOTE_402|sim')).not.toBeNull());
+    await userEvent.click(within(gridRow('AI_TRAINING|GPTBot|QUOTE_402|sim')!).getByText('6,120'));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    await act(() => router.navigate(`/app?site=${OTHER.id}`));
+    expect(await screen.findByText("Who's crawling other.example")).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByText('18,480')).toBeNull();
+    expect(gridRow('AI_TRAINING|GPTBot|QUOTE_402|sim')).toBeNull();
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+
+    const other = clone(BOTS);
+    other.byBot = other.byBot.filter((b) => b.botName === 'Googlebot');
+    other.totals.botHits = 1_840;
+    await act(async () => release(json(200, other)));
+    expect(await screen.findByText('1,840')).toBeInTheDocument();
   });
 
   it('SSE `call.charged` prepends the new activity event and moves Earned this week', async () => {

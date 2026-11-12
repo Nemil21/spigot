@@ -27,10 +27,15 @@ export function BotDrawer({
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
+    // Focus moves into the drawer and back to whatever opened it (the grid cell) on close.
+    const opener = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
   }, [onClose]);
 
   const mine = rows.filter((r) => r.botName === bot.botName && r.category === bot.category);

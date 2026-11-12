@@ -9,7 +9,13 @@ import { BotsGrid } from '../grids/BotsGrid';
 import { ActivityFeed, mergeActivity } from '../overview/ActivityFeed';
 import { BotDrawer } from '../overview/BotDrawer';
 import { CHART_CATEGORIES, categoryLabel, formatBytes } from '../overview/labels';
-import type { ActivityEvent, BotRow, BotsReport, SiteSummary } from '../overview/types';
+import {
+  botRowId,
+  type ActivityEvent,
+  type BotRow,
+  type BotsReport,
+  type SiteSummary,
+} from '../overview/types';
 import { paths } from '../routes';
 
 /** Events the feed shows; the newest page is refetched and merged when SSE says something changed. */
@@ -31,6 +37,8 @@ type Load<T> =
   { status: 'loading' } | { status: 'error'; error: unknown } | { status: 'ready'; data: T };
 
 interface ReportState {
+  /** The site this report (or error) belongs to; another site's report is never shown. */
+  siteId: string | null;
   data: BotsReport | null;
   error: unknown;
   /** The last update came from a live SSE refetch (the grid flashes changed rows). */
@@ -57,7 +65,12 @@ export default function OverviewPage({
   const [sitesAttempt, setSitesAttempt] = useState(0);
   const [includeSim, setIncludeSim] = useState(true);
   const [category, setCategory] = useState<string>('ALL');
-  const [report, setReport] = useState<ReportState>({ data: null, error: null, live: false });
+  const [report, setReport] = useState<ReportState>({
+    siteId: null,
+    data: null,
+    error: null,
+    live: false,
+  });
   const [activity, setActivity] = useState<Load<ActivityEvent[]>>({ status: 'loading' });
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
   const [open, setOpen] = useState<BotRow | null>(null);
@@ -92,20 +105,27 @@ export default function OverviewPage({
           `/api/sites/${encodeURIComponent(siteId)}/bots?includeSim=${includeSim ? 'true' : 'false'}`,
         )
         .then(
-          (data) => seq === reportSeq.current && setReport({ data, error: null, live }),
+          (data) => seq === reportSeq.current && setReport({ siteId, data, error: null, live }),
           (error: unknown) =>
             seq === reportSeq.current &&
             // A failed live refetch keeps the last report; the next event tries again.
-            setReport((r) => (live && r.data ? r : { data: null, error, live: false })),
+            setReport((r) =>
+              live && r.data && r.siteId === siteId
+                ? r
+                : { siteId, data: null, error, live: false },
+            ),
         );
     },
     [client, siteId, includeSim],
   );
 
   useEffect(() => {
+    // Same site (SIM toggle): keep the last report on screen until the new one lands.
     setReport((r) => ({ ...r, error: null, live: false }));
     loadReport(false);
   }, [loadReport]);
+  // The drawer belongs to one site's report.
+  useEffect(() => setOpen(null), [siteId]);
 
   const activityRef = useRef<ActivityEvent[]>([]);
   const freshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -199,10 +219,16 @@ export default function OverviewPage({
     eventSource ? { enabled: true, createSource: eventSource } : {},
   );
 
+  const current = report.siteId === siteId ? report : null;
+  const data = current?.data ?? null;
   const rows = useMemo(() => {
-    const all = report.data?.byBot ?? [];
+    const all = data?.byBot ?? [];
     return category === 'ALL' ? all : all.filter((r) => r.category === category);
-  }, [report.data, category]);
+  }, [data, category]);
+  // Close the drawer when its bot leaves the report (e.g. a SIM bot after SIM is toggled off).
+  useEffect(() => {
+    if (open && data && !data.byBot.some((r) => botRowId(r) === botRowId(open))) setOpen(null);
+  }, [open, data]);
   const chartCategories = useMemo(
     () => (category === 'ALL' ? CHART_CATEGORIES : [category]),
     [category],
@@ -238,11 +264,10 @@ export default function OverviewPage({
       />,
     );
   }
-  if (report.error && !report.data) {
-    return frame(<ErrorBanner error={report.error} onRetry={() => loadReport(false)} />);
+  if (current?.error && !data) {
+    return frame(<ErrorBanner error={current.error} onRetry={() => loadReport(false)} />);
   }
 
-  const data = report.data;
   const loading = !data;
   const t = data?.totals;
   const neverInstalled =
@@ -353,7 +378,12 @@ export default function OverviewPage({
               {!includeSim && <p className="mt-2 text-sm text-muted">Simulated bots are hidden.</p>}
             </div>
           ) : (
-            <BotsGrid rows={rows} flash={report.live} onOpen={setOpen} now={now} />
+            <BotsGrid
+              rows={rows}
+              flashSource={current?.live ? data : null}
+              onOpen={setOpen}
+              now={now}
+            />
           )}
           {data && t!.estimate && (
             <p className="text-xs text-muted">

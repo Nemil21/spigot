@@ -19,12 +19,16 @@ import { botRowId, type BotRow } from '../overview/types';
 /**
  * W04 "Who's crawling you" (features/13 §1; SP-027b): AG Grid Enterprise, grouped by category,
  * with a 24 h sparkline per bot. Rows go in through `applyTransactionAsync` only, so a live
- * refetch updates the changed rows in place; when `flash` is set those rows flash.
+ * refetch updates the changed rows in place and flashes them. A filter change, a load or the SIM
+ * toggle replaces rows without flashing.
  */
 export interface BotsGridProps {
   rows: readonly BotRow[];
-  /** Flash the rows this update added or changed (live SSE refetches, not loads or filters). */
-  flash: boolean;
+  /**
+   * The report snapshot that came from a live SSE refetch, else null. The rows it adds or changes
+   * flash once, when it first arrives; a later `rows` change for the same snapshot (a filter) doesn't.
+   */
+  flashSource: unknown;
   onOpen?: (row: BotRow) => void;
   /** Formats "Last seen"; injectable for tests. */
   now?: () => number;
@@ -71,11 +75,18 @@ function lastSeenText(iso: string, now: number): string {
   return `${Math.floor(ms / 86_400_000)} d ago`;
 }
 
-export function BotsGrid({ rows, flash, onOpen, now = Date.now, height = 460 }: BotsGridProps) {
+export function BotsGrid({
+  rows,
+  flashSource,
+  onOpen,
+  now = Date.now,
+  height = 460,
+}: BotsGridProps) {
   const apiRef = useRef<GridApi<BotRow> | null>(null);
   const shown = useRef<readonly BotRow[]>([]);
-  const latest = useRef({ rows, flash });
-  latest.current = { rows, flash };
+  const flashed = useRef<unknown>(null);
+  const latest = useRef({ rows, flashSource });
+  latest.current = { rows, flashSource };
 
   const sync = (api: GridApi<BotRow>, next: readonly BotRow[], doFlash: boolean) => {
     const diff = diffRows(shown.current, next);
@@ -89,8 +100,11 @@ export function BotsGrid({ rows, flash, onOpen, now = Date.now, height = 460 }: 
   };
 
   useEffect(() => {
-    if (apiRef.current) sync(apiRef.current, rows, flash);
-  }, [rows, flash]);
+    if (!apiRef.current) return;
+    const doFlash = flashSource != null && flashSource !== flashed.current;
+    flashed.current = flashSource;
+    sync(apiRef.current, rows, doFlash);
+  }, [rows, flashSource]);
 
   const columnDefs = useMemo<ColDef<BotRow>[]>(
     () => [
@@ -132,9 +146,12 @@ export function BotsGrid({ rows, flash, onOpen, now = Date.now, height = 460 }: 
       },
       {
         headerName: 'Last seen',
-        field: 'lastSeen',
+        colId: 'lastSeen',
+        // A timestamp, so `max` aggregates for group rows (AG doesn't max plain strings).
+        valueGetter: (p) => (p.data ? Date.parse(p.data.lastSeen) : undefined),
         aggFunc: 'max',
-        valueFormatter: (p) => (p.value ? lastSeenText(p.value as string, now()) : ''),
+        valueFormatter: (p) =>
+          typeof p.value === 'number' ? lastSeenText(new Date(p.value).toISOString(), now()) : '',
         width: 110,
       },
       {
@@ -194,6 +211,7 @@ export function BotsGrid({ rows, flash, onOpen, now = Date.now, height = 460 }: 
       overlayNoRowsTemplate="No bots in this view."
       onGridReady={(e: GridReadyEvent<BotRow>) => {
         apiRef.current = e.api;
+        flashed.current = latest.current.flashSource;
         sync(e.api, latest.current.rows, false);
       }}
       onRowClicked={(e: RowClickedEvent<BotRow>) => {
