@@ -49,7 +49,9 @@ export function PayoutsScreen({
   const [statements, setStatements] = useState<PayoutStatements | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [running, setRunning] = useState(false);
-  const [open, setOpen] = useState<{ batch: PayoutBatch; item: PayoutItem } | null>(null);
+  // Ids only: the drawer reads the current batch and item from `data`, so a refetch (SSE or poll)
+  // flips its pill too.
+  const [open, setOpen] = useState<{ batchId: string; itemId: string } | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const seq = useRef(0);
 
@@ -149,9 +151,17 @@ export function PayoutsScreen({
 
   const closeStatement = useCallback(() => setOpen(null), []);
   const openStatement = useCallback(
-    (batch: PayoutBatch, item: PayoutItem) => setOpen({ batch, item }),
+    (batch: PayoutBatch, item: PayoutItem) => setOpen({ batchId: batch.id, itemId: item.id }),
     [],
   );
+
+  const openBatch = open ? data?.batches.find((b) => b.id === open.batchId) : undefined;
+  const openItem = openBatch?.items.find((i) => i.id === open?.itemId);
+  // A refetch that no longer lists the opened item closes the drawer.
+  const openGone = open !== null && data !== null && !openItem;
+  useEffect(() => {
+    if (openGone) setOpen(null);
+  }, [openGone]);
 
   if (load.status === 'error') {
     return (
@@ -248,11 +258,11 @@ export function PayoutsScreen({
           onClose={() => setRunning(false)}
         />
       )}
-      {open && (
+      {openBatch && openItem && (
         <StatementDrawer
-          batch={open.batch}
-          item={open.item}
-          statement={statements?.items[open.item.id]}
+          batch={openBatch}
+          item={openItem}
+          statement={statements?.items[openItem.id]}
           onClose={closeStatement}
         />
       )}

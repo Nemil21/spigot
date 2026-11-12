@@ -272,6 +272,41 @@ describe('W09 Payouts', () => {
     expect(api.fetch.mock.calls.length).toBeGreaterThan(getsBefore);
   });
 
+  it('an open statement drawer follows a refetch: Sent → Paid out with the new PayPal ids', async () => {
+    const api = fakeApi(withBatch(item({ status: 'PENDING', paypalItemId: null })));
+    const sse = renderScreen(api);
+    await screen.findAllByText('Sent');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Statement' })[0]!);
+    const drawer = screen.getByRole('dialog', { name: 'Statement' });
+    expect(drawer).toHaveTextContent('$412.75 sent via PayPal');
+
+    api.state.payouts = {
+      ...api.state.payouts,
+      batches: [
+        batch(item({ status: 'SUCCESS', paypalItemId: 'PPITEM0001', feeCents: 25 }), {
+          status: 'SUCCESS',
+        }),
+      ],
+    };
+    act(() => sse.emit('payout.updated', { ids: [BATCH] }));
+    await waitFor(() => expect(drawer).toHaveTextContent('$412.75 paid out via PayPal'));
+    expect(within(drawer).getByText('Paid out')).toBeInTheDocument();
+    expect(drawer).not.toHaveTextContent('sent via PayPal');
+    expect(within(drawer).getByTitle('PPITEM0001')).toBeInTheDocument();
+    expect(within(drawer).getByText('PayPal fee (paid by Spigot)')).toBeInTheDocument();
+  });
+
+  it('the statement drawer closes when a refetch no longer lists its item', async () => {
+    const api = fakeApi(withBatch(item({ status: 'PENDING' })));
+    const sse = renderScreen(api);
+    await screen.findAllByText('Sent');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Statement' })[0]!);
+    expect(screen.getByRole('dialog', { name: 'Statement' })).toBeInTheDocument();
+    api.state.payouts = { ...api.state.payouts, batches: [] };
+    act(() => sse.emit('payout.updated', { ids: [BATCH] }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('sent rows are re-read on a poll even if an SSE event is missed', async () => {
     const api = fakeApi(withBatch(item({ status: 'PENDING' })));
     renderScreen(api, fakeSse(), 50);
