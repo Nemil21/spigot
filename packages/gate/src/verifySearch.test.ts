@@ -12,6 +12,7 @@ import {
   createSearchVerifier,
   isNonPublicIp,
   normalizeIp,
+  SEARCH_DOMAINS,
   verifyIp,
   type DnsResolver,
 } from './verifySearch.js';
@@ -202,6 +203,16 @@ describe('createSearchVerifier', () => {
     expect(v.check('1.1.1.3', 'Googlebot')).toBe('PENDING');
     await v.idle();
     expect(v.check('1.1.1.3', 'Googlebot')).toBe('FAILED');
+  });
+
+  it('DuckDuckBot is never looked up (no rDNS hostnames; IP-list check is a follow-up)', async () => {
+    const dns = googleDns();
+    const v = createSearchVerifier({ resolver: dns });
+    expect(SEARCH_DOMAINS).not.toHaveProperty('DuckDuckBot');
+    expect(v.check(GOOGLE_IP, 'DuckDuckBot')).toBe('PENDING');
+    await v.idle();
+    expect(v.check(GOOGLE_IP, 'DuckDuckBot')).toBe('PENDING');
+    expect(dns.calls).toEqual([]);
   });
 
   it('cached per bot and IP; non-SEARCH names and non-public IPs are never looked up', async () => {

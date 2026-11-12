@@ -19,13 +19,15 @@ export interface DnsResolver {
 
 /**
  * Allowed reverse-DNS domains per SEARCH `botName` (bots.ts). A hostname matches a domain
- * when it equals it or ends with `.` + it.
+ * when it equals it or ends with `.` + it. A SEARCH bot missing here is never looked up, so it
+ * always passes: DuckDuckBot is left out on purpose because DuckDuckGo publishes an IP list,
+ * not rDNS hostnames, and its crawler IPs reverse-resolve to hosting providers. Follow-up:
+ * verify DuckDuckBot against the published IP list instead.
  */
 export const SEARCH_DOMAINS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   Googlebot: ['googlebot.com', 'google.com'],
   Bingbot: ['search.msn.com'],
   Applebot: ['applebot.apple.com'],
-  DuckDuckBot: ['duckduckgo.com'],
   YandexBot: ['yandex.ru', 'yandex.net', 'yandex.com'],
 });
 
