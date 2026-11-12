@@ -183,7 +183,8 @@ describe('earningsData', () => {
   });
 });
 
-describe('W08 Earnings', () => {
+// AG Grid + Charts in jsdom is slow on a loaded machine (CI, parallel workers): above 5 s.
+describe('W08 Earnings', { timeout: 30_000 }, () => {
   it('shows the six KPI tiles, and the grouped grand total equals them', async () => {
     renderScreen(fakeFetch({ [earningsPath(true)]: () => fixture }));
     const k = fixture.kpis;

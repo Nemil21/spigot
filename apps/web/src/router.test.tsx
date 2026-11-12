@@ -32,6 +32,9 @@ const BUILT: [path: string, screen: string, title: string, landmark: string][] =
   ['/app', 'W04', 'Overview', 'alert'],
   // SP-029; no datasets API here either, so W06 shows its inline error banner.
   ['/app/datasets/ds_123', 'W06', 'Dataset editor', 'alert'],
+  // SP-030b; no earnings API here either, so W08 shows its inline error banner. Its states are
+  // tested in pages/Earnings.
+  ['/app/earnings', 'W08', 'Earnings', 'alert'],
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
@@ -60,11 +63,13 @@ afterEach(() => vi.unstubAllGlobals());
 async function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   render(<RouterProvider router={router} />);
-  return screen.findByRole('heading', { level: 1 });
+  // Screens with AG Grid / Charts load that chunk on first use, which can take over the 1 s default.
+  return screen.findByRole('heading', { level: 1 }, { timeout: 10_000 });
 }
 
-describe('router', () => {
-  // W04 (SP-027b) imports AG Grid + AG Charts; load the chunk once so `findBy`'s 1 s covers render only.
+// AG-backed screens render slowly in jsdom on a loaded machine: above the 5 s default.
+describe('router', { timeout: 30_000 }, () => {
+  // W04 (SP-027b) imports AG Grid + AG Charts; load the chunk once so `findBy` covers render only.
   beforeAll(() => import('./pages/Overview'), 30_000);
 
   it.each(SCREENS)('%s resolves to its stub (%s)', async (path, screenId, title) => {
@@ -78,7 +83,8 @@ describe('router', () => {
     const h1 = await renderAt(path);
     expect(h1).toHaveTextContent(title);
     expect(h1.closest('[data-screen]')).toHaveAttribute('data-screen', screenId);
-    expect(await screen.findByRole(landmark)).toBeInTheDocument();
+    // The landmark can come after the heading (e.g. W09's error banner once its fetch fails).
+    expect(await screen.findByRole(landmark, {}, { timeout: 10_000 })).toBeInTheDocument();
     expect(screen.queryByText('Coming soon')).toBeNull();
   });
 
@@ -94,16 +100,6 @@ describe('router', () => {
 
   it.each(ONBOARDING)('%s renders its onboarding step', async (path, title) => {
     expect(await renderAt(path)).toHaveTextContent(title);
-  });
-
-  it('/app/earnings renders W08 (SP-030b), not a stub; its states are tested in pages/Earnings', async () => {
-    const router = createMemoryRouter(routes, { initialEntries: ['/app/earnings'] });
-    render(<RouterProvider router={router} />);
-    // First load of the AG Grid + Charts chunk can take over the default 1 s.
-    const h1 = await screen.findByRole('heading', { level: 1 }, { timeout: 10_000 });
-    expect(h1).toHaveTextContent('Earnings');
-    expect(h1.closest('[data-screen]')).toHaveAttribute('data-screen', 'W08');
-    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument();
   });
 
   it('/app/install with no site points back to W02', async () => {
@@ -122,15 +118,9 @@ describe('router', () => {
 
   it('covers every path in the paths table', () => {
     const tested = new Set(
-      [
-        ...SCREENS,
-        ...BUILT,
-        ...LOGINS,
-        ...BUYER_PAGES,
-        ...ONBOARDING,
-        ['/app/install'],
-        ['/app/earnings'],
-      ].map(([p]) => p!.split('?')[0]),
+      [...SCREENS, ...BUILT, ...LOGINS, ...BUYER_PAGES, ...ONBOARDING, ['/app/install']].map(
+        ([p]) => p!.split('?')[0],
+      ),
     );
     for (const [name, p] of Object.entries(paths)) {
       const concrete = p.replace(':datasetId', 'ds_123').replace(':topupId', 'tp_1');
