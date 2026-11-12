@@ -1,5 +1,6 @@
 import { loadConfig } from '../config.js';
 import { createDb, createPool, type Db } from '../db/index.js';
+import { createBrowserRenderer, type Renderer } from './render.js';
 import type { Resolver, SafeFetchOptions, SafeResponse } from './safeFetch.js';
 
 /**
@@ -20,6 +21,11 @@ export interface CrawlDeps {
    * posted hits in the last 10 minutes (`sites.last_gate_seen_at`).
    */
   minGapMs?: number;
+  /**
+   * Headless Chromium for `render = 'browser'` templates (SP-064). Set only when
+   * `CRAWL_RENDER=browser`; without it those pages count as failed and keep their old snapshot.
+   */
+  renderer?: Renderer;
   /** Test seams. */
   fetch?: (url: string, opts: SafeFetchOptions) => Promise<SafeResponse>;
   resolver?: Resolver;
@@ -66,6 +72,10 @@ export function defaultCrawlDeps(env: Record<string, string | undefined> = proce
     allowLocal: config.ALLOW_LOCAL_ORIGINS,
     appBaseUrl: config.APP_BASE_URL,
     minGapMs: env.CRAWL_MIN_GAP_MS?.trim() ? config.CRAWL_MIN_GAP_MS : undefined,
+    renderer:
+      config.CRAWL_RENDER === 'browser'
+        ? createBrowserRenderer({ userAgent: crawlerUserAgent(config.APP_BASE_URL) })
+        : undefined,
   };
   return cached;
 }

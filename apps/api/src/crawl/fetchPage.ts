@@ -11,6 +11,7 @@ import {
 } from './deps.js';
 import { emitPageChanged } from './hooks.js';
 import { hostQueueFor, realSleep } from './queue.js';
+import { RenderError, resourceFetcher, type RenderMode } from './render.js';
 import { safeFetch, SafeFetchError, type SafeResponse } from './safeFetch.js';
 
 /**
@@ -27,6 +28,10 @@ import { safeFetch, SafeFetchError, type SafeResponse } from './safeFetch.js';
  * - 429/503 → hold the host for `Retry-After` (cap 10 min) and try again; the 3rd in a row from
  *   the host pauses the run (and the site, when READY).
  * - Network errors / other 5xx → retry after 1 s, 4 s, 16 s, then `pages_failed++`.
+ * - A page of a `render = 'browser'` template (SP-064) is fetched the same way (never
+ *   conditionally: the shell's ETag says nothing about the data the script loads), then its 200
+ *   body is rendered through `deps.renderer` and the rendered DOM is the snapshot. No renderer
+ *   (`CRAWL_RENDER=off`) or a failed render → `pages_failed++` and the old snapshot stays.
  *
  * Idempotent: the page row is locked for the write, so a re-run (or a resumed run) writes the
  * same hash and never more than 2 snapshots. Run counters move in the same transaction as the
@@ -91,6 +96,7 @@ interface PageRow {
   origin: string;
   last_gate_seen_at: Date | null;
   run_status: string;
+  render: RenderMode | null;
 }
 
 type Counter = 'pages_fetched' | 'pages_not_modified' | 'pages_failed';
@@ -100,6 +106,44 @@ async function bump(tx: Tx, runId: string, counter: Counter): Promise<void> {
 }
 
 const sha256 = (buf: Buffer) => createHash('sha256').update(buf).digest('hex');
+
+/**
+ * Store a 200 body as the page's newest snapshot (only when its hash differs from the newest one;
+ * keep the newest 2) and update `content_hash`, `etag`, `fetched_at`, `last_status`. Returns the
+ * hash. The caller holds the transaction.
+ */
+export async function writeSnapshot(
+  tx: Tx,
+  pageId: string,
+  body: Buffer,
+  etag: string | null,
+): Promise<string> {
+  const hash = sha256(body);
+  const newest = await tx.query<{ content_hash: string | null }>(
+    'SELECT content_hash FROM snapshots WHERE page_id = $1 ORDER BY id DESC LIMIT 1',
+    [pageId],
+  );
+  if (newest.rows[0]?.content_hash !== hash) {
+    await tx.query(
+      `INSERT INTO snapshots (page_id, http_status, html_gz, content_hash, bytes)
+       VALUES ($1, 200, $2, $3, $4)`,
+      [pageId, gzipSync(body), hash, body.length],
+    );
+    await tx.query(
+      `DELETE FROM snapshots
+        WHERE page_id = $1
+          AND id NOT IN (SELECT id FROM snapshots WHERE page_id = $1 ORDER BY id DESC LIMIT 2)`,
+      [pageId],
+    );
+  }
+  await tx.query(
+    `UPDATE pages
+        SET content_hash = $2, etag = $3, fetched_at = now(), last_status = 200
+      WHERE id = $1`,
+    [pageId, hash, etag],
+  );
+  return hash;
+}
 
 export async function fetchPage(
   args: FetchPageArgs,
@@ -113,9 +157,11 @@ export async function fetchPage(
 
   const { rows } = await db.pool.query<PageRow>(
     `SELECT p.id, p.url, p.etag, p.content_hash, p.removed_at,
-            s.id AS site_id, ${sentCrawlKeyVersionSql('s')} AS crawl_key_version, s.origin, s.last_gate_seen_at, r.status AS run_status
+            s.id AS site_id, ${sentCrawlKeyVersionSql('s')} AS crawl_key_version, s.origin, s.last_gate_seen_at, r.status AS run_status,
+            t.render
        FROM pages p
        JOIN sites s ON s.id = p.site_id
+       LEFT JOIN templates t ON t.id = p.template_id
        JOIN crawl_runs r ON r.id = $2 AND r.site_id = s.id
       WHERE p.id = $1`,
     [pageId, runId],
@@ -136,8 +182,9 @@ export async function fetchPage(
     'user-agent': crawlerUserAgent(deps.appBaseUrl),
     accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
   };
+  const browser = page.render === 'browser';
   // Only ask for a 304 when we hold the body it would stand for.
-  if (page.etag && page.content_hash) headers['if-none-match'] = page.etag;
+  if (page.etag && page.content_hash && !browser) headers['if-none-match'] = page.etag;
 
   let retries = 0;
   let rateLimited = 0;
@@ -190,6 +237,38 @@ export async function fetchPage(
     break;
   }
 
+  // SP-064: a browser template's snapshot is the rendered DOM (outside any transaction).
+  let body = res?.body;
+  if (browser && res?.status === 200) {
+    let renderFailure: string | undefined;
+    if (!deps.renderer) renderFailure = 'RENDER_DISABLED: template needs CRAWL_RENDER=browser';
+    else {
+      try {
+        const html = await deps.renderer.render({
+          url: res.url,
+          html: res.body,
+          contentType: res.headers['content-type'],
+          fetchResource: resourceFetcher(deps, {
+            origin: page.origin,
+            headers: {
+              'x-spigot-key': headers['x-spigot-key']!,
+              'user-agent': headers['user-agent']!,
+            },
+            lastGateSeenAt: page.last_gate_seen_at,
+          }),
+        });
+        body = Buffer.from(html, 'utf8');
+      } catch (err) {
+        if (!(err instanceof RenderError)) throw err;
+        renderFailure = `RENDER_${err.code}: ${err.message}`;
+      }
+    }
+    if (renderFailure) {
+      failure = renderFailure;
+      res = undefined;
+    }
+  }
+
   const result = await db.tx(async (tx): Promise<FetchPageResult> => {
     const locked = await tx.query<{ content_hash: string | null; last_status: number | null }>(
       'SELECT content_hash, last_status FROM pages WHERE id = $1 FOR UPDATE',
@@ -209,29 +288,11 @@ export async function fetchPage(
     }
 
     if (res.status === 200) {
-      const hash = sha256(res.body);
-      const newest = await tx.query<{ content_hash: string | null }>(
-        'SELECT content_hash FROM snapshots WHERE page_id = $1 ORDER BY id DESC LIMIT 1',
-        [pageId],
-      );
-      if (newest.rows[0]?.content_hash !== hash) {
-        await tx.query(
-          `INSERT INTO snapshots (page_id, http_status, html_gz, content_hash, bytes)
-           VALUES ($1, 200, $2, $3, $4)`,
-          [pageId, gzipSync(res.body), hash, res.body.length],
-        );
-        await tx.query(
-          `DELETE FROM snapshots
-            WHERE page_id = $1
-              AND id NOT IN (SELECT id FROM snapshots WHERE page_id = $1 ORDER BY id DESC LIMIT 2)`,
-          [pageId],
-        );
-      }
-      await tx.query(
-        `UPDATE pages
-            SET content_hash = $2, etag = $3, fetched_at = now(), last_status = 200
-          WHERE id = $1`,
-        [pageId, hash, res.headers['etag'] ?? null],
+      const hash = await writeSnapshot(
+        tx,
+        pageId,
+        body!,
+        browser ? null : (res.headers['etag'] ?? null),
       );
       await bump(tx, runId, 'pages_fetched');
       return { outcome: current.content_hash === hash ? 'unchanged' : 'changed', status: 200 };

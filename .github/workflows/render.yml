@@ -1,0 +1,59 @@
+name: render
+
+# SP-064: Playwright render tests. Playwright is an optional dependency (not in package-lock), so
+# it's installed here only; ci.yml's jobs skip `render.browser.db.test.ts` without it. A separate
+# file because no ticket edits ci.yml.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/src/crawl/**'
+      - 'apps/api/src/schema-agent/**'
+      - 'apps/api/src/test/render/**'
+      - 'db/migrations/**'
+      - 'packages/shared/src/extract/**'
+      - '.github/workflows/render.yml'
+  pull_request:
+    paths:
+      - 'apps/api/src/crawl/**'
+      - 'apps/api/src/schema-agent/**'
+      - 'apps/api/src/test/render/**'
+      - 'db/migrations/**'
+      - 'packages/shared/src/extract/**'
+      - '.github/workflows/render.yml'
+
+concurrency:
+  group: render-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      PLAYWRIGHT_VERSION: 1.65.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright + headless Chromium (this job only)
+        run: |
+          npm install --no-save --no-audit --no-fund "playwright@${PLAYWRIGHT_VERSION}"
+          npx playwright install --with-deps --only-shell chromium
+      - run: npm run migrate
+      - name: Render tests (heuristic, demo site, real Chromium against the fixture SPA)
+        run: npx vitest run --project unit --project db --maxWorkers=2 apps/api/src/crawl/render

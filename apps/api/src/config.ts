@@ -125,6 +125,9 @@ const envSchema = z.object({
     .transform(Number)
     .pipe(z.number().positive('must be a positive number')),
   CRAWL_MIN_GAP_MS: intWithDefault(250, 0, 60_000),
+  // `browser` lets templates whose pages render client-side be fetched through headless Chromium
+  // (SP-064; needs the optional `playwright` package). Off by default: Chromium is heavy.
+  CRAWL_RENDER: enumWithDefault(['off', 'browser'] as const, 'off'),
 
   // Runtime.
   NODE_ENV: enumWithDefault(['development', 'test', 'production'] as const, 'development'),
