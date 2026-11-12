@@ -181,7 +181,8 @@ Indexes: `(dataset_id, updated_at desc, id)`, `(dataset_id, removed_at)`, GIN on
 | vault_kind | text | `CARD`, `PAYPAL` |
 | per_call_max_micros | bigint default 1000000 | Safety cap: a single call may not cost more than $1 unless the request raises `max_price` |
 | is_simulated | bool default false | |
-| mock_decline_next | bool not null default false | Demo: the next top-up is declined by the mock (`ALLOW_MOCK_DECLINE`, sandbox only) |
+| mock_decline_next | bool not null default false | Demo: the next AUTO top-up is declined by the mock (`ALLOW_MOCK_DECLINE`, sandbox only; set by `npm run demo:decline`) |
+| auto_topup_declined_at | timestamptz | Set when a vault top-up is declined (with `auto_topup_enabled=false`); W11's declined banner while auto top-up is off. Cleared by `PUT /api/buyer/auto-topup` or a newly saved method |
 
 ### api_keys
 | id, buyer_id FK, name, prefix (first 8 chars, shown), key_hash (SHA-256), scopes text[] (`read`, `topup`), rate_limit_per_min int default 60, last_used_at, revoked_at |

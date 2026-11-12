@@ -196,7 +196,13 @@ export const topupResponse = z.object({
   topupId: z.string(),
   status: z
     .string()
-    .describe('`AWAITING_APPROVAL` for a new link; a replay returns the final status.'),
+    .describe(
+      '`COMPLETED` when charged to the saved method (`CREATED` while PayPal confirms); ' +
+        '`AWAITING_APPROVAL` for a new link; a replay returns the final status.',
+    ),
+  method: z
+    .string()
+    .describe('`VAULT_MIT` (charged the saved method) or `PAYPAL_WALLET` (approval link).'),
   amountCents: z.number().int(),
   orderId: z.string().nullable().describe('The PayPal order id.'),
   approveUrl: z
@@ -204,6 +210,10 @@ export const topupResponse = z.object({
     .nullable()
     .describe('PayPal approval link for a human to open; `null` once the top-up has finished.'),
   balanceMicros: z.number().int().optional().describe('Your balance, once `COMPLETED`.'),
+  replay: z
+    .boolean()
+    .optional()
+    .describe('A retry with the same key: the first top-up, nothing new charged.'),
 });
 
 /** The 402 body shared with the gate (api.md §The 402 contract). */

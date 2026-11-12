@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "amountCents": 2000,
+  "thresholdMicros": 2000000,
+  "monthlyCapCents": 10000,
+  "usedThisMonthCents": 2000,
+  "remainingThisMonthCents": 8000,
+  "savedMethod": { "kind": "CARD", "label": "Visa ••1111" },
+  "capReached": false,
+  "declinedAt": null
+}

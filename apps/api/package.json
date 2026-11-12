@@ -18,7 +18,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "seed:demo": "tsx --conditions=source src/cli/seed-demo.ts",
     "demo:reset": "tsx --conditions=source src/cli/demo-reset.ts",
-    "demo:payout": "tsx --conditions=source src/cli/demo-payout.ts"
+    "demo:payout": "tsx --conditions=source src/cli/demo-payout.ts",
+    "demo:decline": "tsx --conditions=source src/cli/demo-decline.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

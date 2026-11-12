@@ -16,6 +16,7 @@ import { ClaudeConfig } from '../../components/buyer/ClaudeConfig';
 import { PayPalTopUp } from '../../components/buyer/PayPalTopUp';
 import type { LoadPayPalSdk, PayPalConfig } from '../../components/buyer/paypalSdk';
 import { TopupsTable, type TopupRowView } from '../../components/buyer/TopupsTable';
+import { AutoTopupCard } from './AutoTopupCard';
 
 interface PortalData {
   balanceMicros: number;
@@ -53,6 +54,8 @@ export function BuyerPortal({
   const [revealed, setRevealed] = useState<RevealedKey | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [savedMethod, setSavedMethod] = useState<SavedMethod | null>(null);
+  /** Bumped after a completed top-up: it may have saved the method auto top-up charges. */
+  const [autoTopupReload, setAutoTopupReload] = useState(0);
   const topupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,6 +107,7 @@ export function BuyerPortal({
     ({ balanceMicros }: { balanceMicros: number }) => {
       setData((d) => (d ? { ...d, balanceMicros } : d));
       refreshSavedMethod();
+      setAutoTopupReload((n) => n + 1);
     },
     [refreshSavedMethod],
   );
@@ -175,8 +179,9 @@ export function BuyerPortal({
               </button>
             </div>
           )}
-          {/* P1 slot (SP-047b): auto top-up card — threshold, amount, monthly cap, saved method,
-              remaining this month, and the cap-reached state (autoTopupCapReachedMessage). */}
+          {/* SP-047b: threshold, amount, monthly cap, saved method, remaining this month,
+              and the cap-reached / declined banners (W15). */}
+          <AutoTopupCard client={client} reloadToken={autoTopupReload} />
         </div>
         <div ref={topupRef} className="space-y-4">
           {ready ? (

@@ -21,7 +21,9 @@ import { idempotencyKeyHeader } from './v1.schemas.js';
  * P0 → `200 { topupId, status: 'AWAITING_APPROVAL', approveUrl, amountCents, orderId }`; the
  * human opens `approveUrl`, PayPal returns them to `/topups/return`, which captures and credits
  * once. A replay of a finished top-up returns its final status (`COMPLETED` adds
- * `balanceMicros`). SP-047b adds `{ status: 'COMPLETED', balanceMicros }` from the vault.
+ * `balanceMicros`). With a saved method (SP-047b) → charged now within the monthly cap:
+ * `{ status: 'COMPLETED', method: 'VAULT_MIT', balanceMicros }`; past the cap → 422
+ * `AUTO_TOPUP_CAP_REACHED` (no PayPal call); declined → 422 `TOPUP_FAILED`.
  *
  * Its own file rather than `v1.ts` (hot-spot rule: add a file). Tenancy:
  * `security/tenancy/v1-topups.cases.ts`.

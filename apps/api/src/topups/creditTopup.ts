@@ -178,8 +178,10 @@ export async function creditTopupTx(
   );
 
   if (capture.vault) {
+    // A newly saved method replaces one that declined: W11's declined banner goes (SP-047b).
     await tx.query(
-      `UPDATE buyers SET vault_id = $2, vault_kind = $3, vault_label = $4, updated_at = now()
+      `UPDATE buyers SET vault_id = $2, vault_kind = $3, vault_label = $4,
+              auto_topup_declined_at = NULL, updated_at = now()
         WHERE id = $1`,
       [
         topup.buyerId,
