@@ -330,11 +330,13 @@ describe.skipIf(!testDatabaseUrl)('SP-055 CMS ping (Postgres + demo site)', () =
     expect(await pendingPings()).toBe(0);
   });
 
-  it(`tenancy (${cases.length} case): site A's crawl key on site B's id → 401, nothing queued for B`, async () => {
+  it(`tenancy (${cases.length} case): site A's crawl key on site B's id → 404 like a random id, nothing queued for B`, async () => {
     const b = await otherSite('http://127.0.0.1:9');
     const res = await ping(b.siteId, `Bearer ${crawlKey}`, { urls: ['http://127.0.0.1:9/a'] });
-    expect(res.status).toBe(401);
-    expect(res.body.error.code).toBe('UNAUTHENTICATED');
+    expect(res.status).toBe(404);
+    const random = await ping(randomUUID(), `Bearer ${crawlKey}`, { urls: ['/a'] });
+    expect(random.status).toBe(404);
+    expect(res.body.error.code).toBe(random.body.error.code);
     expect(await pendingPings(b.siteId)).toBe(0);
     // B's own key works on B only (B is not verified yet: 403).
     const own = await ping(b.siteId, `Bearer ${b.crawlKey}`, {

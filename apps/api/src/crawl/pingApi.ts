@@ -12,7 +12,8 @@ import { MAX_PING_URLS, queuePings } from './ping.js';
  * shell; the queue and the run side are in ping.ts.
  *
  * - Auth: the site's crawl key `ck_…` as Bearer (only `sites.crawl_key_hash` is stored). The key
- *   alone picks the site; a path id that isn't the key's site is the same 401 as a bad key.
+ *   alone picks the site: no key or a bad one → 401; a valid key on any other site id → 404, the
+ *   same as an id that doesn't exist (another tenant's site is never confirmed).
  * - Body `{ urls }`: 1–500 URLs, each on the site's origin (relative paths resolve against it).
  *   Whether a URL is in the sitemap is decided by the run, which re-reads the sitemap when a
  *   pinged URL isn't a known page yet (a new listing); URLs still not listed are dropped.
@@ -42,7 +43,7 @@ const BEARER_CRAWL_KEY = /^Bearer\s+(ck_[A-Za-z0-9_-]{16,200})\s*$/i;
 
 const unauthenticated = () => new ApiError('UNAUTHENTICATED', 'A valid crawl key is required.');
 
-/** The site whose crawl key is in `authorization`, if it is `siteId`; else `401 UNAUTHENTICATED`. */
+/** The site whose crawl key is in `authorization` (else 401), if it is `siteId` (else 404). */
 export async function authenticateCrawlKey(
   q: Queryable,
   authorization: string | undefined,
@@ -55,7 +56,8 @@ export async function authenticateCrawlKey(
     [sha256Hex(m[1]!)],
   );
   const site = rows[0];
-  if (!site || site.id !== siteId) throw unauthenticated();
+  if (!site) throw unauthenticated();
+  if (site.id !== siteId) throw new ApiError('NOT_FOUND', 'Site not found.');
   return site;
 }
 

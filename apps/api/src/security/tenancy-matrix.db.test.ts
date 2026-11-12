@@ -66,6 +66,8 @@ interface Publisher {
   siteId: string;
   slug: string;
   gateKey: string;
+  /** SP-055: the site's crawl key, for `POST /api/sites/:id/ping`. */
+  crawlKey: string;
   liveDatasetId: string;
   proposedDatasetId: string;
   proposedSchemaId: string;
@@ -258,6 +260,7 @@ describe.skipIf(!testDatabaseUrl)(
         siteId,
         slug,
         gateKey: s.gateKey,
+        crawlKey: s.crawlKey,
         liveDatasetId: live!.id,
         proposedDatasetId: proposed!.id,
         proposedSchemaId: psv!.id,
@@ -490,6 +493,7 @@ describe.skipIf(!testDatabaseUrl)(
     /** A's credential for this case. */
     async function credOf(c: LoadedCase): Promise<CallOpts> {
       if (c.url.startsWith('/api/gate/')) return { bearer: A.gateKey };
+      if (c.url === '/api/sites/:id/ping') return { bearer: A.crawlKey };
       if (c.as === 'none') return {};
       if (isApiKeyRoute(c)) return { bearer: bA.key };
       if (isLogout(c)) return { cookie: await freshLogin(c.as) };
