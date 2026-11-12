@@ -14,7 +14,6 @@ const SCREENS: [path: string, screen: string, title: string][] = [
   ['/app/datasets/ds_123', 'W06', 'Dataset editor'],
   ['/app/records', 'W07', 'Records'],
   ['/app/earnings', 'W08', 'Earnings'],
-  ['/app/payouts', 'W09', 'Payouts'],
   ['/app/crawls', 'W10', 'Crawls'],
   ['/app/admin/audit', 'W14', 'Audit'],
   ['/buyers/usage', 'W12', 'Usage and claims'],
@@ -30,6 +29,8 @@ const BUYER_PAGES: [path: string, title: string][] = [
 /** Screens that replaced their stub: path → `data-screen`, heading and a landmark of the real page. */
 const BUILT: [path: string, screen: string, title: string, landmark: string][] = [
   ['/app/settings', 'W16', 'Settings', 'tablist'], // SP-034
+  // SP-031; this test has no payouts API, so W09 shows its inline error banner.
+  ['/app/payouts', 'W09', 'Payouts', 'alert'],
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
