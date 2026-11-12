@@ -197,12 +197,6 @@ describe.skipIf(!testDatabaseUrl)(
         const r = await t.connect({ origin });
         expect(r.status, `${origin}: ${JSON.stringify(r.body)}`).toBe(400);
       }
-      // A public-looking origin whose sitemap URL is private: the sitemap is off-origin, refused.
-      const r = await t.connect({
-        origin: `http://127.0.0.1:${p}`,
-        sitemapUrl: `http://127.0.0.1:${p}/sitemap.xml`,
-      });
-      expect(r.status).toBe(400);
       expect(target.hits).toEqual([]);
       const { rows } = await t.h.app.db.pool.query(`SELECT origin FROM sites`);
       expect(rows).toEqual([]);
@@ -280,6 +274,31 @@ describe.skipIf(!testDatabaseUrl)(
       for (const o of ['http://169.254.169.254', 'http://[fe80::1]', 'http://0.0.0.0']) {
         const r = await t.connect({ origin: o });
         expect(r.status, `${o}: ${JSON.stringify(r.body)}`).toBe(400);
+      }
+    });
+
+    it('connect: an allowed origin with a sitemapUrl on another (private) host → 400, never fetched', async () => {
+      // A fresh origin of its own (origins are unique, and the tests above used `origin`).
+      const fresh = await listen();
+      fresh.routes = { ...origin.routes };
+      try {
+        const o = `http://127.0.0.1:${fresh.port}`;
+        for (const sitemapUrl of [
+          `http://127.0.0.1:${other.port}/sitemap.xml`,
+          `http://localhost:${other.port}/sitemap.xml`,
+          'http://169.254.169.254/latest/meta-data/',
+        ]) {
+          const r = await t.connect({ origin: o, sitemapUrl });
+          expect(r.status, `${sitemapUrl}: ${JSON.stringify(r.body)}`).toBe(400);
+        }
+        expect(other.hits).toEqual([]);
+        // Control: the same origin connects on its own, so only the sitemapUrl caused the 400s.
+        const ok = await t.connect({ origin: o, sitemapUrl: `${o}/sitemap.xml` });
+        expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+        expect(fresh.hits).toContain('/sitemap.xml');
+        expect(other.hits).toEqual([]);
+      } finally {
+        await closeAll([fresh]);
       }
     });
   },

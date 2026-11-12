@@ -69,7 +69,9 @@ gitleaks plus `npm audit` in the `security` job ([ci.yml](../.github/workflows/c
     loopback / private / CGNAT / metadata / IPv4-mapped / integer-encoded origins → 400 and no
     request; a crawl of a site row on loopback makes no request; with `ALLOW_LOCAL_ORIGINS` (dev
     demo), sitemap URLs on other private hosts and a `sitemap_url` on another host are never
-    fetched, and metadata / link-local origins are still refused.
+    fetched by a crawl; connect with an allowed origin and a `sitemapUrl` on another private or
+    metadata host → 400 and no request (the same origin alone connects, so the sitemap URL is what
+    is refused); and metadata / link-local origins are still refused.
 - [x] **CSRF: SameSite cookies + origin check on mutating routes.**
   - [`plugins/30-csrf.ts`](../apps/api/src/plugins/30-csrf.ts); "mutating /api routes need a
     same-origin Origin" in [`http/plumbing.test.ts`](../apps/api/src/http/plumbing.test.ts);
