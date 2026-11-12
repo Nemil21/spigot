@@ -7,6 +7,10 @@ const v = (name: string) => `var(--sp-${name})`;
 /**
  * AG Grid Quartz customised with Spigot tokens (features/13 §6). Colours are CSS variables, so the
  * one theme follows `data-theme` on <html> for light and dark with no re-render.
+ *
+ * The look is a quiet ledger: headers sit on the same surface as the rows with muted labels, rows
+ * are divided by hairlines only (no zebra, no column rules), hover is a faint wash and only the
+ * selected row carries the accent. Numbers use tabular figures (see tokens.css `.ag-cell`).
  */
 export const gridTheme = themeQuartz.withParams({
   fontFamily: font.sans,
@@ -26,6 +30,7 @@ export const gridTheme = themeQuartz.withParams({
   headerRowBorder: { color: v('border') },
   rowBorder: { color: v('line') },
   columnBorder: false,
+  headerColumnResizeHandleColor: v('line'),
   rowHoverColor: v('surface-2'),
   selectedRowBackgroundColor: v('accent-tint'),
   oddRowBackgroundColor: v('surface'),
@@ -48,6 +53,7 @@ export const gridTheme = themeQuartz.withParams({
 export function chartTheme(mode: ThemeMode): AgChartTheme {
   const t = tokens[mode];
   const palette = [...chartPalette[mode]];
+  const axisLabel = { color: t.muted, fontSize: 11 };
   return {
     baseTheme: mode === 'dark' ? 'ag-default-dark' : 'ag-default',
     palette: { fills: palette, strokes: palette },
@@ -62,7 +68,36 @@ export function chartTheme(mode: ThemeMode): AgChartTheme {
       tooltipBackgroundColor: t.surface,
       tooltipTextColor: t.ink,
       gridLineColor: t.line,
-      chartPadding: 16,
+      chartPadding: 8,
+    },
+    overrides: {
+      common: {
+        legend: {
+          item: {
+            marker: { shape: 'square', size: 8 },
+            label: { color: t.body, fontSize: 12 },
+          },
+        },
+        axes: {
+          number: {
+            line: { enabled: false },
+            label: axisLabel,
+            gridLine: { style: [{ stroke: t.line, lineDash: [3, 3] }] },
+          },
+          category: {
+            line: { stroke: t.border },
+            label: axisLabel,
+            gridLine: { enabled: false },
+          },
+          time: {
+            line: { stroke: t.border },
+            label: axisLabel,
+            gridLine: { enabled: false },
+          },
+        },
+      },
+      area: { series: { fillOpacity: 0.22, strokeWidth: 1.5 } },
+      bar: { series: { cornerRadius: 2 } },
     },
   };
 }
