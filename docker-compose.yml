@@ -51,9 +51,11 @@ services:
     environment:
       PORT: '4100'
       DEMO_DATA_DIR: /data/bluebonnet
-      # 10 listings (+ 1 agent, 1 open house): a crawl and proposal that finish in seconds live.
-      # Full size: DEMO_LISTINGS=2341 in .env.
-      DEMO_LISTINGS: ${DEMO_LISTINGS:-10}
+      # 25 listings (+ 1 agent, 1 open house): a crawl and proposal that finish in seconds live.
+      # Not below 20: URL clustering needs >= 20 distinct /listings/<slug> pages to see a record
+      # type (CLUSTER_DEFAULTS.paramMinDistinct), so 10 gives no proposal. Full size:
+      # DEMO_LISTINGS=2341 in .env (then Agent and Open House are proposed too).
+      DEMO_LISTINGS: ${DEMO_LISTINGS:-25}
     volumes:
       - demodata:/data
     depends_on:

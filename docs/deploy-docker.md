@@ -29,8 +29,9 @@ site). On Cloudflare use **DNS only**: its proxy cuts SSE / MCP connections afte
 `DEMO_ADMIN_TOKEN` (same as in `.env`), `SPIGOT_API_BASE=https://spigot.<domain>`,
 `SPIGOT_VERIFY_TOKEN` (same as in `.env`), `SPIGOT_GATE_KEY` (empty until step 5).
 
-The demo site runs with **10 listings** (+ 1 agent, 1 open house) by default, so a live crawl and Claude's
-proposal finish in seconds. For the full 2,341 / 88 / 40 set `DEMO_LISTINGS=2341` in `.env`, then
+The demo site runs with **25 listings** (+ 1 agent, 1 open house) by default, so a live crawl and Claude's
+proposal (one record type, Listing · 25) finish in seconds. Don't go below 20: URL clustering needs at least
+20 distinct `/listings/<slug>` pages to find a record type, so 10 listings gives no proposal. For the full 2,341 / 88 / 40 set `DEMO_LISTINGS=2341` in `.env`, then
 `docker compose up -d demo-site`.
 
 ## 3. Start
