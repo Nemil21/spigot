@@ -142,8 +142,8 @@ Indexes: `(dataset_id, updated_at desc, id)`, `(dataset_id, removed_at)`, GIN on
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| site_id | uuid FK | Partial unique index on (site_id) where status in ('QUEUED','RUNNING') and trigger <> 'APPROVE': one live run per site |
-| trigger | text | `CONNECT`, `MANUAL`, `SCHEDULE`, `PING`, `DEMO_MUTATE`, `APPROVE` (approve-time extraction, SP-014a; may overlap a crawl, SP-013's dataset locks keep the watermark safe) |
+| site_id | uuid FK | Partial unique index on (site_id) where status in ('QUEUED','RUNNING') and trigger not in ('APPROVE','CLAIM'): one live run per site |
+| trigger | text | `CONNECT`, `MANUAL`, `SCHEDULE`, `PING`, `DEMO_MUTATE`, `APPROVE` (approve-time extraction, SP-014a; may overlap a crawl, SP-013's dataset locks keep the watermark safe), `CLAIM` (one targeted re-fetch for a STALE / REMOVED claim, SP-048c; may overlap a crawl, like APPROVE) |
 | status | text | `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `PAUSED` |
 | workflow_run_id | text | Render Workflows run id, or `inproc:<id>` in fallback mode |
 | pages_total, pages_fetched, pages_not_modified, pages_failed | int | Progress for W10 |
@@ -279,6 +279,10 @@ PayPal's own fees are tracked outside the ledger on `topups` and `payout_items` 
 ### claims (P1)
 | id, api_call_id FK, record_id FK, buyer_id FK, reason (`STALE`, `WRONG_VALUE`, `MISSING_FIELD`, `DUPLICATE`, `REMOVED`), note text, status (`OPEN`, `AUTO_CREDITED`, `CREDITED`, `REJECTED`), credit_micros, decided_by (`AUTO`, `PUBLISHER`, `ADMIN`), ai_recommendation jsonb, ledger_txn_id |
 unique(api_call_id, record_id): one claim per record per call.
+
+### record_refetches (P1, SP-048c)
+| record_id PK FK, crawl_run_id FK (the CLAIM run; null when nothing was fetched), outcome (`FETCHED`, `GONE`, `FAILED`), http_status, fetched_at |
+The record's latest STALE / REMOVED re-fetch: at most one per record per 10 minutes; a claim inside the window reuses it. Re-fetches of one record are serialized on the advisory lock `claim-refetch:<record id>`.
 
 ### balance_refunds (P1)
 | id (PayPal-Request-Id), buyer_id, topup_id FK, amount_cents, currency, paypal_refund_id unique, status (`REQUESTED`, `PENDING`, `COMPLETED`, `FAILED`), ledger_txn_id, error_code, idempotency_key |

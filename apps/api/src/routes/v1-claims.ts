@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { apiKeyRateLimit, authenticateBearer, requireApiKey } from '../auth/apiKeys.js';
 import { CLAIM_REASONS } from '../claims/checks.js';
-import { createClaim } from '../claims/create.js';
+import { claimDeps, submitClaim } from '../claims/refetchCheck.js';
 import { parse } from '../http/errors.js';
 
 /**
@@ -10,7 +10,8 @@ import { parse } from '../http/errors.js';
  * `{ callId, recordKey, reason, note? }` → `{ claimId, status: 'AUTO_CREDITED' | 'OPEN', creditMicros }`.
  * Bearer API key (any scope: claiming is free and only ever credits the key's own buyer), the
  * key's REST rate limit. Another buyer's call is `404`; an ineligible claim is
- * `422 CLAIM_NOT_ELIGIBLE`; a resend returns the existing claim.
+ * `422 CLAIM_NOT_ELIGIBLE`; a resend returns the existing claim. STALE / REMOVED claims re-fetch
+ * the record's page before answering (SP-048c, `claims/refetchCheck.ts`).
  *
  * Its own file rather than `v1.ts` (hot-spot rule: add a file). Tenancy:
  * `security/tenancy/claims.cases.ts`.
@@ -29,22 +30,23 @@ export const claimResponse = z.object({
 });
 
 const v1ClaimRoutes: FastifyPluginAsync = async (app) => {
+  const abort = new AbortController();
+  app.addHook('onClose', async () => abort.abort());
+  const deps = claimDeps(app.db, app.config, abort.signal);
+
   app.post(
     '/v1/claims',
     { onRequest: authenticateBearer, preHandler: [apiKeyRateLimit('rest')] },
     async (req) => {
       const key = requireApiKey(req);
       const body = parse(claimRequestBody, req.body ?? {}, 'claim');
-      return createClaim(
-        { db: app.db },
-        {
-          buyerId: key.buyerId,
-          callId: body.callId,
-          recordKey: body.recordKey,
-          reason: body.reason,
-          note: body.note ?? null,
-        },
-      );
+      return submitClaim(deps, {
+        buyerId: key.buyerId,
+        callId: body.callId,
+        recordKey: body.recordKey,
+        reason: body.reason,
+        note: body.note ?? null,
+      });
     },
   );
 };
