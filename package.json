@@ -20,6 +20,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "openapi": "npm run build -w @spigot/shared && tsx apps/api/src/openapi/generate.ts",
     "test": "vitest run --project unit --project web --maxWorkers=2",
     "test:db": "npm test -w @spigot/db",
     "migrate": "npm run migrate -w @spigot/db",
