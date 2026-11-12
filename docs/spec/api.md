@@ -97,11 +97,11 @@ If the request's `Accept` prefers `text/html`, the gate returns a small static H
 ### `POST /api/auth/signup` `{ "name", "email", "password", "payoutEmail" }` → `201 { "publisherId" }` · `POST /api/auth/login` · `POST /api/auth/logout`
 
 ### Log in with PayPal (P1, SP-058): `GET /api/auth/paypal/start` · `GET /api/auth/paypal/callback`
-- `start` → `302` to PayPal consent (`scope=openid email https://uri.paypal.com/services/paypalattributes`, fresh `state` + `nonce` kept in a signed 10-minute HttpOnly cookie). Signed in as a publisher → the flow links PayPal to that account (W16 "Connect with PayPal").
+- `start` → `302` to PayPal consent (`scope=openid email https://uri.paypal.com/services/paypalattributes`, fresh `state` + `nonce` kept in a signed 10-minute HttpOnly cookie). Query `intent=connect` (sent only by W16 "Connect with PayPal") **plus** a publisher session → the flow links PayPal to that publisher. Without `intent=connect` (W02 "Log in with PayPal" / "Sign up with PayPal") it is always a login, even if a publisher session exists: the callback replaces that session with the PayPal publisher's and never changes the signed-in account. `intent=connect` without a session falls back to a login.
 - `callback?code&state` → checks `state`, exchanges the code (`nonce` checked against the `id_token`), reads userinfo (`schema=paypalv1.1`), requires a verified email and a payer id, then `302`:
   - payer id known → signed in, `/app` (the payout email is left as the publisher set it);
   - new payer id and email → publisher created (no password, `payout_email` = PayPal email), signed in, `/app/connect`;
-  - linking → `paypal_payer_id` set, `payout_email` = PayPal email, `/app/settings?tab=payout&paypal=connected`.
+  - linking (`intent=connect`) → `paypal_payer_id` set, `payout_email` = PayPal email, `/app/settings?tab=payout&paypal=connected`.
 - Failures `302` to `/app/login` (or `/app/settings?tab=payout` when linking) with `?paypal=cancelled | state | unverified | link-required | taken | error`. `link-required`: the email belongs to an unlinked password account; it is never merged on email alone (log in with the password, then connect from Settings).
 - `GET /api/auth/me` gains `publisher.paypalConnected`.
 
