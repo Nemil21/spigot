@@ -1,6 +1,7 @@
 import type { ColDef, GetRowIdParams, ICellRendererParams } from 'ag-grid-community';
 import { PayPalId, SimChip } from '../../components';
-import { SpigotGrid } from '../../grid';
+import { GRID_AUTO_HEIGHT_ROWS } from '../../components/buyer/ui';
+import { SpigotGrid, gridTheme } from '../../grid';
 import { dataSummary, formatAt, isSimEvent, type AuditEvent } from './model';
 
 /** An id in mono, middle-truncated like `PayPalId`, with the full value in the tooltip. */
@@ -85,6 +86,9 @@ const columns: ColDef<AuditEvent>[] = [
   },
 ];
 
+/** The grid sits inside the W14 panel, which draws the frame: no wrapper border or radius. */
+const framelessTheme = gridTheme.withParams({ wrapperBorder: false, wrapperBorderRadius: 0 });
+
 const rowId = (p: GetRowIdParams<AuditEvent>) => p.data.id;
 
 /**
@@ -99,9 +103,10 @@ export function AuditGrid({ events }: { events: AuditEvent[] }) {
       columnDefs={columns}
       defaultColDef={{ flex: 1, sortable: true, resizable: true, suppressHeaderMenuButton: true }}
       getRowId={rowId}
+      theme={framelessTheme}
       // A page of events sizes to its rows (no empty band); longer lists scroll in the grid.
-      height={events.length <= 15 ? 'auto' : 520}
-      domLayout={events.length <= 15 ? 'autoHeight' : 'normal'}
+      height={events.length <= GRID_AUTO_HEIGHT_ROWS ? 'auto' : 520}
+      domLayout={events.length <= GRID_AUTO_HEIGHT_ROWS ? 'autoHeight' : 'normal'}
       tooltipShowDelay={300}
       // Seven columns: render them all, so the PayPal id is always in the DOM (and findable).
       suppressColumnVirtualisation

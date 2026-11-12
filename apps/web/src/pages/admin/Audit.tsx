@@ -189,10 +189,7 @@ export function AuditScreen({ client = defaultApi }: AuditScreenProps) {
               {audit.value.events.length === 1 ? '' : 's'}
               {audit.value.next ? ' shown, newest first' : ', newest first'}
             </p>
-            {/* Inside the panel the grid drops its own frame; the panel is the frame. */}
-            <div className="[&_.ag-root-wrapper]:rounded-none [&_.ag-root-wrapper]:border-0">
-              <AuditGrid events={audit.value.events} />
-            </div>
+            <AuditGrid events={audit.value.events} />
             {(moreError !== null || audit.value.next) && (
               <div className="space-y-3 border-t border-line px-5 py-4 sm:px-6">
                 {moreError !== null && <ErrorBanner error={moreError} onRetry={loadMore} />}
@@ -403,7 +400,7 @@ function HealthSection({
       {h.status === 'ok' ? (
         <p
           role="status"
-          className="flex items-center gap-2 border-b border-line bg-positive-tint px-5 py-2.5 text-sm text-positive sm:px-6"
+          className="border-b border-line bg-positive-tint px-5 py-2.5 text-sm text-positive sm:px-6"
         >
           Healthy. PayPal, the database and Workflows answered. Checked {formatAt(h.checkedAt)}.
         </p>
