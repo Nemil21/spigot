@@ -2,17 +2,11 @@ import { useSyncExternalStore } from 'react';
 import type { ThemeMode } from './tokens';
 
 /**
- * Light / dark mode. The user's explicit choice is kept in localStorage; otherwise the OS
- * preference wins. Applied as `data-theme` on <html>, which tokens.css and the AG Grid theme read.
+ * Light / dark mode. The user's explicit choice is kept in localStorage; otherwise dark, the
+ * designed default. Applied as `data-theme` on <html>, which tokens.css and the AG Grid theme read.
  */
 const STORAGE_KEY = 'spigot.theme';
 const listeners = new Set<() => void>();
-
-function systemMode(): ThemeMode {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
-}
 
 function storedMode(): ThemeMode | null {
   try {
@@ -25,10 +19,10 @@ function storedMode(): ThemeMode | null {
 
 export function getThemeMode(): ThemeMode {
   const attr = document.documentElement.dataset.theme;
-  return attr === 'dark' || attr === 'light' ? attr : (storedMode() ?? systemMode());
+  return attr === 'dark' || attr === 'light' ? attr : (storedMode() ?? 'dark');
 }
 
-export function applyThemeMode(mode: ThemeMode = storedMode() ?? systemMode()): void {
+export function applyThemeMode(mode: ThemeMode = storedMode() ?? 'dark'): void {
   document.documentElement.dataset.theme = mode;
   listeners.forEach((l) => l());
 }

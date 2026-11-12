@@ -23,7 +23,7 @@ export function Kpi({
     >
       <p className="text-xs font-medium text-muted">{label}</p>
       {/* text-xl at 1024 px so five tiles fit the W04 row; text-2xl from 1280 px. */}
-      <p className="mt-1 text-xl font-semibold text-ink tabular-nums xl:text-2xl">
+      <p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-light tracking-tight text-ink tabular-nums xl:text-3xl">
         {loading ? <Skeleton className="h-7 w-28" /> : value}
       </p>
       {hint && !loading && <p className="mt-1 text-xs text-muted">{hint}</p>}

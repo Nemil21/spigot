@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { Money } from '../components';
+import { Logo } from '../components/Brand';
 import { claudeDesktopConfig, mcpUrl } from '../components/buyer/ClaudeConfig';
 import { paths } from '../routes';
 
@@ -33,7 +34,6 @@ export const STEPS = [
     body: 'Bots get a 402 pointing at your paid API. Agents top up with PayPal, every call is metered, and your earnings are paid out via PayPal Payouts.',
   },
 ] as const;
-
 
 /** A paid read and its response (api.md §`GET /v1/:site/datasets/:dataset/records`). */
 export function sampleRequest(origin: string = window.location.origin): string {
@@ -76,8 +76,41 @@ const primaryCta =
   'inline-flex items-center justify-center rounded-md bg-accent px-4 py-2.5 font-medium text-on-accent hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
 const secondaryCta =
   'inline-flex items-center justify-center rounded-md border border-border bg-surface px-4 py-2.5 font-medium text-ink hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
-const navLink =
-  'rounded-md px-2 py-1 text-sm font-medium text-body hover:text-ink focus-visible:outline-2 focus-visible:outline-focus';
+/** Frosted pill used by every hero nav item (Figma "Landing / Hero"). */
+const glass =
+  'flex items-center rounded-lg border border-white/10 bg-white/12 text-white backdrop-blur-md hover:bg-white/16';
+
+/** "Scrape from" strip: sites people scrape (simple-icons paths, CC0). */
+const SCRAPE_FROM: readonly (readonly [string, string])[] = [
+  [
+    'Swiggy',
+    'M12.034 24c-.376-.411-2.075-2.584-3.95-5.513-.547-.916-.901-1.63-.833-1.814.178-.48 3.355-.743 4.333-.308.298.132.29.307.29.409 0 .44-.022 1.619-.022 1.619a.441.441 0 1 0 .883-.002l-.005-2.939c0-.255-.278-.319-.331-.329-.511-.002-1.548-.006-2.661-.006-2.457 0-3.006.101-3.423-.172-.904-.591-2.383-4.577-2.417-6.819C3.849 4.964 5.723 2.225 8.362.868A8.13 8.13 0 0 1 12.026 0c4.177 0 7.617 3.153 8.075 7.209l.001.011c.084.981-5.321 1.189-6.39.904-.164-.044-.206-.212-.206-.284L13.5 4.996a.442.442 0 0 0-.884.002l.009 3.866a.33.33 0 0 0 .268.32l3.354-.001c1.79 0 2.542.207 3.042.588.333.254.461.739.349 1.37C18.633 16.755 12.273 23.71 12.034 24z',
+  ],
+  [
+    'Instacart',
+    'M15.629 9.619c1.421 1.429 2.58 3.766 1.917 5.152-1.778 3.715-15.04 10.226-16.169 9.1C.252 22.746 6.768 9.476 10.481 7.697c1.388-.66 3.724.51 5.152 1.92l-.005.014v-.012zm7.028-1.566c-.231-.855-.821-1.717-1.7-1.82-1.61-.186-4.151 2.663-3.971 3.339.181.69 3.766 1.875 5.1.915.691-.494.781-1.56.556-2.414l.015-.02zM17.666.158c1.198.324 2.407 1.148 2.551 2.382.261 2.259-3.732 5.819-4.68 5.564-.948-.251-2.618-5.284-1.269-7.162.695-.972 2.201-1.106 3.399-.788v.004h-.001z',
+  ],
+  [
+    'DoorDash',
+    'M23.071 8.409a6.09 6.09 0 00-5.396-3.228H.584A.589.589 0 00.17 6.184L3.894 9.93a1.752 1.752 0 001.242.516h12.049a1.554 1.554 0 11.031 3.108H8.91a.589.589 0 00-.415 1.003l3.725 3.747a1.75 1.75 0 001.242.516h3.757c4.887 0 8.584-5.225 5.852-10.413',
+  ],
+  [
+    'Flipkart',
+    'M3.833 1.333a.993.993 0 0 0-.333.061V1c0-.551.449-1 1-1h14.667c.551 0 1 .449 1 1v.333H3.833zm17.334 2.334H2.833c-.551 0-1 .449-1 1V23c0 .551.449 1 1 1h7.3l1.098-5.645h-2.24c-.051 0-5.158-.241-5.158-.241l4.639-.327-.078-.366-1.978-.285 1.882-.158-.124-.449-3.075-.467s3.341-.373 3.392-.373h3.232l.247-1.331c.289-1.616.945-2.807 1.973-3.693 1.033-.892 2.344-1.332 3.937-1.332.643 0 1.053.151 1.231.463.118.186.201.516.279.859.074.352.14.671.095.903-.057.345-.461.465-1.197.465h-.253c-1.327 0-2.134.763-2.405 2.31l-.243 1.355h1.54c.574 0 .781.402.622 1.306-.17.941-.539 1.36-1.111 1.36H14.9L13.804 24h7.362c.551 0 1-.449 1-1V4.667a1 1 0 0 0-.999-1zM20.5 2.333A.334.334 0 0 0 20.167 2H3.833a.334.334 0 0 0-.333.333V3h17v-.667z',
+  ],
+  [
+    'Airbnb',
+    'M12.001 18.275c-1.353-1.697-2.148-3.184-2.413-4.457-.263-1.027-.16-1.848.291-2.465.477-.71 1.188-1.056 2.121-1.056s1.643.345 2.12 1.063c.446.61.558 1.432.286 2.465-.291 1.298-1.085 2.785-2.412 4.458zm9.601 1.14c-.185 1.246-1.034 2.28-2.2 2.783-2.253.98-4.483-.583-6.392-2.704 3.157-3.951 3.74-7.028 2.385-9.018-.795-1.14-1.933-1.695-3.394-1.695-2.944 0-4.563 2.49-3.927 5.382.37 1.565 1.352 3.343 2.917 5.332-.98 1.085-1.91 1.856-2.732 2.333-.636.344-1.245.558-1.828.609-2.679.399-4.778-2.2-3.825-4.88.132-.345.395-.98.845-1.961l.025-.053c1.464-3.178 3.242-6.79 5.285-10.795l.053-.132.58-1.116c.45-.822.635-1.19 1.351-1.643.346-.21.77-.315 1.246-.315.954 0 1.698.558 2.016 1.007.158.239.345.557.582.953l.558 1.089.08.159c2.041 4.004 3.821 7.608 5.279 10.794l.026.025.533 1.22.318.764c.243.613.294 1.222.213 1.858zm1.22-2.39c-.186-.583-.505-1.271-.9-2.094v-.03c-1.889-4.006-3.642-7.608-5.307-10.844l-.111-.163C15.317 1.461 14.468 0 12.001 0c-2.44 0-3.476 1.695-4.535 3.898l-.081.16c-1.669 3.236-3.421 6.843-5.303 10.847v.053l-.559 1.22c-.21.504-.317.768-.345.847C-.172 20.74 2.611 24 5.98 24c.027 0 .132 0 .265-.027h.372c1.75-.213 3.554-1.325 5.384-3.317 1.829 1.989 3.635 3.104 5.382 3.317h.372c.133.027.239.027.265.027 3.37.003 6.152-3.261 4.802-6.975z',
+  ],
+];
+
+function PayPalMark() {
+  return (
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M7.016 19.198h-4.2a.562.562 0 0 1-.555-.65L5.093.584A.692.692 0 0 1 5.776 0h7.222c3.417 0 5.904 2.488 5.846 5.5-.006.25-.027.5-.066.747A6.794 6.794 0 0 1 12.071 12H8.743a.69.69 0 0 0-.682.583l-.325 2.056-.013.083-.692 4.39-.015.087zM19.79 6.142c-.01.087-.01.175-.023.261a7.76 7.76 0 0 1-7.695 6.598H9.007l-.283 1.795-.013.083-.692 4.39-.134.843-.014.088H6.86l-.497 3.15a.562.562 0 0 0 .555.65h3.612c.34 0 .63-.249.683-.585l.952-6.031a.692.692 0 0 1 .683-.584h2.126a6.793 6.793 0 0 0 6.707-5.752c.306-1.95-.466-3.744-1.89-4.906z" />
+    </svg>
+  );
+}
 const codeBlock =
   'mt-2 max-w-full overflow-x-auto rounded-md bg-surface-2 p-3 font-mono text-xs leading-relaxed text-ink focus-visible:outline-2 focus-visible:outline-focus';
 
@@ -141,47 +174,94 @@ export default function LandingPage() {
       >
         Skip to content
       </a>
-      <header className="border-b border-line bg-surface">
-        <nav
-          aria-label="Main"
-          className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-6"
-        >
-          <Link to={paths.landing} className="text-lg font-semibold text-accent">
-            Spigot
-          </Link>
-          <ul className="flex flex-wrap items-center gap-1">
-            <li className="hidden sm:block">
-              <a href="#how" className={navLink}>
-                How it works
-              </a>
-            </li>
-            <li className="hidden sm:block">
-              <a href="#agents" className={navLink}>
-                For agents
-              </a>
-            </li>
-            <li>
-              <Link to={paths.login} className={navLink}>
-                Publisher sign in
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </header>
-
       <main id="main">
         <section
           aria-labelledby="hero-title"
-          className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20"
+          data-theme="dark"
+          className="relative flex min-h-[640px] flex-col overflow-hidden bg-[#070b23] bg-[url('/hero-bg.webp')] bg-cover bg-bottom text-white sm:h-screen sm:max-h-[1000px]"
         >
-          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-            <div className="min-w-0">
+          <nav
+            aria-label="Main"
+            className="mx-auto flex w-full max-w-[1296px] items-center justify-between gap-3 px-4 pt-8 sm:px-0"
+          >
+            <div className="flex items-center gap-3">
+              <Link to={paths.landing} className={`${glass} h-11 px-4`}>
+                <Logo />
+              </Link>
+              <ul className={`${glass} hidden h-11 gap-1 p-1.5 sm:flex`}>
+                <li>
+                  <a href="#agents" className="rounded-md bg-white/14 px-4 py-2 text-sm">
+                    Pricing
+                  </a>
+                </li>
+                <li>
+                  <a href="#how" className="rounded-md px-4 py-2 text-sm hover:bg-white/10">
+                    Features
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <Link to={paths.login} className={`${glass} h-11 px-5 text-sm`}>
+              Sign in
+            </Link>
+          </nav>
+
+          <div className="mx-auto grid w-full max-w-[1296px] gap-8 px-4 pt-24 sm:px-0 lg:grid-cols-[1fr_460px] lg:pt-[180px]">
+            <div>
+              <p className="flex items-center gap-2 text-[15px] text-white/75">
+                Built on <PayPalMark /> <span className="font-semibold text-white">PayPal</span>
+              </p>
               <h1
                 id="hero-title"
-                className="text-3xl font-semibold tracking-tight text-ink sm:text-5xl"
+                className="mt-4 text-5xl text-white sm:text-[72px] sm:leading-[80px]"
               >
-                Turn your site into a paid API for AI agents
+                Make AI bots pay <br />
+                for your site.
               </h1>
+            </div>
+            <div className="lg:pt-12">
+              <p className="text-lg leading-[30px] text-white/80 sm:text-xl">
+                Turn your site into a paid API for AI agents. PayPal pays you.
+              </p>
+              <Link
+                to={paths.login}
+                className="mt-6 inline-flex items-center rounded-lg bg-white px-[22px] py-3 text-lg font-medium text-[#0a1230] hover:bg-white/90"
+              >
+                View demo
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-auto border-t border-white/10 bg-white/10 backdrop-blur-xl">
+            <div className="mx-auto flex max-w-[1296px] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-4 py-7 sm:px-0">
+              <span className="text-[15px] font-medium text-white/60">Scrape from</span>
+              {SCRAPE_FROM.map(([name, d]) => (
+                <span
+                  key={name}
+                  className="flex items-center gap-2.5 text-[17px] font-medium text-white/90"
+                >
+                  <svg
+                    aria-hidden="true"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d={d} />
+                  </svg>
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section aria-label="Get started" className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+            <div className="min-w-0">
+              <h2 className="text-3xl font-[family-name:var(--font-display)] font-light tracking-tight text-ink sm:text-4xl">
+                Turn your site into a paid API for AI agents
+              </h2>
               <p className="mt-4 text-lg text-body sm:text-xl">
                 Scrapers pay Bright Data. Spigot makes them pay you.
               </p>

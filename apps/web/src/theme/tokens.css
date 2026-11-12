@@ -15,60 +15,60 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 :root {
-  --sp-canvas: #f3f6f7;
+  --sp-canvas: #f4f6fb;
   --sp-surface: #ffffff;
-  --sp-surface-2: #e9eef1;
-  --sp-border: #cdd7dd;
-  --sp-line: #dfe6ea;
-  --sp-ink: #0d1b24;
-  --sp-body: #364955;
-  --sp-muted: #677a86;
-  --sp-accent: #0b6e75;
-  --sp-accent-strong: #08545a;
-  --sp-accent-tint: #dbeff0;
+  --sp-surface-2: #eceffa;
+  --sp-border: #cfd6ea;
+  --sp-line: #e2e6f3;
+  --sp-ink: #0b1230;
+  --sp-body: #3a4466;
+  --sp-muted: #6b7596;
+  --sp-accent: #3d5bd9;
+  --sp-accent-strong: #2c45b3;
+  --sp-accent-tint: #e3e9ff;
   --sp-on-accent: #ffffff;
-  --sp-money: #8a5a00;
-  --sp-money-tint: #fbf0d9;
-  --sp-positive: #1b7a4b;
-  --sp-positive-tint: #dcf2e5;
+  --sp-money: #0f8a5f;
+  --sp-money-tint: #dcf5ea;
+  --sp-positive: #0f8a5f;
+  --sp-positive-tint: #dcf5ea;
   --sp-warning: #a15c00;
   --sp-warning-tint: #fdeccf;
-  --sp-danger: #b8322a;
-  --sp-danger-tint: #fbe4e1;
-  --sp-info: #2a5db0;
-  --sp-info-tint: #e0eafa;
+  --sp-danger: #c0323f;
+  --sp-danger-tint: #fbe2e5;
+  --sp-info: #2a6fb0;
+  --sp-info-tint: #e0edfa;
   --sp-sim: #6c45c9;
   --sp-sim-tint: #ece5fb;
-  --sp-focus: #1f9aa3;
+  --sp-focus: #3d5bd9;
   color-scheme: light;
 }
 
 [data-theme='dark'] {
-  --sp-canvas: #0a1217;
-  --sp-surface: #101b21;
-  --sp-surface-2: #16242c;
-  --sp-border: #2b3c46;
-  --sp-line: #1d2b33;
-  --sp-ink: #e4edf1;
-  --sp-body: #b3c3cc;
-  --sp-muted: #7e919c;
-  --sp-accent: #3cc0c8;
-  --sp-accent-strong: #74d8de;
-  --sp-accent-tint: #0f3438;
-  --sp-on-accent: #04191b;
-  --sp-money: #f2b33d;
-  --sp-money-tint: #3a2a08;
-  --sp-positive: #4cc38a;
-  --sp-positive-tint: #0f3121;
-  --sp-warning: #f0aa45;
-  --sp-warning-tint: #3a2809;
-  --sp-danger: #f27b70;
-  --sp-danger-tint: #3d1512;
-  --sp-info: #7fa8f2;
-  --sp-info-tint: #15264a;
-  --sp-sim: #b49cff;
-  --sp-sim-tint: #2a1f4d;
-  --sp-focus: #5fd3da;
+  --sp-canvas: #070b23;
+  --sp-surface: #0e1433;
+  --sp-surface-2: #161d40;
+  --sp-border: #2a3360;
+  --sp-line: #1c2449;
+  --sp-ink: #f2f4ff;
+  --sp-body: #c4cae6;
+  --sp-muted: #8590b8;
+  --sp-accent: #8fabff;
+  --sp-accent-strong: #b5c7ff;
+  --sp-accent-tint: #1c2652;
+  --sp-on-accent: #0a1230;
+  --sp-money: #6ee8b0;
+  --sp-money-tint: #0f2f2a;
+  --sp-positive: #6ee8b0;
+  --sp-positive-tint: #0f2f2a;
+  --sp-warning: #fac46b;
+  --sp-warning-tint: #3a2d12;
+  --sp-danger: #ff858f;
+  --sp-danger-tint: #3d1520;
+  --sp-info: #73ccfa;
+  --sp-info-tint: #10284a;
+  --sp-sim: #bd99fa;
+  --sp-sim-tint: #251c4d;
+  --sp-focus: #8fabff;
   color-scheme: dark;
 }
 
@@ -102,12 +102,14 @@
 }
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --shadow-card: 0 1px 2px 0 rgb(13 27 36 / 0.06), 0 2px 8px 0 rgb(13 27 36 / 0.05);
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-display: 'DM Sans', Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-logo: Sora, 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 18px;
+  --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.03) inset, 0 12px 32px -16px rgb(3 6 25 / 0.45);
 
   /* Loading = skeletons, never spinners on money numbers (screens.md). */
   --animate-skeleton: skeleton 1.3s ease-in-out infinite;
@@ -136,6 +138,57 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/*
+ * Unlayered on purpose: beats the per-page `text-2xl font-semibold` utilities so every page title
+ * gets the display face without touching each page.
+ */
+h1 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+main h1:not(#hero-title) {
+  font-size: 2.5rem;
+}
+form h1,
+[data-auth] h1 {
+  font-size: 2rem;
+}
+
+/* Landscape band behind the top of every dashboard page (Figma: "Band"). */
+.page-band {
+  background:
+    linear-gradient(to bottom, rgb(7 11 35 / 0.3), var(--sp-canvas) 380px),
+    url('/hero-bg.webp') center 70% / cover no-repeat;
+  background-size:
+    100% 380px,
+    100% 380px;
+  background-position: top, top;
+}
+[data-theme='light'] .page-band {
+  background: var(--sp-canvas);
+}
+
+/* Auth backdrop tiles (Render-style): lift and tilt in 3D on hover. */
+.tile {
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 260ms,
+    border-color 260ms,
+    box-shadow 260ms;
+  transform-style: preserve-3d;
+}
+.tile:hover {
+  transform: perspective(300px) translate3d(-6px, -8px, 24px) rotateX(18deg) rotateY(-18deg);
+  background-color: color-mix(in srgb, var(--sp-accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--sp-accent) 85%, transparent);
+  box-shadow:
+    6px 10px 20px -4px color-mix(in srgb, var(--sp-accent) 45%, transparent),
+    4px 6px 6px rgb(0 0 0 / 0.5);
+  transition-duration: 90ms;
 }
 
 @media (prefers-reduced-motion: reduce) {

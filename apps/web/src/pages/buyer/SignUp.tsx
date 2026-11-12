@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { api as defaultApi, ApiError, type ApiClient } from '../../api/client';
 import { errorMessage } from '../../components';
 import { paths } from '../../routes';
+import { AuthBackdrop, Logo } from '../../components/Brand';
 
 const PASSWORD_MIN = 8;
 
@@ -44,13 +45,15 @@ export function BuyerSignUp({ client = defaultApi }: { client?: ApiClient }) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
+    <AuthBackdrop>
       <div className="w-full max-w-sm">
-        <p className="mb-6 text-center text-lg font-semibold text-accent">Spigot</p>
+        <p className="mb-6 flex justify-center">
+          <Logo />
+        </p>
         <form
           onSubmit={onSubmit}
           noValidate
-          className="rounded-lg border border-line bg-surface p-6 shadow-card"
+          className="rounded-[22px] border border-white/10 bg-surface/85 p-8 shadow-card backdrop-blur-xl"
           aria-describedby={error ? 'signup-error' : undefined}
         >
           <h1 className="text-xl font-semibold text-ink">Create a buyer account</h1>
@@ -125,7 +128,7 @@ export function BuyerSignUp({ client = defaultApi }: { client?: ApiClient }) {
           </Link>
         </p>
       </div>
-    </main>
+    </AuthBackdrop>
   );
 }
 

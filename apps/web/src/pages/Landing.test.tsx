@@ -3,12 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { paths } from '../routes';
-import LandingPage, {
-  SAMPLE_RESPONSE,
-  STAT_SOURCE_URL,
-  STEPS,
-  sampleRequest,
-} from './Landing';
+import LandingPage, { SAMPLE_RESPONSE, STAT_SOURCE_URL, STEPS, sampleRequest } from './Landing';
 
 function setup() {
   const router = createMemoryRouter(
@@ -27,11 +22,15 @@ describe('W01 Landing (SP-057)', () => {
   it('shows the hero, pitch line and sourced stat', () => {
     setup();
     expect(
+      screen.getByRole('heading', { level: 1, name: 'Make AI bots pay for your site.' }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole('heading', {
-        level: 1,
+        level: 2,
         name: 'Turn your site into a paid API for AI agents',
       }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View demo' })).toHaveAttribute('href', paths.login);
     expect(
       screen.getByText('Scrapers pay Bright Data. Spigot makes them pay you.'),
     ).toBeInTheDocument();

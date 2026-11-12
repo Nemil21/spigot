@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import type { PillTone } from '../../components';
+import { AuthBackdrop, Logo } from '../../components/Brand';
 
 /**
  * Building blocks shared by the onboarding screens (W02 sign up + connect, W03 install + verify;
@@ -44,16 +45,19 @@ export function OnboardingLayout({
   wide?: boolean;
 }) {
   return (
-    <main className="min-h-screen bg-canvas px-4 py-12">
+    <AuthBackdrop>
       <div className={`mx-auto w-full ${wide ? 'max-w-3xl' : 'max-w-md'}`}>
-        <p className="mb-6 text-center text-lg font-semibold text-accent">Spigot</p>
+        <p className="mb-6 flex justify-center">
+          <Logo />
+        </p>
         {children}
       </div>
-    </main>
+    </AuthBackdrop>
   );
 }
 
-export const cardClass = 'rounded-lg border border-line bg-surface p-6 shadow-card';
+export const cardClass =
+  'rounded-[22px] border border-white/10 bg-surface/85 p-8 shadow-card backdrop-blur-xl';
 export const primaryButton =
   'rounded-md bg-accent px-3 py-2 font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60';
 export const secondaryButton =

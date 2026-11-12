@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api as defaultApi, ApiError, type ApiClient } from '../api/client';
 import { errorMessage } from './ErrorBanner';
+import { AuthBackdrop, Logo } from './Brand';
 
 export interface LoginFormProps {
   /** `/api/auth/login` (publishers) or `/api/buyer/login` (buyers), SP-007a. */
@@ -62,13 +63,15 @@ export function LoginForm({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
+    <AuthBackdrop>
       <div className="w-full max-w-sm">
-        <p className="mb-6 text-center text-lg font-semibold text-accent">Spigot</p>
+        <p className="mb-6 flex justify-center">
+          <Logo />
+        </p>
         <form
           onSubmit={onSubmit}
           noValidate
-          className="rounded-lg border border-line bg-surface p-6 shadow-card"
+          className="rounded-[22px] border border-white/10 bg-surface/85 p-8 shadow-card backdrop-blur-xl"
           aria-describedby={error ? 'login-error' : undefined}
         >
           <h1 className="text-xl font-semibold text-ink">{title}</h1>
@@ -128,6 +131,6 @@ export function LoginForm({
           </Link>
         </p>
       </div>
-    </main>
+    </AuthBackdrop>
   );
 }
