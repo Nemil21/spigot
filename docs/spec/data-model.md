@@ -257,7 +257,7 @@ PayPal's own fees are tracked outside the ledger on `topups` and `payout_items` 
 | channel | text | `REST`, `MCP` |
 | dataset_id | uuid FK | |
 | endpoint | text | `records.search`, `records.get`, `changes.list` |
-| idempotency_key | text not null | Client-supplied, or `auto:<sha256(key_id + canonical request)>` when absent (see rule 4) |
+| idempotency_key | text not null | Client-supplied, or `auto:<sha256(key_id + request_hash + minute bucket)>` when absent (see rule 4) |
 | request_hash | text | Canonical query hash; a replay with the same key but a different request → 409 |
 | status | text | See state machine |
 | records_returned | int | |
@@ -384,10 +384,11 @@ Capture `PENDING` (rare, e.g. eCheck): stays `AWAITING_APPROVAL` with `pending_r
 ```
 RECEIVED ──validation/auth fail──> REJECTED (no charge)
     │
-    ├─price > balance (and no auto top-up possible)──> PAYMENT_REQUIRED (402, no charge)
+    ├─price > balance (and no auto top-up possible)──> PAYMENT_REQUIRED (402, no charge) ──retry, same key──> RECEIVED
     ├─result built, 2xx──> CHARGED ──claim approved──> PARTIALLY_CREDITED / CREDITED
     └─result built but 0 records, or 5xx──> NOT_CHARGED
 ```
+`PAYMENT_REQUIRED` and `REJECTED` are not terminal: a retry with the same key and request moves the row back to `RECEIVED` (rule 4).
 The review's `QUOTED → CHARGED → REFUNDED` maps to: quote (no row, stateless) → `CHARGED` → `CREDITED` (balance credit) and, separately, a PayPal refund of unused balance.
 
 ### Payout item
@@ -421,6 +422,9 @@ ACCRUING (implicit: payable balance) ──batch built──> PENDING ──PayP
    - Same key, same `request_hash` → return the stored response with header `Spigot-Replay: true`, no new charge.
    - Same key, different request → `409 IDEMPOTENCY_MISMATCH`.
    - No key on REST → server derives `auto:` key from `(api_key_id, request_hash, minute bucket)` so an accidental double-send within the same minute isn't charged twice.
+     The minute bucket is deliberate: without it a buyer polling the same query would get the first response replayed forever. A replay is only guaranteed within the bucket, so clients that need exact retry safety send their own `Idempotency-Key` (SP-023 documents this).
+   - Same key, same request, original call `PAYMENT_REQUIRED` (or `REJECTED`) → not terminal: the retry claims the row back to `RECEIVED` with a conditional update and re-runs the charge, so 402 → top-up → retry with the same key → 200, charged once. Two racing retries: one charges, the other replays it.
+   - Same key, same request, but `response_body` already purged (24 h) → `409 IDEMPOTENCY_KEY_EXPIRED`; never a second charge.
 5. **PayPal idempotency.** Each PayPal call sends `PayPal-Request-Id` (proven in S3):
    - order create = `topup.id`; order capture = `capture:<topup.id>`;
    - refund = `balance_refund.id`;
