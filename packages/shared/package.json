@@ -1,0 +1,52 @@
+{
+  "name": "@spigot/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser-safe contracts shared by the API, workflows and web app: money helpers, error codes, PublisherEvent, W15 copy, gate payload schemas. No Node-only dependencies.",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./money": {
+      "source": "./src/money.ts",
+      "types": "./dist/money.d.ts",
+      "default": "./dist/money.js"
+    },
+    "./errors": {
+      "source": "./src/errors.ts",
+      "types": "./dist/errors.d.ts",
+      "default": "./dist/errors.js"
+    },
+    "./events": {
+      "source": "./src/events.ts",
+      "types": "./dist/events.d.ts",
+      "default": "./dist/events.js"
+    },
+    "./copy": {
+      "source": "./src/copy.ts",
+      "types": "./dist/copy.d.ts",
+      "default": "./dist/copy.js"
+    },
+    "./gate": {
+      "source": "./src/gate.ts",
+      "types": "./dist/gate.d.ts",
+      "default": "./dist/gate.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  }
+}
