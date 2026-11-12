@@ -1,6 +1,7 @@
 import express, { type Request, type RequestHandler, type Response } from 'express';
 import { fileURLToPath } from 'node:url';
 import { createAccessLog, type AccessLog } from './accessLog.js';
+import { createAdminRouter } from './admin.js';
 import type { Store } from './data/store.js';
 import { sendWithEtag } from './etag.js';
 import { noopGate } from './gate.js';
@@ -19,6 +20,8 @@ export interface AppOptions {
   /** Served at /.well-known/spigot.txt; 404 when unset. */
   verifyToken?: string;
   accessLog?: AccessLog;
+  /** DEMO_ADMIN_TOKEN for /admin/{mutate,reset,state} (SP-004b). Unset → every /admin path is a 404. */
+  adminToken?: string;
 }
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -47,7 +50,7 @@ function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
-export function createApp({ store, gate = noopGate, verifyToken, accessLog = createAccessLog() }: AppOptions) {
+export function createApp({ store, gate = noopGate, verifyToken, accessLog = createAccessLog(), adminToken }: AppOptions) {
   const app = express();
   app.set('views', VIEWS_DIR);
   app.set('view engine', 'ejs');
@@ -71,6 +74,8 @@ export function createApp({ store, gate = noopGate, verifyToken, accessLog = cre
   const notFound = (req: Request, res: Response) => page(req, res, 'not-found', { title: 'Page not found' }, 404);
 
   app.use(accessLog.middleware);
+  // Admin sits before the gate: the CLI isn't a browser and must never get a 402.
+  app.use('/admin', adminToken ? createAdminRouter({ store, token: adminToken }) : notFound);
   app.use(gate);
 
   app.get('/healthz', (_req, res) => {

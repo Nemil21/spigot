@@ -208,7 +208,7 @@ Restart Claude Desktop and ask: *"Using Spigot, find 3-bedroom rentals under $2,
 | `npm run seed:demo` | Publisher, site, real demo buyer "Acme Agents (demo)", 20 SIM buyers with SIM sandbox top-ups | SP-035 |
 | `npm run sim:bots` | Real HTTP requests to the demo site with bot and human User-Agents, labelled SIM | SP-037 |
 | `npm run sim:buyers [-- --live]` | Real `/v1` calls from SIM buyers over a simulated week | SP-036 |
-| `npm run demo:mutate` | Changes listings on the demo site so the next crawl has changes | SP-004b |
+| `npm run demo:mutate -- --prices 30 --leased 5 --new 3 [--focus …] [--target <url>]` | A labelled **demo mutation**: changes listings on the demo site (rents, leased, new) so the next crawl has exactly those changes; `POST /admin/reset` on the demo site puts them back | SP-004b |
 | `npm run demo:reset`, `npm run demo:payout` | Clean take; "Run payout now" with the labelled $1 demo threshold | SP-038 |
 | `python scripts/scraper-demo.py <demo-site>` | A plain scraper gets three 402s with the price and API link | SP-039a |
 
