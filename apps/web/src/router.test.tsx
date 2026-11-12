@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import publisherMe from './fixtures/api/auth/me.json';
 import buyerMe from './fixtures/api/buyer/me.json';
 import { routes } from './router';
@@ -9,7 +9,6 @@ import { buyerNav, href, paths, publisherNav } from './routes';
 /** Every screen in SP-024a's list: path → the stub's `data-screen` and heading. */
 const SCREENS: [path: string, screen: string, title: string][] = [
   ['/', 'W01', 'Spigot'],
-  ['/app', 'W04', 'Overview'],
   ['/app/datasets/ds_123', 'W06', 'Dataset editor'],
   ['/app/records', 'W07', 'Records'],
   ['/app/earnings', 'W08', 'Earnings'],
@@ -31,6 +30,8 @@ const BUILT: [path: string, screen: string, title: string, landmark: string][] =
   // SP-031; this test has no payouts API, so W09 shows its inline error banner.
   ['/app/payouts', 'W09', 'Payouts', 'alert'],
   ['/app/record-types', 'W05', 'Record types', 'alert'], // SP-028 (no API here: its error banner)
+  // SP-027b. This test's fetch 404s `/api/sites`, so W04 settles on its error banner.
+  ['/app', 'W04', 'Overview', 'alert'],
 ];
 
 /** The real login pages (SP-024b), no longer stubs. */
@@ -63,6 +64,9 @@ async function renderAt(path: string) {
 }
 
 describe('router', () => {
+  // W04 (SP-027b) imports AG Grid + AG Charts; load the chunk once so `findBy`'s 1 s covers render only.
+  beforeAll(() => import('./pages/Overview'), 30_000);
+
   it.each(SCREENS)('%s resolves to its stub (%s)', async (path, screenId, title) => {
     const h1 = await renderAt(path);
     expect(h1).toHaveTextContent(title);
@@ -74,7 +78,7 @@ describe('router', () => {
     const h1 = await renderAt(path);
     expect(h1).toHaveTextContent(title);
     expect(h1.closest('[data-screen]')).toHaveAttribute('data-screen', screenId);
-    expect(screen.getByRole(landmark)).toBeInTheDocument();
+    expect(await screen.findByRole(landmark)).toBeInTheDocument();
     expect(screen.queryByText('Coming soon')).toBeNull();
   });
 
