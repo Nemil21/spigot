@@ -7,6 +7,7 @@ import {
   createRecordedModel,
   loadRecorded,
   RecordedProposalMissingError,
+  serverFallbackParams,
 } from './claude.js';
 import type { SamplePage } from './dryrun.js';
 import { slugForTypeName } from './persist.js';
@@ -353,6 +354,8 @@ describe('prompt and model clients', () => {
     const system = req.system as { text: string; cache_control?: unknown }[];
     expect(system.at(-1)!.cache_control).toEqual({ type: 'ephemeral' });
     expect(system[0]!.text).toMatch(/untrusted data/);
+    expect(req.betas).toEqual(['server-side-fallback-2026-07-01']);
+    expect(req.fallbacks).toBe('default');
 
     await conv.retry(['fields.0.transforms.0: unknown transform "eval"']);
     const msgs = calls[1]!.messages as { role: string; content: unknown }[];
@@ -360,5 +363,42 @@ describe('prompt and model clients', () => {
     expect(msgs[2]!.content).toEqual([
       expect.objectContaining({ type: 'tool_result', tool_use_id: 'tu_0', is_error: true }),
     ]);
+  });
+});
+
+describe('CLAUDE_SERVER_FALLBACK', () => {
+  it('serverFallbackParams(false) sends neither betas nor fallbacks', () => {
+    expect(serverFallbackParams(true)).toEqual({
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+    });
+    expect(serverFallbackParams(false)).toEqual({});
+  });
+
+  it('a live model with serverFallback: false leaves both fields out of propose and repair', async () => {
+    const calls: Record<string, unknown>[] = [];
+    const client = {
+      beta: {
+        messages: {
+          create: async (body: Record<string, unknown>) => {
+            calls.push(structuredClone(body));
+            return {
+              stop_reason: 'tool_use',
+              usage: { input_tokens: 1, output_tokens: 1 },
+              content: [{ type: 'tool_use', id: 'tu', name: 'propose_schema', input: {} }],
+            };
+          },
+        },
+      },
+    };
+    const model = createLiveModel({ apiKey: 'k', client: client as never, serverFallback: false });
+    await model.open({ pathPattern: '/listings/:slug', userPrompt: 'PAGES' }).first();
+    await model.repair({ pathPattern: '/listings/:slug', userPrompt: 'FIX' } as never);
+    expect(calls).toHaveLength(2);
+    for (const req of calls) {
+      expect(req).not.toHaveProperty('betas');
+      expect(req).not.toHaveProperty('fallbacks');
+      expect(req.tool_choice).toEqual({ type: 'auto', disable_parallel_tool_use: true });
+    }
   });
 });
