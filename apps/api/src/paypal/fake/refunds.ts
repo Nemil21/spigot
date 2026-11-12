@@ -33,6 +33,8 @@ export interface FakeRefund {
 }
 
 export interface FakeRefundsOptions {
+  /** Where refund ids start counting (see `FakePayPalOptions.seqStart`). Default 0. */
+  seqStart?: number;
   /**
    * Look up a capture made by the core fake (SP-001b). Captures added with `addCapture` are
    * checked first.
@@ -50,7 +52,7 @@ const EXCEEDED_TEXT =
 export class FakeRefunds {
   readonly #captureOf: FakeRefundsOptions['captureOf'];
   readonly #now: () => Date;
-  readonly #id = makeIdFactory();
+  readonly #id: (prefix: string) => string;
   readonly #captures = new Map<string, FakeCaptureInfo>();
   readonly #refunds = new Map<string, FakeRefund>();
   /** `captureId:requestId` → refund id. */
@@ -58,6 +60,7 @@ export class FakeRefunds {
   #pendingNext = 0;
 
   constructor(opts: FakeRefundsOptions = {}) {
+    this.#id = makeIdFactory(opts.seqStart);
     this.#captureOf = opts.captureOf;
     this.#now = opts.now ?? (() => new Date());
   }

@@ -116,6 +116,13 @@ export interface FakePayPalOptions {
   rawCardReplay?: 'replay' | 'refuse';
   /** Options for SP-001c's refunds / payouts / webhooks part (`fake.extras`). */
   extras?: Omit<FakePayPalExtrasOptions, 'next'>;
+  /**
+   * Where the id sequences start (orders / captures / vault here, refunds and payouts in `extras`;
+   * default 0). The process-wide fake starts at a random offset so two processes (`seed:demo`, the
+   * API, `demo:payout`) or an API restart never mint an id already stored in the shared database
+   * (SP-039b dry run: `topups_paypal_order_id_key`).
+   */
+  seqStart?: number;
 }
 
 /** A PayPal-shaped error body: `{name, details: [{issue}]}`. */
@@ -167,6 +174,7 @@ export class FakePayPal {
     this.#now = opts.now ?? (() => new Date());
     this.#tokenTtl = opts.tokenTtlSeconds ?? 32_400;
     this.#rawCardReplay = opts.rawCardReplay ?? 'replay';
+    this.#seq = opts.seqStart ?? 0;
     const extras = opts.extras ?? {};
     this.extras = new FakePayPalExtras({
       latencyMs: this.latencyMs,
@@ -179,7 +187,9 @@ export class FakePayPal {
           return c && c.status === 'COMPLETED' ? { amountCents: c.amountCents } : undefined;
         },
         ...extras.refunds,
+        seqStart: extras.refunds?.seqStart ?? opts.seqStart,
       },
+      payouts: { ...extras.payouts, seqStart: extras.payouts?.seqStart ?? opts.seqStart },
     });
   }
 

@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { mockDeclinesAllowed, type Config } from '../config.js';
 import { PayPalRestClient, type PayPalLogger } from './client.js';
 import { FakePayPal } from './fake/core.js';
@@ -58,9 +59,12 @@ export {
 
 let sharedFake: FakePayPal | undefined;
 
-/** The process-wide `FakePayPal` used when `PAYPAL_MODE=stub` (dev seeds share its state). */
+/**
+ * The process-wide `FakePayPal` used when `PAYPAL_MODE=stub` (dev seeds share its state). Its ids
+ * start at a random offset: each process has its own fake, and they all write to one database.
+ */
 export function sharedFakePayPal(): FakePayPal {
-  sharedFake ??= new FakePayPal({ latencyMs: 5 });
+  sharedFake ??= new FakePayPal({ latencyMs: 5, seqStart: randomInt(0, 36 ** 7) });
   return sharedFake;
 }
 

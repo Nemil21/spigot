@@ -64,9 +64,9 @@ export function parseBody(rawBody: string): Record<string, unknown> {
   }
 }
 
-/** A PayPal-looking id: prefix + 13 upper-case base-36 characters. */
-export function makeIdFactory(): (prefix: string) => string {
-  let seq = 0;
+/** A PayPal-looking id: prefix + 13 upper-case base-36 characters, counting up from `seqStart`. */
+export function makeIdFactory(seqStart = 0): (prefix: string) => string {
+  let seq = seqStart;
   return (prefix) =>
     `${prefix}${(++seq)
       .toString(36)

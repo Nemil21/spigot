@@ -57,6 +57,8 @@ export interface FakePayoutBatch {
 }
 
 export interface FakePayoutsOptions {
+  /** Where batch / item ids start counting (see `FakePayPalOptions.seqStart`). Default 0. */
+  seqStart?: number;
   /** Payable balance; a batch above it is `422 INSUFFICIENT_FUNDS`. Default unlimited. */
   balanceCents?: number;
   /** The merchant's own email: items to it fail `SELF_PAY_NOT_ALLOWED`. */
@@ -91,13 +93,14 @@ export class FakePayouts {
   batchesCreated = 0;
 
   readonly #now: () => Date;
-  readonly #id = makeIdFactory();
+  readonly #id: (prefix: string) => string;
   readonly #batches = new Map<string, FakePayoutBatch>();
   readonly #bySender = new Map<string, string>();
   readonly #items = new Map<string, FakePayoutItem>();
   #insufficientNext = 0;
 
   constructor(opts: FakePayoutsOptions = {}) {
+    this.#id = makeIdFactory(opts.seqStart);
     this.balanceCents = opts.balanceCents ?? Number.MAX_SAFE_INTEGER;
     this.merchantEmail = opts.merchantEmail?.toLowerCase();
     this.unregisteredEmails = new Set(
