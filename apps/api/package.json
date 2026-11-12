@@ -28,6 +28,7 @@
     "@fastify/rate-limit": "^11.2.2",
     "@fastify/static": "^10.1.10",
     "@modelcontextprotocol/sdk": "^1.32.2",
+    "@renderinc/sdk": "^1.8.0",
     "@spigot/shared": "^0.0.0",
     "argon2": "^0.45.2",
     "cheerio": "^1.2.0",

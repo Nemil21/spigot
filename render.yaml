@@ -167,9 +167,9 @@ services:
       - key: SPIGOT_VERIFY_TOKEN
         sync: false
 
-  # Render Workflows (stub, SP-040). SP-041a registers crawlSite / fetchBatch / extractTemplate /
-  # extractPage / publishWatermark from @spigot/api/tasks; SP-041b adds payoutRun and verifies it
-  # on Render. Until then WORKFLOWS_MODE=inproc and nothing dispatches here. Compute plan, retries
+  # Render Workflows (SP-041a: apps/workflows registers crawlSite / fetchBatch / fetchPage /
+  # extractTemplate / extractPage / publishWatermark from @spigot/api/tasks; SP-041b adds payoutRun
+  # and verifies it on Render). While WORKFLOWS_MODE=inproc nothing dispatches here. Compute plan, retries
   # and timeouts are set per task in code. The tasks load the same config as spigot-api.
   - type: workflow
     name: spigot-workflows

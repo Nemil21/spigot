@@ -1,5 +1,6 @@
 import { loadConfig } from '../config.js';
 import { createDb, createPool, type Db } from '../db/index.js';
+import type { FetchBatchResult } from './fetchBatch.js';
 import { createBrowserRenderer, type Renderer } from './render.js';
 import type { Resolver, SafeFetchOptions, SafeResponse } from './safeFetch.js';
 
@@ -43,6 +44,17 @@ export interface CrawlDeps {
   pageWorkers?: number;
   /** Aborting stops the run where it is without finishing it, like a killed process. */
   signal?: AbortSignal;
+  /**
+   * SP-041a, API side: offered every run this process creates or adopts. Returns the Render
+   * Workflows run id when the run was started on Workflows (`WORKFLOWS_MODE=workflows`), or null
+   * to execute it in this process. Unset: always in process.
+   */
+  handOff?: (args: { siteId: string; trigger: string; runId: string }) => Promise<string | null>;
+  /**
+   * SP-041a, Workflows side: fetch the run's pages as `fetchBatch` tasks (at most 2 per host,
+   * `planBatches`) instead of the in-process page queue. Resolves when every batch has ended.
+   */
+  fanOut?: (runId: string, pageIds: string[]) => Promise<FetchBatchResult[]>;
 }
 
 export const CRAWL_DEFAULTS = {
