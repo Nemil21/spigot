@@ -13,7 +13,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --maxWorkers=2",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "demo:mutate": "tsx src/scripts/mutate.ts"
   },
   "dependencies": {
     "@faker-js/faker": "10.6.0",
