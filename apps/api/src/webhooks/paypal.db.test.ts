@@ -11,7 +11,7 @@ import { pollOpenTopups } from '../jobs/topupPoller.js';
 import { centsToDecimal, FakePayPal } from '../paypal/index.js';
 import { buildServer } from '../server.js';
 import { REQUIRED_ENV } from '../test/env.js';
-import { balanceOf, setTopupPayPal, topupById } from '../topups/index.js';
+import { balanceOf, createTopup, setTopupPayPal, topupById } from '../topups/index.js';
 import { setWebhookDeps } from './deps.js';
 import {
   loadWebhookHandlers,
@@ -203,7 +203,7 @@ describe.skipIf(!testDatabaseUrl)('SP-059 PayPal webhooks (Postgres + FakePayPal
 
     const r = await drain();
     expect(r.processed.find((p) => p.id === d.event.id)?.results).toEqual({
-      topups: 'CREDITED',
+      topups: 'COMPLETED',
     });
     // A redelivery after processing is skipped too, and a later pass finds nothing to do.
     expect((await deliver(d)).body.duplicate).toBe(true);
@@ -255,12 +255,38 @@ describe.skipIf(!testDatabaseUrl)('SP-059 PayPal webhooks (Postgres + FakePayPal
   });
 
   it('a handler that throws mid-event rolls the whole event back; the next pass processes it once', async () => {
+    const d = fake.emitWebhook('CUSTOMER.DISPUTE.CREATED', { dispute_id: 'PP-D-CRASH' });
+    await deliver(d);
+    const audits = () =>
+      q(`SELECT 1 FROM audit_events WHERE action = 'DISPUTE_CREATED' AND actor_id = $1`, [
+        d.event.id,
+      ]);
+
+    // `disputes` writes its audit row first (file order), then this one dies: the row must roll
+    // back with it, and the event stays unprocessed.
+    const crash: WebhookHandler = {
+      name: 'zz-crash',
+      eventTypes: ['CUSTOMER.DISPUTE.CREATED'],
+      handle: async () => {
+        throw new Error('process died');
+      },
+    };
+    const failed = await drain(ctx(), [crash]);
+    expect(failed.failed).toEqual([{ id: d.event.id, error: 'process died' }]);
+    expect(await audits()).toHaveLength(0);
+    expect((await eventRow(d.event.id))!.processed_at).toBeNull();
+
+    const ok = await drain();
+    expect(ok.processed.map((p) => p.id)).toContain(d.event.id);
+    expect(await audits()).toHaveLength(1);
+    expect((await drain()).processed).toEqual([]);
+  });
+
+  it('COMPLETED webhook crashing after the credit committed → the retry credits nothing more', async () => {
     const t = await approvedTopup();
     await fake.client().captureOrder(t.orderId, t.topupId);
     const d = fake.emitWebhook('PAYMENT.CAPTURE.COMPLETED', captureResource(t.orderId));
     await deliver(d);
-
-    // `topups` credits first (file order), then this one dies: the credit must roll back with it.
     const crash: WebhookHandler = {
       name: 'zz-crash',
       eventTypes: ['PAYMENT.CAPTURE.COMPLETED'],
@@ -268,14 +294,62 @@ describe.skipIf(!testDatabaseUrl)('SP-059 PayPal webhooks (Postgres + FakePayPal
         throw new Error('process died');
       },
     };
-    const failed = await drain(ctx(), [crash]);
-    expect(failed.failed).toEqual([{ id: d.event.id, error: 'process died' }]);
-    expect(await topupTxns(t.topupId)).toBe(0);
-    expect((await topupById(app.db, t.topupId))!.status).toBe('AWAITING_APPROVAL');
+    expect((await drain(ctx(), [crash])).failed.map((f) => f.id)).toEqual([d.event.id]);
+    // The settle path credits in its own transaction (PayPal call first), so the credit stands;
+    // only the event is left unprocessed.
+    expect(await topupTxns(t.topupId)).toBe(1);
     expect((await eventRow(d.event.id))!.processed_at).toBeNull();
-
     const ok = await drain();
-    expect(ok.processed.map((p) => p.id)).toContain(d.event.id);
+    expect(ok.processed.find((p) => p.id === d.event.id)?.results).toEqual({
+      topups: 'ALREADY_CREDITED',
+    });
+    expect(await topupTxns(t.topupId)).toBe(1);
+    expect(await balanceOf(app.db.pool, t.buyer.id)).toBe(20_000_000);
+  });
+
+  it('COMPLETED webhook winning the credit for a "save for auto top-up" wallet order still saves the vault', async () => {
+    const buyer = await newBuyer();
+    const created = await createTopup(
+      { db: app.db, pp: fake.client(), config: { ...app.config, PAYPAL_WALLET_VAULT: 'on' } },
+      {
+        buyerId: buyer.id,
+        idempotencyKey: randomUUID(),
+        amountCents: 2000,
+        method: 'PAYPAL_WALLET',
+        saveForAutoTopup: true,
+      },
+    );
+    expect(created.vaultRequested).toBe(true);
+    const topupId = created.topup.id;
+    const orderId = created.topup.paypalOrderId!;
+    fake.approve(orderId);
+    // PayPal captured (our call timed out / the tab closed); nothing credited yet.
+    await fake.client().captureOrder(orderId, topupId);
+    const vaultId = fake.order(orderId)!.vault!.id;
+
+    await deliver(fake.emitWebhook('PAYMENT.CAPTURE.COMPLETED', captureResource(orderId)));
+    const r = await drain();
+    expect(r.processed.map((p) => p.results)).toEqual([{ topups: 'COMPLETED' }]);
+    expect(await topupTxns(topupId)).toBe(1);
+    expect(await q(`SELECT vault_id, vault_kind FROM buyers WHERE id = $1`, [buyer.id])).toEqual([
+      { vault_id: vaultId, vault_kind: 'PAYPAL' },
+    ]);
+    const [audit] = await q<{ actor_type: string }>(
+      `SELECT actor_type FROM audit_events WHERE entity_id = $1 AND action = 'TOPUP_COMPLETED'`,
+      [topupId],
+    );
+    expect(audit).toEqual({ actor_type: 'PAYPAL_WEBHOOK' });
+  });
+
+  it('COMPLETED webhook while PayPal is unreachable → retried, then credited once', async () => {
+    const t = await approvedTopup();
+    await fake.client().captureOrder(t.orderId, t.topupId);
+    const d = fake.emitWebhook('PAYMENT.CAPTURE.COMPLETED', captureResource(t.orderId));
+    await deliver(d);
+    fake.failNext('get_order', { kind: 'status', http: 503 });
+    expect((await drain()).failed.map((f) => f.id)).toEqual([d.event.id]);
+    expect(await topupTxns(t.topupId)).toBe(0);
+    expect((await drain()).processed.map((p) => p.id)).toEqual([d.event.id]);
     expect(await topupTxns(t.topupId)).toBe(1);
   });
 

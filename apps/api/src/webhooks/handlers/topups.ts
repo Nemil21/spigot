@@ -10,6 +10,7 @@ import {
   type CreditActor,
   type TopupRow,
 } from '../../topups/index.js';
+import { settleTopup } from '../../jobs/topupPoller.js';
 import type { PayPalWebhookEvent, WebhookContext } from '../paypal.js';
 
 /**
@@ -18,8 +19,9 @@ import type { PayPalWebhookEvent, WebhookContext } from '../paypal.js';
  * poller can all see the same top-up and it is credited once (data-model rule 6):
  * - `CHECKOUT.ORDER.APPROVED` (the buyer approved, then closed the tab before our capture call) →
  *   `captureTopup` (`PayPal-Request-Id: capture:<topupId>`, which PayPal replays) and credit.
- * - `PAYMENT.CAPTURE.COMPLETED` → `creditTopupTx(custom_id)` in the event's transaction, with what
- *   the capture says (amount, currency, fee, order id are checked against the row).
+ * - `PAYMENT.CAPTURE.COMPLETED` → for an open top-up with an order, SP-019's `settleTopup`
+ *   (`getOrder` → `applyTopupResult`, which also saves a vault the order created); otherwise
+ *   `creditTopupTx(custom_id)` in the event's transaction from what the capture says.
  * - `PAYMENT.CAPTURE.DENIED` / `DECLINED` → FAILED (+ auto top-up off if AUTO). `VAULT_MIT`
  *   top-ups are left to SP-047a's `auto-topup.ts` (same event, same transaction).
  * An event for an order or capture that isn't one of our top-ups (the sandbox app is shared) is
@@ -42,6 +44,8 @@ export type TopupWebhookResult =
   | 'COMPLETED'
   | 'PENDING'
   | 'NOT_CAPTURED'
+  | 'ABANDONED'
+  | 'NOT_CREDITED'
   | `CAPTURE_REFUSED:${string}`;
 
 type Json = Record<string, unknown>;
@@ -124,15 +128,35 @@ async function orderApproved(
 }
 
 /** `PAYMENT.CAPTURE.COMPLETED`: the resource is the capture. */
-async function captureCompleted(tx: Tx, event: PayPalWebhookEvent): Promise<TopupWebhookResult> {
+async function captureCompleted(
+  tx: Tx,
+  event: PayPalWebhookEvent,
+  ctx: WebhookContext,
+): Promise<TopupWebhookResult> {
   const capture = event.resource;
   const captureId = str(capture.id);
   if (!captureId || (str(capture.status) ?? 'COMPLETED') !== 'COMPLETED') return 'NOT_CAPTURED';
   const customId = str(capture.custom_id);
   const orderId = captureOrderId(capture);
-  // Look up without a lock: `creditTopupTx` takes it, and does every check.
+  // Look up without a lock: `creditTopupTx` / `settleTopup` take it, and do every check.
   const topup = await findTopup(tx, customId, orderId, false);
   if (!topup) return 'UNMATCHED';
+  if (OPEN.has(topup.status) && topup.paypalOrderId) {
+    // The capture resource carries no vault. Crediting from it would win the race and leave
+    // `buyers.vault_id` unset for a "save for auto top-up" order (every later path then sees
+    // ALREADY_CREDITED). Settle it the way SP-019's poller does: `getOrder` → `applyTopupResult`,
+    // which carries the order's vault. PayPal unreachable / order not visible yet → retry.
+    const outcome = await settleTopup({ db: ctx.db, pp: ctx.pp, config: ctx.config }, topup, {
+      actor: actorOf(event),
+      log: ctx.log ?? (() => {}),
+    });
+    if (outcome === 'ERROR' || outcome === 'WAITING') {
+      throw new Error(`top-up ${topup.id}: order not settled yet (${outcome}); retry`);
+    }
+    return outcome;
+  }
+  // Already credited (no-op), or no order id (a vault MIT whose create answer was lost: its
+  // vault is already on the buyer): credit from the capture in this event's transaction.
   const amount = obj(capture.amount);
   const credit = await creditTopupTx(
     tx,
@@ -210,7 +234,7 @@ const handler = {
       case 'CHECKOUT.ORDER.APPROVED':
         return orderApproved(tx, event, ctx);
       case 'PAYMENT.CAPTURE.COMPLETED':
-        return captureCompleted(tx, event);
+        return captureCompleted(tx, event, ctx);
       default:
         return captureDenied(tx, event);
     }
