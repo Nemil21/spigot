@@ -38,7 +38,7 @@ function PayoutSimChip({ statement }: { statement: Statement }) {
     <span
       title={simChipTooltip(statement)}
       aria-label={simChipTooltip(statement)}
-      className="inline-flex [&>*]:pointer-events-none"
+      className="inline-flex items-center leading-4 [&>*]:pointer-events-none"
       data-sim-chip=""
     >
       <SimChip />
@@ -206,6 +206,7 @@ export function PayoutsGrid({ batches, statements, onOpenStatement }: PayoutsGri
           defaultColDef: { flex: 1, minWidth: 110, sortable: false },
           getRowId: (p: GetRowIdParams<PayoutItem>) => p.data.id,
           domLayout: 'autoHeight',
+          suppressMenuHide: false,
           suppressColumnVirtualisation: true,
         },
         getDetailRowData: (p) => p.successCallback(p.data.batch.items),
@@ -217,7 +218,10 @@ export function PayoutsGrid({ batches, statements, onOpenStatement }: PayoutsGri
 
   return (
     <SpigotGrid<BatchRow>
-      height={420}
+      bare
+      height="auto"
+      // Size to the batches (a handful a month) instead of a tall empty frame.
+      domLayout="autoHeight"
       rowData={rows}
       columnDefs={columns}
       defaultColDef={{ flex: 1, minWidth: 110, sortable: true }}
