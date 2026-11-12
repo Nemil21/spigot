@@ -46,17 +46,40 @@ describe('checkRegexPattern', () => {
     expect(checkRegexPattern('a'.repeat(100))).toBeNull();
   });
 
-  it('accepted patterns stay fast on adversarial input with the native engine', () => {
+  // ReDoS. An accepted pattern has ≤ 3 unbounded quantifiers, so its backtracking is at worst
+  // polynomial (≤ n³) and the native engine caps n at REGEX_INPUT_MAX (next test); a rejected
+  // pattern like (a+)+$ is exponential. An absolute ms budget fails on slow shared CI runners,
+  // so compare growth on the same machine instead: doubling n multiplies time by ≤ 8 for n³;
+  // < 32 leaves room for timer noise, and the exponential control must blow past it.
+  const NOISE_MS = 1; // added to both timings so sub-ms runs give a ratio near 1, not noise
+  const bestMs = (f: () => void, runs = 3) => {
+    let best = Infinity;
+    for (let i = 0; i < runs; i++) {
+      const t0 = performance.now();
+      f();
+      best = Math.min(best, performance.now() - t0);
+    }
+    return best;
+  };
+  const growth = (run: (n: number) => void, n: number) =>
+    (bestMs(() => run(2 * n)) + NOISE_MS) / (bestMs(() => run(n)) + NOISE_MS);
+
+  it('accepted patterns grow polynomially on adversarial input with the native engine', () => {
     const worst = ['.*a.*b.*c', '(\\d+)\\s(\\d+)\\s(\\d+)x', '[a-z]+@[a-z.]+!'];
     for (const p of worst) {
       expect(checkRegexPattern(p)).toBeNull();
       const re = nativeRegexEngine.compile(p);
-      const t0 = performance.now();
-      re.firstGroup('a'.repeat(50_000));
-      re.firstGroup('1 '.repeat(50_000));
-      expect(performance.now() - t0).toBeLessThan(1000);
+      for (const unit of ['a', '1 ']) {
+        const g = growth((n) => re.firstGroup(unit.repeat(n)), 250);
+        expect(g, `${p} on "${unit}"×n: time ×${g.toFixed(1)} when n doubles`).toBeLessThan(32);
+      }
     }
-  });
+    // Control: the same measure catches catastrophic backtracking in a pattern the check rejects.
+    const bad = '(a+)+$';
+    expect(checkRegexPattern(bad)).not.toBeNull();
+    const re = nativeRegexEngine.compile(bad);
+    expect(growth((n) => re.firstGroup('a'.repeat(n) + '!'), 12)).toBeGreaterThan(32);
+  }, 30_000);
 
   it('native engine caps input length', () => {
     const re = nativeRegexEngine.compile('(x)');

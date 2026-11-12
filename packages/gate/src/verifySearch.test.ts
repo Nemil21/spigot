@@ -327,15 +327,19 @@ describe('spigotGate with search verification', () => {
   });
 
   it('a hung resolver never delays the response', async () => {
-    const hang: DnsResolver = {
-      reverse: () => new Promise(() => {}),
-      resolve4: () => new Promise(() => {}),
-      resolve6: () => new Promise(() => {}),
+    // Every lookup stays pending for the whole test. Had the gate awaited one, the response
+    // could never arrive (the test would time out), so no clock is needed.
+    const pending: string[] = [];
+    const hang = (what: string) => () => (pending.push(what), new Promise<never>(() => {}));
+    const hung: DnsResolver = {
+      reverse: hang('reverse'),
+      resolve4: hang('resolve4'),
+      resolve6: hang('resolve6'),
     };
-    const { get } = await start(hang);
-    const t0 = performance.now();
+    const { get } = await start(hung);
     expect((await get(SPOOF_IP)).status).toBe(200);
-    expect(performance.now() - t0).toBeLessThan(500);
+    expect(pending.length).toBeGreaterThan(0); // verification did start, and is still hung
+    expect(gate!.verifier!.check(SPOOF_IP, 'Googlebot')).toBe('PENDING');
   });
 
   it('verifySearch: false disables it', () => {

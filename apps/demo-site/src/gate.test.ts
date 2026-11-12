@@ -1,11 +1,12 @@
 // SP-006b integration: Bluebonnet Rentals + spigot-gate against a stub Spigot API in each
 // failure mode. Real HTTP both ways (supertest → app, gate → stub), default 2 s timeout.
 import { gatePolicySchema, gateHitsSchema, type GateHitBucket } from '@spigot/shared/gate';
+import type { GateLogger } from '@spigot/gate';
 import { createHash } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import request from 'supertest';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAccessLog } from './accessLog.js';
 import { createApp } from './app.js';
 import { createStore } from './data/store.js';
@@ -82,24 +83,39 @@ async function stubApi(initial: Mode) {
   return { base, state, close };
 }
 
-function site(apiBase: string, demo = false) {
+function site(apiBase: string, demo = false, logger: GateLogger = quiet) {
   const gate = gateFromEnv(
     {
       SPIGOT_API_BASE: apiBase,
       SPIGOT_GATE_KEY: GATE_KEY,
       SPIGOT_GATE_DEMO: demo ? '1' : undefined,
     },
-    quiet,
+    logger,
   )!;
   cleanups.push(() => gate.stop());
   const app = createApp({ store, gate: gate.handler, accessLog: createAccessLog(() => {}) });
   return { app, gate };
 }
 
-async function timed(req: request.Test) {
-  const t = Date.now();
-  const res = await req;
-  return { res, ms: Date.now() - t };
+/**
+ * The gate's API timeouts (AbortSignal.timeout) fire when the test says so, not on the clock.
+ * `ms` records the timeout each fetch asked for.
+ */
+function holdTimeouts() {
+  const held: AbortController[] = [];
+  const spy = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
+    const c = new AbortController();
+    held.push(c);
+    return c.signal;
+  });
+  cleanups.push(() => spy.mockRestore());
+  return {
+    ms: () => spy.mock.calls.map(([ms]) => ms),
+    fire: () => {
+      for (const c of held)
+        c.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+    },
+  };
 }
 
 describe('gateFromEnv', () => {
@@ -111,26 +127,41 @@ describe('gateFromEnv', () => {
 });
 
 describe('fail-open: the site never goes down with Spigot', () => {
+  // A gate that awaited the policy fetch on the request path would never answer while that
+  // fetch is held open, so "served while the fetch is pending" needs no clock.
+  async function servesEveryone(app: ReturnType<typeof site>['app'], phase: string) {
+    for (const [ua, path] of [
+      [HUMAN_UA, `/listings/${listing.slug}`],
+      [HUMAN_UA, '/'],
+      ['GPTBot/1.2', `/listings/${listing.slug}`],
+    ] as const) {
+      const res = await request(app).get(path).set('User-Agent', ua);
+      expect(res.status, `${phase}: ${ua} ${path}`).toBe(200);
+    }
+  }
+
   it.each(['down', 'slow', '500'] as const)(
-    'API %s → humans and bots get 200 within 1 s on every request',
+    'API %s → humans and bots get 200 while the policy fetch is in flight and after it fails',
     async (mode) => {
+      const timeouts = holdTimeouts();
+      const warnings: string[] = [];
       const api = await stubApi(mode);
-      const { app } = site(api.base);
-      // Spread requests across the 2 s policy timeout so the slow case is in flight throughout.
-      for (const delay of [0, 300, 700, 1200, 2300]) {
-        await new Promise((r) => setTimeout(r, delay));
-        for (const [ua, path] of [
-          [HUMAN_UA, `/listings/${listing.slug}`],
-          [HUMAN_UA, '/'],
-          ['GPTBot/1.2', `/listings/${listing.slug}`],
-        ] as const) {
-          const { res, ms } = await timed(request(app).get(path).set('User-Agent', ua));
-          expect(res.status, `${ua} ${path}`).toBe(200);
-          expect(ms).toBeLessThan(1000);
-        }
+      const { app } = site(api.base, false, { info: () => {}, warn: (m) => warnings.push(m) });
+      const failed = () => warnings.some((w) => /passing every request/.test(w));
+
+      if (mode === 'slow') {
+        // The stub holds the policy request open; the 2 s timeout hasn't fired.
+        await expect.poll(() => api.state.auth.length, { timeout: 5_000 }).toBe(1);
+        await servesEveryone(app, 'policy fetch in flight');
+        expect(warnings).toEqual([]);
+        timeouts.fire();
+      } else {
+        await servesEveryone(app, 'policy fetch starting');
       }
+      await expect.poll(failed, { timeout: 5_000 }).toBe(true);
+      await servesEveryone(app, 'policy fetch failed');
+      expect(timeouts.ms()[0]).toBe(2_000); // the default policy timeout
     },
-    15_000,
   );
 
   it('API dies after the policy loaded → keeps the last good policy; humans still 200', async () => {
@@ -145,11 +176,8 @@ describe('fail-open: the site never goes down with Spigot', () => {
       )
       .toBe(402);
     await api.close();
-    const human = await timed(
-      request(app).get(`/listings/${listing.slug}`).set('User-Agent', HUMAN_UA),
-    );
-    expect(human.res.status).toBe(200);
-    expect(human.ms).toBeLessThan(1000);
+    const human = await request(app).get(`/listings/${listing.slug}`).set('User-Agent', HUMAN_UA);
+    expect(human.status).toBe(200);
     const bot = await request(app).get(`/listings/${listing.slug}`).set('User-Agent', 'GPTBot');
     expect(bot.status).toBe(402);
   });

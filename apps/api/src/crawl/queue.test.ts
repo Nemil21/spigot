@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { crawlKeyHash, deriveCrawlKey } from './crawlKey.js';
 import { crawlerUserAgent, minGapFor } from './deps.js';
 import { parseRetryAfter } from './fetchPage.js';
@@ -24,27 +24,48 @@ describe('HostQueue', () => {
     expect(q.stats()).toMatchObject({ maxActive: 2, started: 20, active: 0 });
   });
 
-  it('spaces request starts at least minGapMs apart', async () => {
-    const q = new HostQueue('h', { minGapMs: 15 });
-    const starts: number[] = [];
-    await Promise.all(
-      Array.from({ length: 6 }, () => q.run(async () => void starts.push(performance.now()))),
-    );
-    // Slots are reserved minGapMs apart; one start that wakes late on a busy runner shortens the
-    // gap to the next, but no start is ever early. So assert the cumulative spacing.
-    for (let i = 1; i < starts.length; i++) {
-      expect(starts[i]! - starts[0]!).toBeGreaterThanOrEqual(15 * i - 2); // timer slack
-    }
-  });
+  describe('on a fake clock', () => {
+    const T0 = 1_000_000;
+    beforeEach(() => void vi.useFakeTimers({ now: T0 }));
+    afterEach(() => void vi.useRealTimers());
 
-  it('backoffUntil holds every start for the host', async () => {
-    const q = new HostQueue('h', { minGapMs: 0 });
-    const t0 = Date.now();
-    q.backoffUntil(t0 + 40);
-    q.backoffUntil(t0 + 5); // never shortens the hold
-    let started = 0;
-    await q.run(async () => void (started = Date.now()));
-    expect(started - t0).toBeGreaterThanOrEqual(38);
+    it('spaces request starts exactly minGapMs apart', async () => {
+      const q = new HostQueue('h', { minGapMs: 15 });
+      const starts: number[] = [];
+      const all = Promise.all(
+        Array.from({ length: 6 }, () => q.run(async () => void starts.push(Date.now() - T0))),
+      );
+      await vi.runAllTimersAsync();
+      await all;
+      expect(starts).toEqual([0, 15, 30, 45, 60, 75]);
+    });
+
+    it('backoffUntil holds every start for the host', async () => {
+      const q = new HostQueue('h', { minGapMs: 0 });
+      q.backoffUntil(T0 + 40);
+      q.backoffUntil(T0 + 5); // never shortens the hold
+      let started = 0;
+      const done = q.run(async () => void (started = Date.now() - T0));
+      await vi.advanceTimersByTimeAsync(39);
+      expect(started).toBe(0);
+      expect(q.stats().started).toBe(0);
+      await vi.advanceTimersByTimeAsync(1);
+      await done;
+      expect(started).toBe(40);
+    });
+
+    it('a back-off that arrives mid-wait pushes the waiting start out', async () => {
+      const q = new HostQueue('h', { minGapMs: 20 });
+      const starts: number[] = [];
+      const all = Promise.all(
+        [0, 1].map(() => q.run(async () => void starts.push(Date.now() - T0))),
+      );
+      await vi.advanceTimersByTimeAsync(10);
+      q.backoffUntil(T0 + 50);
+      await vi.runAllTimersAsync();
+      await all;
+      expect(starts).toEqual([0, 50]);
+    });
   });
 
   it('hostQueueFor shares one queue per host and updates its gap', () => {

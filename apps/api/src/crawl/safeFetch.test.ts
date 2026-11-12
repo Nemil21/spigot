@@ -105,6 +105,7 @@ describe('safeFetch', () => {
   let origin: string;
   let resolver: ReturnType<typeof vi.fn<Resolver>>;
   const asPublic = (ip: string) => ip === '::1' || isAddressAllowed(ip);
+  let onHang: (() => void) | undefined;
 
   beforeAll(async () => {
     priv = await listen('127.0.0.1', (_req, res) => res.end('secret'));
@@ -146,6 +147,7 @@ describe('safeFetch', () => {
             res.end(Buffer.alloc(5000));
             return;
           case '/hang':
+            onHang?.();
             return; // never answers
           default:
             res.writeHead(404);
@@ -283,12 +285,25 @@ describe('safeFetch', () => {
     expect((await safeFetch(`${origin}/big`, opts())).body.length).toBe(1600);
   });
 
-  it('times out', async () => {
-    const t0 = Date.now();
-    expect(await codeOf(safeFetch(`${origin}/hang`, { ...opts(), timeoutMs: 200 }))).toBe(
-      'TIMEOUT',
-    );
-    expect(Date.now() - t0).toBeLessThan(2000);
+  it('times out after exactly timeoutMs while the server hangs', async () => {
+    // Only the timers are fake; the socket to /hang is real.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const arrived = new Promise<void>((r) => (onHang = r));
+      let code: string | undefined;
+      const done = codeOf(safeFetch(`${origin}/hang`, { ...opts(), timeoutMs: 200 })).then(
+        (c) => (code = c),
+      );
+      await arrived;
+      await vi.advanceTimersByTimeAsync(199);
+      expect(code).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(1);
+      await done;
+      expect(code).toBe('TIMEOUT');
+    } finally {
+      onHang = undefined;
+      vi.useRealTimers();
+    }
   });
 
   it('allowLocal reaches a loopback origin (the local demo site); default refuses it', async () => {

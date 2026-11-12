@@ -242,16 +242,10 @@ describe.skipIf(!testDatabaseUrl)('SP-009b crawl API (Postgres + demo site)', ()
     const pub = await newPublisher();
     const site = await connect(pub);
     holdPages();
-    const t0 = Date.now();
     await verify(pub, site);
 
-    // No other call: the CONNECT run exists within 1 s of the verify.
-    let runs = await runsOf(site.siteId);
-    while (!runs.length && Date.now() - t0 < 1_000) {
-      await sleep(10);
-      runs = await runsOf(site.siteId);
-    }
-    expect(Date.now() - t0).toBeLessThan(1_000);
+    // No other call: the CONNECT run exists by the time verify answers (the hook is awaited).
+    const runs = await runsOf(site.siteId);
     expect(runs).toHaveLength(1);
     expect(runs[0]).toMatchObject({ trigger: 'CONNECT' });
     const runId = runs[0]!.id;

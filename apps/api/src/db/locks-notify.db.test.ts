@@ -2,7 +2,7 @@ import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { tryAdvisoryLock, tryAdvisoryXactLock, withAdvisoryXactLock } from './locks.js';
 import { notify } from './notify.js';
-import { twoPools, testDatabaseUrl, type TwoPools } from './test-db.js';
+import { drainNotifications, twoPools, testDatabaseUrl, type TwoPools } from './test-db.js';
 import { createDb } from './tx.js';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -79,7 +79,10 @@ describe.skipIf(!testDatabaseUrl)('notify', () => {
     pools = await twoPools();
     listener = new pg.Client({ connectionString: pools.db.url });
     await listener.connect();
-    listener.on('notification', (n) => received.push({ channel: n.channel, payload: JSON.parse(n.payload ?? 'null') }));
+    listener.on('notification', (n) => {
+      if (n.channel === 'publisher_events')
+        received.push({ channel: n.channel, payload: JSON.parse(n.payload ?? 'null') });
+    });
     await listener.query('LISTEN publisher_events');
   });
   afterAll(async () => {
@@ -91,11 +94,13 @@ describe.skipIf(!testDatabaseUrl)('notify', () => {
     const db = createDb(pools.a);
     await db.tx(async (tx) => {
       await notify(tx, 'publisher_events', { type: 'hits', publisherId: 'p1' });
-      await sleep(50);
+      await drainNotifications(listener, pools.b); // commits after our NOTIFY was queued
       expect(received).toEqual([]);
     });
-    await sleep(50);
-    expect(received).toEqual([{ channel: 'publisher_events', payload: { type: 'hits', publisherId: 'p1' } }]);
+    await drainNotifications(listener, pools.b);
+    expect(received).toEqual([
+      { channel: 'publisher_events', payload: { type: 'hits', publisherId: 'p1' } },
+    ]);
 
     await expect(
       db.tx(async (tx) => {
@@ -103,7 +108,7 @@ describe.skipIf(!testDatabaseUrl)('notify', () => {
         throw new Error('abort');
       }),
     ).rejects.toThrow('abort');
-    await sleep(50);
+    await drainNotifications(listener, pools.b);
     expect(received).toHaveLength(1);
   });
 
