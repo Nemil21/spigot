@@ -21,7 +21,7 @@ import { TOPUP_COLUMNS, type TopupRow } from './row.js';
  * 3. `transition(CREATED | AWAITING_APPROVAL | ABANDONED → COMPLETED)` storing the capture id and
  *    PayPal's fee (a capture after SP-019's ABANDONED sweep still credits, once);
  * 4. `ledger.post(TOPUP, 'topup:'+id)` (idempotent on its own as a second guard);
- * 5. save `buyers.vault_id / vault_kind` if PayPal vaulted the method;
+ * 5. save `buyers.vault_id / vault_kind / vault_label` if PayPal vaulted the method;
  * 6. audit `TOPUP_COMPLETED` with the order and capture ids.
  *
  * Never call PayPal from here: it runs under a row lock.
@@ -179,8 +179,14 @@ export async function creditTopupTx(
 
   if (capture.vault) {
     await tx.query(
-      `UPDATE buyers SET vault_id = $2, vault_kind = $3, updated_at = now() WHERE id = $1`,
-      [topup.buyerId, capture.vault.id, capture.vault.kind === 'card' ? 'CARD' : 'PAYPAL'],
+      `UPDATE buyers SET vault_id = $2, vault_kind = $3, vault_label = $4, updated_at = now()
+        WHERE id = $1`,
+      [
+        topup.buyerId,
+        capture.vault.id,
+        capture.vault.kind === 'card' ? 'CARD' : 'PAYPAL',
+        capture.vault.label ?? null,
+      ],
     );
   }
 

@@ -11,7 +11,8 @@ import { FAKE_WEBHOOK_ID } from './webhooks.js';
  * and the sandbox share the client code and pass the same contract suite (test-harness.ts).
  *
  * Core (SP-001b): OAuth tokens, CAPTURE-intent orders (card and vault sources capture at create;
- * wallet / no-source orders wait for `approve()` then capture), vault ids for card and wallet,
+ * wallet / no-source orders wait for `approve()`, card-fields orders for `submitCardFields()`, then
+ * capture), vault ids for card and wallet,
  * `PayPal-Request-Id` replay, `seller_receivable_breakdown.paypal_fee`, PENDING captures and fault
  * injection (latency, 5xx, timeouts, declines, a response lost after the work was done).
  *
@@ -79,6 +80,8 @@ export interface FakeOrder {
   description: string | null;
   source: 'card' | 'paypal' | null;
   rawCard: boolean;
+  /** The card PayPal reports back (`brand`, `last_digits`): raw card at create, or card fields. */
+  card: { brand: string; lastDigits: string } | null;
   vaultRequested: boolean;
   vault: { id: string; customerId: string } | null;
   captureIds: string[];
@@ -250,6 +253,24 @@ export class FakePayPal {
     }
     order.status = 'APPROVED';
     order.source ??= 'paypal';
+  }
+
+  /**
+   * The browser's JS SDK v6 card-fields `submit(orderId)` succeeded (SP-063): the card goes to
+   * PayPal, not to us, and the order is APPROVED for `captureOrder`. Only for a card order created
+   * without a number (`card_fields` source).
+   */
+  submitCardFields(orderId: string, number = '4111111111111111'): void {
+    const order = this.#orders.get(orderId);
+    if (!order) throw new Error(`fake: no order ${orderId}`);
+    if (order.source !== 'card' || order.rawCard) {
+      throw new Error(`fake: order ${orderId} is not a card-fields order`);
+    }
+    if (order.status !== 'CREATED') {
+      throw new Error(`fake: order ${orderId} is ${order.status}, not awaiting card fields`);
+    }
+    order.card = cardFacts(number);
+    order.status = 'APPROVED';
   }
 
   /** Settle a PENDING capture (what the poller / webhook would later see). */
@@ -558,6 +579,7 @@ export class FakePayPal {
       description: typeof unit.description === 'string' ? unit.description : null,
       source: card ? 'card' : paypal ? 'paypal' : null,
       rawCard,
+      card: rawCard ? cardFacts(card.number as string) : null,
       vaultRequested: !!vaultAttr,
       vault: vaulted && vaultId ? { id: vaultId, customerId: vaulted.customerId } : null,
       captureIds: [],
@@ -634,13 +656,18 @@ export class FakePayPal {
 
   #orderBody(o: FakeOrder) {
     const captures = o.captureIds.map((id) => this.#captures.get(id)!).filter(Boolean);
-    const vault = o.vault
-      ? {
-          attributes: {
-            vault: { id: o.vault.id, status: 'VAULTED', customer: { id: o.vault.customerId } },
-          },
-        }
-      : {};
+    const vault = {
+      ...(o.card && o.source === 'card'
+        ? { brand: o.card.brand, last_digits: o.card.lastDigits, type: 'CREDIT' }
+        : {}),
+      ...(o.vault
+        ? {
+            attributes: {
+              vault: { id: o.vault.id, status: 'VAULTED', customer: { id: o.vault.customerId } },
+            },
+          }
+        : {}),
+    };
     const awaiting = o.status === 'PAYER_ACTION_REQUIRED' || o.status === 'CREATED';
     return {
       id: o.id,
@@ -672,6 +699,19 @@ export class FakePayPal {
       ],
     };
   }
+}
+
+/** What PayPal reports for a sandbox test card number. */
+function cardFacts(number: string): { brand: string; lastDigits: string } {
+  const digits = number.replace(/\D/g, '');
+  const brand = digits.startsWith('4')
+    ? 'VISA'
+    : /^3[47]/.test(digits)
+      ? 'AMEX'
+      : digits.startsWith('6011')
+        ? 'DISCOVER'
+        : 'MASTERCARD';
+  return { brand, lastDigits: digits.slice(-4) };
 }
 
 function mockCode(header: string | null): string | undefined {

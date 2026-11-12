@@ -18,6 +18,10 @@ export interface TestCard {
  * - `none`: no `payment_source` (JS SDK v6 buttons approve it in the browser), then `captureOrder`.
  * - `card`: raw test card, captured at create, vaulted `ON_SUCCESS` unless `vault: false`.
  *   Server-side SIM top-ups only; refused unless the client allows raw cards (sandbox / stub).
+ * - `card_fields`: JS SDK v6 card fields (SP-063). `payment_source.card` carries only `attributes`
+ *   (`verification: SCA_WHEN_REQUIRED`, plus `store_in_vault: ON_SUCCESS` when `vault`) and the 3DS
+ *   `experience_context`, **no card number**: the browser's `submit(orderId)` sends the card to
+ *   PayPal, then `captureOrder`. Without a raw card the create replays cleanly (Holdfast S7 step 3).
  * - `card_vault`: merchant-initiated charge on a vaulted card, no buyer present (auto top-up):
  *   `stored_credential{MERCHANT, UNSCHEDULED, SUBSEQUENT}`. Captured at create.
  * - `wallet_vault`: charge on a vaulted PayPal wallet (`paypal.vault_id`). Captured at create.
@@ -26,6 +30,7 @@ export type TopupSource =
   | { kind: 'wallet'; returnUrl: string; cancelUrl: string; vault?: boolean; brandName?: string }
   | { kind: 'none' }
   | { kind: 'card'; card: TestCard; vault?: boolean }
+  | { kind: 'card_fields'; returnUrl: string; cancelUrl: string; vault?: boolean }
   | { kind: 'card_vault'; vaultId: string }
   | { kind: 'wallet_vault'; vaultId: string };
 
@@ -56,6 +61,11 @@ export interface VaultRef {
   kind: 'card' | 'paypal';
   /** PayPal's vault customer id, when returned. */
   customerId: string | null;
+  /**
+   * What W11 shows for the saved method (screens.md §W11): `Visa ••1111` from the card's `brand` +
+   * `last_digits`, `PayPal · <email>` for a wallet. `null` when PayPal didn't say.
+   */
+  label?: string | null;
 }
 
 /**
