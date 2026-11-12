@@ -1,5 +1,5 @@
 <% var a = art(l); %><li class="card listing-card">
-  <svg class="art" viewBox="0 0 320 180" style="<%= a.style %>" aria-hidden="true" focusable="false"><use href="#h-<%= a.kind %>" width="320" height="180"<%- a.flip ? ' transform="translate(320 0) scale(-1 1)"' : '' %>/></svg>
+  <svg class="art" viewBox="0 0 320 180" style="<%= a.style %>" aria-hidden="true" focusable="false"><use href="/art.svg#h-<%= a.kind %>" width="320" height="180"<%- a.flip ? ' transform="translate(320 0) scale(-1 1)"' : '' %>/></svg>
   <span class="status-badge status-<%= l.status %>"><%= l.status === 'leased' ? 'Leased' : 'Available' %></span>
   <div class="card-body">
   <h3><a href="/listings/<%= l.slug %>"><%= l.title %></a></h3>

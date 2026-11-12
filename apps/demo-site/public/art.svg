@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+<!-- Illustrated facades for listing cards and pages, used as /art.svg#h-<kind>. Colours come
+     from CSS custom properties set on the referencing <svg> (app.ts art()). -->
+<defs>
+    <g id="h-ground"><rect width="320" height="180" fill="var(--sky)"/><rect y="148" width="320" height="32" fill="var(--ground)"/></g>
+    <symbol id="h-bungalow" viewBox="0 0 320 180">
+      <use href="#h-ground"/>
+      <rect x="42" y="96" width="5" height="54" fill="#5a4a3c"/><circle cx="44" cy="92" r="26" fill="var(--tree)"/><circle cx="62" cy="104" r="18" fill="var(--tree)"/>
+      <rect x="96" y="88" width="150" height="62" fill="var(--wall)"/>
+      <polygon points="84,90 171,42 258,90" fill="var(--roof)"/>
+      <rect x="110" y="104" width="30" height="24" fill="var(--glass)"/><rect x="202" y="104" width="30" height="24" fill="var(--glass)"/>
+      <path d="M125 104v24M110 116h30M217 104v24M202 116h30" stroke="var(--wall)" stroke-width="2"/>
+      <rect x="159" y="110" width="24" height="40" fill="var(--door)"/>
+      <rect x="150" y="146" width="42" height="4" fill="var(--roof)" opacity=".35"/>
+    </symbol>
+    <symbol id="h-apartment" viewBox="0 0 320 180">
+      <use href="#h-ground"/>
+      <rect x="104" y="40" width="124" height="110" fill="var(--wall)"/>
+      <rect x="98" y="34" width="136" height="8" fill="var(--roof)"/>
+      <g fill="var(--glass)">
+        <rect x="118" y="54" width="22" height="20"/><rect x="155" y="54" width="22" height="20"/><rect x="192" y="54" width="22" height="20"/>
+        <rect x="118" y="86" width="22" height="20"/><rect x="155" y="86" width="22" height="20"/><rect x="192" y="86" width="22" height="20"/>
+        <rect x="118" y="118" width="22" height="20"/><rect x="192" y="118" width="22" height="20"/>
+      </g>
+      <rect x="155" y="116" width="22" height="34" fill="var(--door)"/>
+      <rect x="150" y="112" width="32" height="4" fill="var(--roof)"/>
+      <rect x="262" y="104" width="5" height="46" fill="#5a4a3c"/><circle cx="264" cy="98" r="22" fill="var(--tree)"/><circle cx="249" cy="112" r="14" fill="var(--tree)"/>
+    </symbol>
+    <symbol id="h-house" viewBox="0 0 320 180">
+      <use href="#h-ground"/>
+      <rect x="66" y="74" width="118" height="76" fill="var(--wall)"/>
+      <polygon points="56,77 125,32 194,77" fill="var(--roof)"/>
+      <rect x="184" y="98" width="78" height="52" fill="var(--wall)"/>
+      <polygon points="178,100 223,74 268,100" fill="var(--roof)"/>
+      <rect x="196" y="114" width="54" height="36" fill="var(--roof)" opacity=".25"/>
+      <path d="M196 123h54M196 132h54M196 141h54" stroke="var(--wall)" stroke-width="1.5" opacity=".7"/>
+      <rect x="82" y="88" width="26" height="22" fill="var(--glass)"/><rect x="142" y="88" width="26" height="22" fill="var(--glass)"/>
+      <rect x="82" y="120" width="26" height="22" fill="var(--glass)"/>
+      <rect x="114" y="62" width="22" height="14" fill="var(--glass)"/>
+      <rect x="140" y="112" width="24" height="38" fill="var(--door)"/>
+      <rect x="30" y="112" width="4" height="38" fill="#5a4a3c"/><circle cx="32" cy="106" r="18" fill="var(--tree)"/>
+    </symbol>
+</defs>
+</svg>

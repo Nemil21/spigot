@@ -4,7 +4,7 @@
 </script>
 <article class="listing">
   <% var a = art(listing); %><nav class="crumbs" aria-label="Breadcrumb"><a href="/search">Rentals</a> / <a href="/search?neighbourhood=<%= encodeURIComponent(listing.neighbourhood) %>"><%= listing.neighbourhood %></a></nav>
-  <div class="photo" role="img" aria-label="Illustration of <%= listing.title %>"><svg viewBox="-80 24 480 160" preserveAspectRatio="xMidYMax slice" style="<%= a.style %>"><use href="#h-<%= a.kind %>" width="320" height="180"<%- a.flip ? ' transform="translate(320 0) scale(-1 1)"' : '' %>/><rect x="-80" y="148" width="480" height="40" fill="var(--ground)"/></svg></div>
+  <div class="photo" role="img" aria-label="Illustration of <%= listing.title %>"><svg viewBox="-80 24 480 160" preserveAspectRatio="xMidYMax slice" style="<%= a.style %>"><use href="/art.svg#h-<%= a.kind %>" width="320" height="180"<%- a.flip ? ' transform="translate(320 0) scale(-1 1)"' : '' %>/><rect x="-80" y="148" width="480" height="40" fill="var(--ground)"/></svg></div>
   <div class="layout-2">
     <div>
       <span class="status-badge status-<%= listing.status %>"><%= listing.status === 'leased' ? 'Leased' : 'Available' %></span>

@@ -18,7 +18,7 @@
       <p class="oh-notes"><%= openHouse.notes %></p>
     </div>
     <% if (listing) { var a = art(listing); %>
-    <aside><svg class="art oh-art" viewBox="0 0 320 180" style="<%= a.style %>" aria-hidden="true" focusable="false"><use href="#h-<%= a.kind %>" width="320" height="180"<%- a.flip ? ' transform="translate(320 0) scale(-1 1)"' : '' %>/></svg></aside>
+    <aside><svg class="art oh-art" viewBox="0 0 320 180" style="<%= a.style %>" aria-hidden="true" focusable="false"><use href="/art.svg#h-<%= a.kind %>" width="320" height="180"<%- a.flip ? ' transform="translate(320 0) scale(-1 1)"' : '' %>/></svg></aside>
     <% } %>
   </div>
 </article>

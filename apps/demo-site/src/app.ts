@@ -23,6 +23,8 @@ const ART_PALETTES = [
 ] as const;
 
 const VIEWS_DIR = fileURLToPath(new URL('../views', import.meta.url));
+/** /site.css and /art.svg: styles and facade art live outside the page HTML that gets crawled. */
+const PUBLIC_DIR = fileURLToPath(new URL('../public', import.meta.url));
 
 export interface AppOptions {
   store: Store;
@@ -121,6 +123,9 @@ export function createApp({
 
   const notFound = (req: Request, res: Response) => page(req, res, 'not-found', { title: 'Page not found' }, 404);
 
+  // Static assets sit before the access log and the gate: they aren't data, and a browser
+  // rendering a page must never get a 402 for its stylesheet.
+  app.use(express.static(PUBLIC_DIR, { index: false, maxAge: '1h' }));
   app.use(accessLog.middleware);
   // Admin sits before the gate: the CLI isn't a browser and must never get a 402.
   app.use('/admin', adminToken ? createAdminRouter({ store, token: adminToken }) : notFound);
