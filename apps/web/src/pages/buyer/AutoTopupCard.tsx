@@ -179,8 +179,8 @@ export function AutoTopupCard({ client, reloadToken = 0 }: AutoTopupCardProps) {
 
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-xs font-medium text-muted">Saved method</dt>
-                <dd className="mt-1 font-medium text-ink">
+                <dt className={ui.statLabel}>Saved method</dt>
+                <dd className="mt-1.5 font-medium text-ink">
                   {settings.savedMethod ? (
                     settings.savedMethod.label
                   ) : (
@@ -191,8 +191,8 @@ export function AutoTopupCard({ client, reloadToken = 0 }: AutoTopupCardProps) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium text-muted">This month</dt>
-                <dd className="mt-1 font-medium tabular-nums text-ink">
+                <dt className={ui.statLabel}>This month</dt>
+                <dd className="mt-1.5 font-medium tabular-nums text-ink">
                   {formatCents(settings.remainingThisMonthCents)} left of{' '}
                   {formatCents(settings.monthlyCapCents)}
                 </dd>

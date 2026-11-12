@@ -147,9 +147,9 @@ function CodeBlock({
   children: ReactNode;
 }) {
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-line bg-surface-2/60">
+    <div className="mt-3 overflow-hidden rounded-sm border border-line bg-surface-2/60">
       <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
-        <span className="truncate font-mono text-xs text-muted">{caption}</span>
+        <span className={`truncate ${ui.monoMeta}`}>{caption}</span>
         {copy}
       </div>
       {children}
