@@ -19,9 +19,10 @@ import { paths } from '../routes';
  * reconnect. While the crawl or the agent is running we also poll every 5 s, because a run that
  * ends with zero proposals emits no `proposal.ready`.
  *
- * States: crawling; proposing (cards stream in, a "reading 5 sample pages…" line per template
+ * States: crawling; proposing (`running`: cards stream in, a "reading 5 sample pages…" line per template
  * still being read); ready; a skipped template ("Couldn't find consistent fields on /blog/*;
- * skipped"); none (no repeated structure).
+ * skipped"); waiting for retry (PROPOSING with no run going: the model was unreachable, the resume
+ * job retries; no skeleton, polling continues); none (no repeated structure).
  */
 
 export interface ProposalStatus {
@@ -190,10 +191,14 @@ export default function RecordTypesPage({
     const reading = status?.templates.filter((t) => t.state === 'reading') ?? [];
     const skipped = status?.templates.filter((t) => t.state !== 'reading') ?? [];
     const crawling = !!status?.crawling;
-    const proposing = !!status && (status.running || status.siteStatus === 'PROPOSING');
+    const proposing = !!status?.running;
+    // The last run ended without proposals because the model was unreachable; the site stays
+    // PROPOSING until SP-012a's resume job retries (~5 min). Polling continues meanwhile.
+    const waitingRetry = !!status && !proposing && status.siteStatus === 'PROPOSING';
     const notCrawledYet =
       !crawling &&
       !proposing &&
+      !waitingRetry &&
       (status?.siteStatus === 'PENDING_VERIFY' || status?.siteStatus === 'VERIFIED');
 
     if (notCrawledYet && proposals.length === 0) {
@@ -214,9 +219,11 @@ export default function RecordTypesPage({
             ? 'Crawling your site…'
             : proposing
               ? 'Claude is reading a few sample pages of each page template.'
-              : proposals.length > 0
-                ? 'Review a type to choose its fields and price, then publish it.'
-                : null}
+              : waitingRetry
+                ? "Claude couldn't be reached just now. Spigot tries again in a few minutes."
+                : proposals.length > 0
+                  ? 'Review a type to choose its fields and price, then publish it.'
+                  : null}
         </p>
 
         {(reading.length > 0 || skipped.length > 0) && (
@@ -263,7 +270,7 @@ export default function RecordTypesPage({
           >
             <SkeletonText lines={3} />
           </div>
-        ) : (
+        ) : waitingRetry ? null : (
           <div className="mt-6">
             <EmptyState
               message={

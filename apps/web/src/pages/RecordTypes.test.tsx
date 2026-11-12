@@ -267,6 +267,40 @@ describe('W05 Record types found', () => {
     expect(cards()).toHaveLength(3);
   });
 
+  it('model unavailable: PROPOSING with no run going waits for the retry, no skeleton', async () => {
+    const world: World = {
+      proposals: [],
+      status: {
+        siteStatus: 'PROPOSING',
+        crawling: false,
+        running: false,
+        templates: [{ pattern: '/listings/:slug', pageCount: 2341, state: 'failed' }],
+        message: null,
+      },
+    };
+    setup(world);
+    expect(
+      await screen.findByText(
+        "Claude couldn't be reached just now. Spigot tries again in a few minutes.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Couldn't read /listings/* yet; trying again in a few minutes"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Claude is reading a few sample pages of each page template.'),
+    ).toBeNull();
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+    expect(screen.queryByText(/didn't find repeated page structure/)).toBeNull();
+
+    // The resume job runs and proposes: the page clears on its own.
+    world.proposals = ALL.slice(0, 1);
+    world.status = { ...ready, templates: [] };
+    act(() => FakeSource.all.at(-1)!.emit('proposal.ready', { ids: [ALL[0]!.datasetId] }));
+    await waitFor(() => expect(cards()).toHaveLength(1));
+    expect(screen.queryByText(/couldn't be reached/)).toBeNull();
+  });
+
   it('none: no repeated structure', async () => {
     setup({
       proposals: [],
