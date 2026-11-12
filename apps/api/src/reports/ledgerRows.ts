@@ -10,6 +10,9 @@ import { decodeCursor, encodeCursor } from './query.js';
  * a charge is +net, a credit or payout is −. The account is found from the session publisher id
  * alone, so another publisher's entries can't be reached, cursor or not. PayPal ids come from the
  * payout item a payout txn references.
+ *
+ * Order is by entry (posting order), not by `createdAt`: SIM txns backdated by SP-036's simulated
+ * week were posted recently, so they can sit above newer real entries with an older `createdAt`.
  */
 
 export const LEDGER_BLOCK = 100;

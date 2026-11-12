@@ -427,6 +427,7 @@ describe.skipIf(!testDatabaseUrl)(
           '?groupBy=site',
           '?includeSim=maybe',
           '?from=yesterday',
+          '?from=1',
           '?from=2026-11-02&to=2026-11-01',
         ]) {
           const res = await getEarnings(A, qs);
