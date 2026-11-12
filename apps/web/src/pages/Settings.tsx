@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router';
 import { api as defaultApi, ApiError, type ApiClient } from '../api/client';
 import { EmptyState, ErrorBanner, errorMessage, SkeletonText } from '../components';
 import type { AuthMe } from '../layout/session';
-import { PayPalButton, PayPalNotice } from '../components/PayPalSignIn';
+import { PAYPAL_CONNECT, PayPalButton, PayPalNotice } from '../components/PayPalSignIn';
 import { paths } from '../routes';
 
 /**
@@ -448,7 +448,10 @@ function ConnectPayPalCard({ publisher }: { publisher: Loaded['publisher'] }) {
       )}
       <PayPalNotice reason={params.get('paypal')} />
       <div className="mt-4 max-w-xs">
-        <PayPalButton label={connected ? 'Reconnect PayPal' : 'Connect with PayPal'} />
+        <PayPalButton
+          href={PAYPAL_CONNECT}
+          label={connected ? 'Reconnect PayPal' : 'Connect with PayPal'}
+        />
       </div>
     </div>
   );

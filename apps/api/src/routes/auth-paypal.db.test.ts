@@ -75,9 +75,12 @@ describe.skipIf(!testDatabaseUrl)('SP-058 Log in with PayPal (Postgres + stub OI
 
   const agent = () => request(app.server);
 
-  /** `/start` as `session` (a publisher cookie) or anonymous: the stub's callback URL + state cookie. */
-  async function start(session?: string) {
-    const req = agent().get('/api/auth/paypal/start');
+  /**
+   * `/start` as `session` (a publisher cookie) or anonymous: the stub's callback URL + state
+   * cookie. With a session it is W16's Connect (`?intent=connect`) unless `intent` says otherwise.
+   */
+  async function start(session?: string, intent: 'connect' | null = session ? 'connect' : null) {
+    const req = agent().get(`/api/auth/paypal/start${intent ? `?intent=${intent}` : ''}`);
     if (session) req.set('Cookie', session);
     const res = await req;
     expect(res.status).toBe(302);
@@ -197,6 +200,43 @@ describe.skipIf(!testDatabaseUrl)('SP-058 Log in with PayPal (Postgres + stub OI
     const back = await loginWithPayPal(id);
     expect(back.to).toBe('/app');
     expect((await me(back.session!)).body.publisher.id).toBe(pw.id);
+  });
+
+  it('a plain /start while signed in is a login: it never links to the current session', async () => {
+    const a = await passwordSignup();
+    const before = (await me(a.session)).body.publisher;
+
+    // (a) A new PayPal identity creates its own publisher and the session switches to it.
+    const fresh = identity();
+    stub.identity = fresh;
+    const created = await callback(await start(a.session, null), { session: a.session });
+    expect(created.to).toBe('/app/connect');
+    const now = (await me(created.session!)).body.publisher;
+    expect(now.id).not.toBe(a.id);
+    expect(now.payoutEmail).toBe(fresh.email);
+
+    // (b) A PayPal identity already on publisher B signs in as B, not `taken` on A.
+    const b = await loginWithPayPal(identity());
+    const bId = (await me(b.session!)).body.publisher.id;
+    stub.identity = { ...stub.identity };
+    const asB = await callback(await start(a.session, null), { session: a.session });
+    expect(asB.to).toBe('/app');
+    expect((await me(asB.session!)).body.publisher.id).toBe(bId);
+
+    // A is untouched: no payer id, same payout email.
+    const { rows } = await app.db.pool.query(
+      'SELECT paypal_payer_id, payout_email FROM publishers WHERE id = $1',
+      [a.id],
+    );
+    expect(rows[0]).toEqual({ paypal_payer_id: null, payout_email: before.payoutEmail });
+  });
+
+  it('?intent=connect without a session is a plain login', async () => {
+    const id = identity();
+    stub.identity = id;
+    const r = await callback(await start(undefined, 'connect'));
+    expect(r.to).toBe('/app/connect');
+    expect(await rowsFor(id.email)).toHaveLength(1);
   });
 
   it('an unlinked password account with the PayPal email is not merged: link-required', async () => {

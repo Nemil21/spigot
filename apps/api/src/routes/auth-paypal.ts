@@ -19,8 +19,10 @@ import { rateLimit } from '../http/rateLimit.js';
  * Log in with PayPal for publishers (SP-058; features/14 §Auth; screens.md §W02, §W16).
  *
  * - `GET /api/auth/paypal/start` → 302 to PayPal consent with a fresh `state` + `nonce`, both kept
- *   in a signed 10-minute HttpOnly cookie (`spg_lipp`, path `/api/auth/paypal`). Signed in as a
- *   publisher → the flow links PayPal to that account (W16 "Connect with PayPal").
+ *   in a signed 10-minute HttpOnly cookie (`spg_lipp`, path `/api/auth/paypal`). Linking is
+ *   explicit: only `?intent=connect` (W16 "Connect with PayPal") with a publisher session links
+ *   PayPal to that account. A plain `/start` (W02 login / sign up) is always a login, even when a
+ *   session exists: the callback replaces that session with the PayPal publisher's.
  * - `GET /api/auth/paypal/callback?code&state` (or `?error=access_denied&state`) → checks the
  *   state, exchanges the code (nonce checked against the `id_token`), requires a verified email
  *   and a payer id, then signs in, creates or links the publisher (auth/publisherPaypal.ts) and
@@ -54,20 +56,25 @@ const authPaypalRoutes: FastifyPluginAsync = async (app) => {
     secure: secureCookies(app.config),
   });
 
-  app.get('/api/auth/paypal/start', { preHandler: byIp }, async (req, reply) => {
-    const st = newLippState(req.publisher?.id ?? null);
-    reply.setCookie(LIPP_COOKIE, signLippState(app.config.SESSION_SECRET, st), {
-      ...cookieOpts(),
-      maxAge: Math.floor(LIPP_TTL_MS / 1000),
-    });
-    reply.header('cache-control', 'no-store');
-    const url = paypalIdentity(app.config).authorizeUrl({
-      state: st.state,
-      nonce: st.nonce,
-      redirectUri: callbackUrl(app.config),
-    });
-    return reply.redirect(url, 302);
-  });
+  app.get<{ Querystring: Record<string, string | undefined> }>(
+    '/api/auth/paypal/start',
+    { preHandler: byIp },
+    async (req, reply) => {
+      const connect = req.query.intent === 'connect';
+      const st = newLippState(connect ? (req.publisher?.id ?? null) : null);
+      reply.setCookie(LIPP_COOKIE, signLippState(app.config.SESSION_SECRET, st), {
+        ...cookieOpts(),
+        maxAge: Math.floor(LIPP_TTL_MS / 1000),
+      });
+      reply.header('cache-control', 'no-store');
+      const url = paypalIdentity(app.config).authorizeUrl({
+        state: st.state,
+        nonce: st.nonce,
+        redirectUri: callbackUrl(app.config),
+      });
+      return reply.redirect(url, 302);
+    },
+  );
 
   app.get<{ Querystring: Record<string, string | undefined> }>(
     '/api/auth/paypal/callback',
@@ -88,8 +95,8 @@ const authPaypalRoutes: FastifyPluginAsync = async (app) => {
       if (!st || typeof state !== 'string' || !sameSecret(state, st.state)) {
         return back('state', false);
       }
-      // Connect must finish as the same publisher that started it.
-      if ((req.publisher?.id ?? null) !== st.link) return back('state', false);
+      // Connect must finish as the same publisher that started it. A login ignores the session.
+      if (st.link && req.publisher?.id !== st.link) return back('state', false);
       if (typeof code !== 'string' || !code || code.length > 2048) return back('error');
 
       let identity;

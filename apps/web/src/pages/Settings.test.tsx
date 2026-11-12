@@ -114,7 +114,7 @@ describe('W16 Settings', () => {
       expect(screen.getByText(/applies to the next batch/)).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /Connect with PayPal/ })).toHaveAttribute(
         'href',
-        '/api/auth/paypal/start',
+        '/api/auth/paypal/start?intent=connect',
       );
 
       await userEvent.clear(email);
@@ -136,7 +136,7 @@ describe('W16 Settings', () => {
       expect(await screen.findByText('Connected')).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /Reconnect PayPal/ })).toHaveAttribute(
         'href',
-        '/api/auth/paypal/start',
+        '/api/auth/paypal/start?intent=connect',
       );
       expect(screen.getByRole('status')).toHaveTextContent('PayPal connected.');
     });

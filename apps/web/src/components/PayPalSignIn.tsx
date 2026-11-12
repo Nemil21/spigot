@@ -6,6 +6,8 @@
  */
 
 export const PAYPAL_START = '/api/auth/paypal/start';
+/** W16: link PayPal to the signed-in publisher. A plain `PAYPAL_START` is always a login. */
+export const PAYPAL_CONNECT = `${PAYPAL_START}?intent=connect`;
 
 export type PayPalReason =
   'connected' | 'cancelled' | 'state' | 'unverified' | 'link-required' | 'taken' | 'error';
@@ -46,9 +48,17 @@ export function PayPalNotice({ reason }: { reason: string | null }) {
 const buttonClass =
   'flex w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 font-medium text-ink hover:bg-surface-2';
 
-export function PayPalButton({ label, className = '' }: { label: string; className?: string }) {
+export function PayPalButton({
+  label,
+  href = PAYPAL_START,
+  className = '',
+}: {
+  label: string;
+  href?: string;
+  className?: string;
+}) {
   return (
-    <a href={PAYPAL_START} className={`${buttonClass} ${className}`}>
+    <a href={href} className={`${buttonClass} ${className}`}>
       <span aria-hidden="true" className="font-bold italic text-accent">
         P
       </span>
