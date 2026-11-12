@@ -45,6 +45,11 @@ export interface ServerCardTopupInput {
   buyerId: string;
   amountCents: number;
   trigger: 'SIM';
+  /**
+   * Dates the TOPUP ledger txn (SP-035: the start of SP-036's simulated week). `topups.created_at`
+   * stays the real insert time, so the stale-create check below keeps working.
+   */
+  simulatedAt?: Date;
 }
 
 export type ServerCardTopupOutcome =
@@ -139,7 +144,7 @@ export async function serverCardTopup(
     if (!(err instanceof ApiError)) throw err;
     return flagReconcile(deps, inserted, null, 'PAYPAL_UNREACHABLE', actor, true);
   }
-  return settle(deps, inserted, result, actor, true);
+  return settle(deps, inserted, result, actor, true, input.simulatedAt);
 }
 
 /** Someone already inserted `topupId`: settle it from our row and PayPal, never a second order. */
@@ -184,7 +189,7 @@ async function reconcileExisting(
   if (row.paypalOrderId) {
     const orderId = row.paypalOrderId;
     const order = await callPayPal(row.id, () => deps.pp.getOrder(orderId));
-    return settle(deps, row, topupResultOf(order, true), actor, false);
+    return settle(deps, row, topupResultOf(order, true), actor, false, input.simulatedAt);
   }
 
   // No order id yet: the winner is mid-create, or it died there. Flag only when stale, atomically
@@ -213,6 +218,7 @@ async function settle(
   result: TopupResult,
   actor: SimActor,
   created: boolean,
+  simulatedAt?: Date,
 ): Promise<ServerCardTopupOutcome> {
   const { db } = deps;
   switch (result.status) {
@@ -225,7 +231,7 @@ async function settle(
       );
       let outcome: CaptureOutcome;
       try {
-        outcome = await applyTopupResult(deps, row, result, actor);
+        outcome = await applyTopupResult(deps, row, result, actor, { simulatedAt });
       } catch (err) {
         // A capture that doesn't match the top-up: `creditTopup` flagged and alerted it.
         if (!(err instanceof ApiError)) throw err;

@@ -4,7 +4,7 @@ import type { Db } from '../db/index.js';
 import { transition } from '../db/transition.js';
 import { ApiError } from '../http/errors.js';
 import type { PayPalOrdersClient, TopupResult } from '../paypal/index.js';
-import { balanceOf, creditTopup, type CreditActor } from './creditTopup.js';
+import { balanceOf, creditTopup, type CreditActor, type CreditOptions } from './creditTopup.js';
 import { TOPUP_COLUMNS, type TopupRow } from './row.js';
 
 export interface TopupDeps {
@@ -78,6 +78,7 @@ export async function applyTopupResult(
   topup: TopupRow,
   result: TopupResult,
   actor: CreditActor,
+  opts: CreditOptions = {},
 ): Promise<CaptureOutcome> {
   const { db } = deps;
   switch (result.status) {
@@ -95,6 +96,7 @@ export async function applyTopupResult(
           vault: result.vault,
         },
         actor,
+        opts,
       );
       switch (credit.result) {
         case 'CREDITED':
