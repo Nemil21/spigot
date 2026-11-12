@@ -25,7 +25,15 @@ import { REQUIRED_ENV } from '../test/env.js';
 import crawlScheduleJob from './crawl-schedule.job.js';
 import { loadJobs } from './index.js';
 import nightlyJob from './nightly-check.job.js';
-import { recrawlReadySites, scheduleJobDeps, setScheduleDeps } from './schedule.js';
+import {
+  NIGHTLY_EVERY_MS,
+  nightlySlot,
+  RECRAWL_EVERY_MS,
+  recrawlReadySites,
+  scheduleJobDeps,
+  scheduleSlot,
+  setScheduleDeps,
+} from './schedule.js';
 
 /**
  * SP-061: the 15-min scheduled re-crawl and the nightly ledger check, driven through SP-002's
@@ -285,8 +293,14 @@ describe.skipIf(!testDatabaseUrl)(
       const b = await newSite(await demoOrigin(), 'READY');
       const depsB: CrawlDeps = { ...deps, db: createDb(poolB) };
 
+      // Each round is its own tick; both processes scan the same one.
+      const first = scheduleSlot();
       for (let round = 0; round < 3; round++) {
-        const results = await Promise.all([recrawlReadySites(deps), recrawlReadySites(depsB)]);
+        const slot = { slot: first + round };
+        const results = await Promise.all([
+          recrawlReadySites(deps, slot),
+          recrawlReadySites(depsB, slot),
+        ]);
         for (const siteId of [a, b]) {
           const started = results
             .flat()
@@ -300,6 +314,36 @@ describe.skipIf(!testDatabaseUrl)(
         expect(runs).toHaveLength(3);
         expect(runs.every((r) => r.status === 'SUCCEEDED')).toBe(true);
       }
+    });
+
+    it('crawl.schedule and nightly.check at 00:00 start one SCHEDULE run per site, even after the first ended', async () => {
+      await parkOtherSites();
+      const siteId = await newSite(await demoOrigin(), 'READY');
+      const day = Math.floor(Date.now() / NIGHTLY_EVERY_MS) + 1;
+      // The 15-min tick at the same 00:00 is the nightly tick's slot.
+      const quarter = day * (NIGHTLY_EVERY_MS / RECRAWL_EVERY_MS);
+      expect(nightlySlot(day)).toBe(quarter);
+
+      setScheduleDeps(deps);
+      await crawlScheduleJob.run(quarter);
+      // Let that run end: no live run guards the site any more, only the slot's claim does.
+      await vi.waitFor(
+        async () => expect((await runsOf(siteId)).map((r) => r.status)).toEqual(['SUCCEEDED']),
+        { timeout: 20_000, interval: 50 },
+      );
+      // nightlyCheck's re-crawl for the same tick, on the other process.
+      const out = await recrawlReadySites(
+        { ...deps, db: createDb(poolB) },
+        { slot: nightlySlot(day) },
+      );
+      expect(out).toMatchObject([{ siteId, outcome: 'ALREADY_SCHEDULED' }]);
+      expect((await runsOf(siteId)).filter((r) => r.trigger === 'SCHEDULE')).toHaveLength(1);
+
+      // The next 15-min tick crawls again.
+      const next = await recrawlReadySites(deps, { slot: quarter + 1 });
+      expect(next).toMatchObject([{ siteId, outcome: 'STARTED' }]);
+      await next[0]!.done;
+      expect((await runsOf(siteId)).filter((r) => r.trigger === 'SCHEDULE')).toHaveLength(2);
     });
 
     it('a live run whose process died is adopted and finished instead of skipped', async () => {
