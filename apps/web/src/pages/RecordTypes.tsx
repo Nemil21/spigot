@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router';
 import { api as defaultApi, ApiError, type ApiClient } from '../api/client';
 import { fixturesEnabled } from '../api/fixtures';
 import { useEventStream, type EventSourceFactory } from '../api/sse';
-import { EmptyState, ErrorBanner, errorMessage, SkeletonText } from '../components';
+import { EmptyState, ErrorBanner, errorMessage, Skeleton, SkeletonText } from '../components';
 import { displayPattern, ProposalCard, type Proposal } from '../components/ProposalCard';
 import { paths } from '../routes';
 
@@ -158,17 +158,22 @@ export default function RecordTypesPage({
   let body: ReactNode;
   if (state.status === 'loading') {
     body = (
-      <div aria-busy="true" className="mt-6 grid gap-4">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-lg border border-line bg-surface p-6">
-            <SkeletonText lines={4} />
+      <div aria-busy="true" className="mt-8 grid gap-5">
+        {[0, 1].map((i) => (
+          <div key={i} className="rounded-xl border border-line bg-surface p-6 shadow-card">
+            <Skeleton className="block h-5 w-44" />
+            <Skeleton className="mt-2 block h-3 w-32" />
+            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem]">
+              <SkeletonText lines={4} />
+              <SkeletonText lines={2} />
+            </div>
           </div>
         ))}
       </div>
     );
   } else if (state.status === 'error') {
     body = (
-      <div className="mt-6">
+      <div className="mt-8">
         <ErrorBanner error={state.error} onRetry={() => setAttempt((n) => n + 1)} />
       </div>
     );
@@ -179,7 +184,7 @@ export default function RecordTypesPage({
   function renderReady({ site, proposals: all, status }: Loaded): ReactNode {
     if (!site) {
       return (
-        <div className="mt-6">
+        <div className="mt-8">
           <EmptyState
             message="Connect your site to find the kinds of records on it."
             action={{ label: 'Connect your site', to: paths.connectSite }}
@@ -203,7 +208,7 @@ export default function RecordTypesPage({
 
     if (notCrawledYet && proposals.length === 0) {
       return (
-        <div className="mt-6">
+        <div className="mt-8">
           <EmptyState
             message="Verify your site and run the first crawl, then the record types show up here."
             action={{ label: 'Install and verify', to: paths.installVerify }}
@@ -212,30 +217,47 @@ export default function RecordTypesPage({
       );
     }
 
+    const live = crawling || proposing;
+    // Done with nothing left to review: every step is complete, none is current.
+    const step = crawling ? 0 : proposing || waitingRetry ? 1 : proposals.length > 0 ? 2 : 3;
+
     return (
       <>
-        <p className="mt-2 text-body" aria-live="polite">
-          {crawling
-            ? 'Crawling your site…'
-            : proposing
-              ? 'Claude is reading a few sample pages of each page template.'
-              : waitingRetry
-                ? "Claude couldn't be reached just now. Spigot tries again in a few minutes."
-                : proposals.length > 0
-                  ? 'Review a type to choose its fields and price, then publish it.'
-                  : null}
-        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] leading-6">
+          <span className="font-mono text-sm text-muted">{hostOf(site.origin)}</span>
+          <p className="flex items-center gap-2 text-body" aria-live="polite">
+            {live && <LiveDot />}
+            {crawling
+              ? 'Crawling your site…'
+              : proposing
+                ? 'Claude is reading a few sample pages of each page template.'
+                : waitingRetry
+                  ? "Claude couldn't be reached just now. Spigot tries again in a few minutes."
+                  : proposals.length > 0
+                    ? 'Review a type to choose its fields and price, then publish it.'
+                    : null}
+          </p>
+        </div>
+
+        <Steps current={step} retrying={waitingRetry} />
 
         {(reading.length > 0 || skipped.length > 0) && (
-          <ul className="mt-4 space-y-1 text-sm" aria-label="Templates">
+          <ul
+            className="mt-6 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface text-sm"
+            aria-label="Templates"
+          >
             {reading.map((t) => (
-              <li key={`r-${t.pattern}`} className="text-muted">
-                <code>{displayPattern(t.pattern)}</code>: reading{' '}
-                {Math.min(SAMPLE_PAGES, Math.max(t.pageCount, 1))} sample pages…
+              <li key={`r-${t.pattern}`} className="flex items-center gap-3 px-4 py-3 text-body">
+                <LiveDot />
+                <code className="font-mono text-[13px] text-ink">
+                  {displayPattern(t.pattern)}
+                </code>{' '}
+                reading {Math.min(SAMPLE_PAGES, Math.max(t.pageCount, 1))} sample pages…
               </li>
             ))}
             {skipped.map((t) => (
-              <li key={`s-${t.pattern}`} className="text-warning">
+              <li key={`s-${t.pattern}`} className="flex items-center gap-3 px-4 py-3 text-body">
+                <WarnIcon />
                 {t.state === 'failed'
                   ? `Couldn't read ${starPattern(t.pattern)} yet; trying again in a few minutes`
                   : `Couldn't find consistent fields on ${starPattern(t.pattern)}; skipped`}
@@ -245,14 +267,37 @@ export default function RecordTypesPage({
         )}
 
         {proposals.length > 0 && (
-          <p className="mt-4 rounded-md bg-accent-tint px-4 py-3 text-sm text-ink">
-            <span className="font-medium">How this works:</span> Claude wrote the extractor once. It
-            now runs with no AI on each page.
-          </p>
+          <div className="mt-6 flex items-start gap-3 rounded-xl border border-accent-tint bg-accent-tint/50 px-4 py-3.5">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              className="mt-0.5 size-4 shrink-0 text-accent"
+            >
+              <circle
+                cx="10"
+                cy="10"
+                r="7.25"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <path
+                d="M10 9v4.5M10 6.4v.1"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
+            <p className="text-sm leading-6 text-ink">
+              <span className="font-semibold">How this works:</span> Claude wrote the extractor
+              once. It now runs with no AI on each page.
+            </p>
+          </div>
         )}
 
         {proposals.length > 0 ? (
-          <div className="mt-6 grid gap-4" aria-label="Record types">
+          <div className="mt-6 grid gap-5" aria-label="Record types">
             {proposals.map((p) => (
               <ProposalCard
                 key={p.datasetId}
@@ -266,12 +311,15 @@ export default function RecordTypesPage({
         ) : proposing || crawling ? (
           <div
             aria-busy="true"
-            className="mt-6 rounded-lg border border-dashed border-line bg-surface p-6"
+            className="mt-6 rounded-xl border border-dashed border-border bg-surface p-6"
           >
-            <SkeletonText lines={3} />
+            <Skeleton className="block h-5 w-44" />
+            <div className="mt-5">
+              <SkeletonText lines={3} />
+            </div>
           </div>
         ) : waitingRetry ? null : (
-          <div className="mt-6">
+          <div className="mt-8">
             <EmptyState
               message={
                 all.length > 0
@@ -288,12 +336,88 @@ export default function RecordTypesPage({
 
   const visible = data?.proposals.filter((p) => !rejected.current.has(p.datasetId)).length ?? 0;
   return (
-    <section className="mx-auto max-w-5xl px-6 py-8" data-screen="W05">
-      <p className="text-sm font-medium text-muted">Record types</p>
-      <h1 className="mt-1 text-2xl font-semibold text-ink">
+    <section className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10" data-screen="W05">
+      <h1 className="text-balance text-2xl font-semibold tracking-tight text-ink sm:text-[1.75rem] sm:leading-9">
         {visible > 0 ? headline(visible) : 'Record types on your site'}
       </h1>
       {body}
     </section>
+  );
+}
+
+function hostOf(origin: string): string {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return origin;
+  }
+}
+
+/** A small pulsing dot for work in progress (static under prefers-reduced-motion). */
+function LiveDot() {
+  return (
+    <span aria-hidden="true" className="relative inline-flex size-2 shrink-0">
+      <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-50 motion-reduce:hidden" />
+      <span className="relative inline-flex size-2 rounded-full bg-accent" />
+    </span>
+  );
+}
+
+function WarnIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="size-4 shrink-0 text-warning">
+      <path
+        d="M8 2.5l6 10.5H2L8 2.5z M8 7v2.5 M8 11.2v.1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const STEPS = ['Crawl the site', 'Claude reads each template', 'You review and price'] as const;
+
+/** Where the discovery run is: crawl → agent → owner review. Decorative; the live line says it. */
+function Steps({ current, retrying }: { current: number; retrying: boolean }) {
+  return (
+    <ol aria-hidden="true" className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-2 text-xs">
+      {STEPS.map((label, i) => {
+        const done = i < current;
+        const now = i === current;
+        return (
+          <li key={label} className="flex items-center gap-2">
+            {i > 0 && <span className={`h-px w-6 ${done || now ? 'bg-accent' : 'bg-border'}`} />}
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
+                now
+                  ? retrying
+                    ? 'border-warning-tint bg-warning-tint text-warning'
+                    : 'border-accent-tint bg-accent-tint text-accent-strong'
+                  : done
+                    ? 'border-line bg-surface text-body'
+                    : 'border-line bg-surface text-muted'
+              }`}
+            >
+              {done && (
+                <svg viewBox="0 0 16 16" className="size-3 text-accent">
+                  <path
+                    d="M3.5 8.5l3 3 6-7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+              {label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

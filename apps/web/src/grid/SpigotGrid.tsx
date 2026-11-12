@@ -15,8 +15,8 @@ export type SpigotGridProps<TData> = AgGridReactProps<TData> & {
 /** AG Grid Enterprise with the Spigot theme and licence. Every screen grid goes through this. */
 export function SpigotGrid<TData>({ height = 400, gridRef, ...props }: SpigotGridProps<TData>) {
   return (
-    <div style={{ height }} className="w-full">
-      <AgGridReact<TData> ref={gridRef} theme={gridTheme} {...props} />
+    <div style={{ height }} className="w-full [&_.ag-cell]:tabular-nums">
+      <AgGridReact<TData> ref={gridRef} theme={gridTheme} suppressMenuHide={false} {...props} />
     </div>
   );
 }
