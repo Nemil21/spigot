@@ -49,7 +49,7 @@ const proposalStatusRoutes: FastifyPluginAsync = async (app) => {
 
     const crawl = await q.query(
       `SELECT 1 FROM crawl_runs
-        WHERE site_id = $1 AND status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE' LIMIT 1`,
+        WHERE site_id = $1 AND status IN ('QUEUED', 'RUNNING') AND trigger NOT IN ('APPROVE', 'CLAIM') LIMIT 1`,
       [site.id],
     );
 

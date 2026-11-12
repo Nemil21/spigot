@@ -20,7 +20,8 @@ import { creditClaim, lockBuyer } from './credit.js';
  * record key is in its `served_record_keys` (else 422 `CLAIM_NOT_ELIGIBLE`). One claim per record
  * per call: a resend returns the existing claim. `MISSING_FIELD` / `DUPLICATE` are checked here;
  * confirmed and within the abuse limit → `AUTO_CREDITED` with a CREDIT posting. Everything else
- * stays `OPEN` for SP-048b (triage) and SP-048c (STALE / REMOVED re-fetch).
+ * stays `OPEN` for SP-048b (triage) and SP-048c (STALE / REMOVED re-fetch: callers go through
+ * `submitClaim` in `refetchCheck.ts`, which runs it after this commits).
  *
  * One transaction, buyer row locked first (see `lockBuyer`), so parallel claims from one buyer
  * are serialized: the same claim 10× is one claim and one CREDIT, and 10 different claims stop
@@ -183,7 +184,10 @@ async function loadCall(tx: Tx, buyerId: string, callId: string): Promise<CallRo
  * required set is unknown, so `MISSING_FIELD` stays OPEN rather than charging the publisher for a
  * field that may not have been required when served.
  */
-async function schemaAtCall(tx: Tx, call: CallRow): Promise<unknown> {
+export async function schemaAtCall(
+  tx: Tx,
+  call: Pick<CallRow, 'datasetId' | 'createdAt' | 'activeSchemaId'>,
+): Promise<unknown> {
   const { rows } = await tx.query<{ fields: unknown }>(
     `(SELECT fields, 0 AS pick FROM schema_versions
        WHERE dataset_id = $1 AND status IN ('APPROVED', 'SUPERSEDED') AND approved_at <= $2

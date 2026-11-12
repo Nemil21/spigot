@@ -159,7 +159,7 @@ export async function newRun(pool: pg.Pool, siteId: string, trigger: string): Pr
   if (trigger !== 'APPROVE') {
     await pool.query(
       `UPDATE crawl_runs SET status = 'SUCCEEDED', finished_at = now()
-        WHERE site_id = $1 AND status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE'`,
+        WHERE site_id = $1 AND status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE' AND trigger <> 'CLAIM'`,
       [siteId],
     );
   }

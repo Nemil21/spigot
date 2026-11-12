@@ -35,8 +35,8 @@ const visible = (v: boolean) => [
   { name: HIDDEN, type: 'string', visible: v, filterable: ['eq'] },
 ];
 
-/** MCP tools with no dataset data in or out (balance and top-up): nothing to sweep. */
-const MCP_NO_DATASET = ['get_balance', 'top_up'];
+/** MCP tools with no dataset data out (balance, top-up, claims): nothing to sweep. */
+const MCP_NO_DATASET = ['get_balance', 'top_up', 'report_bad_record'];
 
 describe.skipIf(!testDatabaseUrl)(
   'SP-042 hidden-field sweep (Postgres)',

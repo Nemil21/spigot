@@ -100,7 +100,7 @@ export async function recrawlReadySites(
     // waiting on another process's run. A stale one falls through and startCrawl adopts it.
     const live = await pool.query<{ id: string }>(
       `SELECT id FROM crawl_runs
-        WHERE site_id = $1 AND status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE'
+        WHERE site_id = $1 AND status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE' AND trigger <> 'CLAIM'
           AND updated_at > now() - make_interval(secs => $2::double precision / 1000)`,
       [siteId, staleMs],
     );

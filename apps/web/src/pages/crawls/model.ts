@@ -5,7 +5,8 @@ import type { PillTone } from '../../components';
 // API shapes (api.md §Publisher endpoints; SP-009b)
 
 export type RunStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'PARTIAL' | 'FAILED' | 'PAUSED';
-export type CrawlTrigger = 'CONNECT' | 'MANUAL' | 'SCHEDULE' | 'PING' | 'DEMO_MUTATE' | 'APPROVE';
+export type CrawlTrigger =
+  'CONNECT' | 'MANUAL' | 'SCHEDULE' | 'PING' | 'DEMO_MUTATE' | 'APPROVE' | 'CLAIM';
 
 /** One row of `GET /api/sites/:id/crawl-runs` (newest first). */
 export interface CrawlRun {
@@ -80,6 +81,7 @@ const TRIGGER_LABEL: Record<CrawlTrigger, string> = {
   PING: 'CMS ping',
   DEMO_MUTATE: 'Demo mutate',
   APPROVE: 'Publish',
+  CLAIM: 'Claim check',
 };
 
 export function triggerLabel(t: CrawlTrigger): string {

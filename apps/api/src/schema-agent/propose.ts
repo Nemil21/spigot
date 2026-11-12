@@ -118,7 +118,7 @@ async function loadSite(q: Queryable, siteId: string): Promise<SiteRow | null> {
 export async function latestRunId(q: Queryable, siteId: string): Promise<string | null> {
   const { rows } = await q.query<{ id: string }>(
     `SELECT id FROM crawl_runs
-      WHERE site_id = $1 AND trigger <> 'APPROVE' AND status IN ('SUCCEEDED', 'PARTIAL')
+      WHERE site_id = $1 AND trigger NOT IN ('APPROVE', 'CLAIM') AND status IN ('SUCCEEDED', 'PARTIAL')
       ORDER BY finished_at DESC NULLS LAST, created_at DESC
       LIMIT 1`,
     [siteId],

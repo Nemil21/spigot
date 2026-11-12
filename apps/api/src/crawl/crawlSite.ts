@@ -121,7 +121,7 @@ export async function startCrawl(
     const inserted = await db.pool.query<{ id: string }>(
       `INSERT INTO crawl_runs (id, site_id, trigger, status, workflow_run_id, idempotency_key)
        VALUES ($1::uuid, $2, $3, 'QUEUED', 'inproc:' || $1::text, $4)
-       ON CONFLICT (site_id) WHERE status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE'
+       ON CONFLICT (site_id) WHERE status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE' AND trigger <> 'CLAIM'
        DO NOTHING
        RETURNING id`,
       [id, siteId, trigger, idempotencyKey ?? null],
@@ -133,7 +133,7 @@ export async function startCrawl(
 
     const live = await db.pool.query<{ id: string }>(
       `SELECT id FROM crawl_runs
-        WHERE site_id = $1 AND status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE'`,
+        WHERE site_id = $1 AND status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE' AND trigger <> 'CLAIM'`,
       [siteId],
     );
     const liveId = live.rows[0]?.id;
