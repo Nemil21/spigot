@@ -1,0 +1,61 @@
+{
+  "record": {
+    "id": "00000000-0000-4000-8000-000000001000",
+    "datasetId": "00000000-0000-4000-8000-0000000000d1",
+    "key": "listings/1br-east-cesar-chavez-4471",
+    "version": 2,
+    "updatedAt": "2026-11-12T09:30:00.000Z",
+    "removedAt": null
+  },
+  "hiddenFields": ["agent_phone"],
+  "versions": [
+    {
+      "seq": 48211,
+      "version": 2,
+      "op": "update",
+      "changedAt": "2026-11-12T09:30:00.000Z",
+      "crawlRunId": "00000000-0000-4000-8000-0000000000c2",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/price_usd",
+          "value": 1200
+        },
+        {
+          "op": "replace",
+          "path": "/status",
+          "value": "leased"
+        },
+        {
+          "op": "replace",
+          "path": "/agent_phone",
+          "value": "(512) 555-0100"
+        }
+      ]
+    },
+    {
+      "seq": 2304,
+      "version": 1,
+      "op": "add",
+      "changedAt": "2026-11-11T10:05:00.000Z",
+      "crawlRunId": "00000000-0000-4000-8000-0000000000c1",
+      "patch": [
+        {
+          "op": "add",
+          "path": "",
+          "value": {
+            "title": "1BR on East Cesar Chavez",
+            "price_usd": 1850,
+            "bedrooms": 1,
+            "bathrooms": 1,
+            "city": "Austin",
+            "status": "available",
+            "available_on": "2026-12-01",
+            "agent_phone": "(512) 555-0199"
+          }
+        }
+      ]
+    }
+  ],
+  "truncated": false
+}

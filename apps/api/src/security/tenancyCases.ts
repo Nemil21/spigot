@@ -68,6 +68,7 @@ const BUILT_IN_IDS: [RegExp, (b: TenantB) => string[]][] = [
   [/^\/api\/buyer\/keys\/:id(\/|$)/, (b) => [b.apiKeyId]],
   [/^\/api\/buyer\/topups\/:id(\/|$)/, (b) => [b.topupId]],
   [/^\/api\/buyer\/calls\/:id(\/|$)/, (b) => [b.callId]],
+  [/^\/api\/records\/:id(\/|$)/, (b) => [b.recordId]],
 ];
 
 const PARAM = /:[A-Za-z_]+/g;

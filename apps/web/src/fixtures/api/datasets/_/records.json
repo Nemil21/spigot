@@ -1,0 +1,766 @@
+{
+  "rows": [
+    {
+      "id": "00000000-0000-4000-8000-000000001000",
+      "key": "listings/1br-east-cesar-chavez-4471",
+      "url": "https://bluebonnet.example/listings/1br-east-cesar-chavez-4471",
+      "data": {
+        "title": "1BR on East Cesar Chavez",
+        "price_usd": 1200,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-01",
+        "agent_phone": "(512) 555-0100"
+      },
+      "version": 2,
+      "updatedAt": "2026-11-12T09:30:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T09:29:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001001",
+      "key": "listings/2br-south-lamar-4478",
+      "url": "https://bluebonnet.example/listings/2br-south-lamar-4478",
+      "data": {
+        "title": "2BR on South Lamar",
+        "price_usd": 1337,
+        "bedrooms": 2,
+        "bathrooms": 1.5,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-02",
+        "agent_phone": "(512) 555-0101"
+      },
+      "version": 2,
+      "updatedAt": "2026-11-12T09:19:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T09:18:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001002",
+      "key": "listings/3br-manor-rd-4485",
+      "url": "https://bluebonnet.example/listings/3br-manor-rd-4485",
+      "data": {
+        "title": "3BR on Manor Rd",
+        "price_usd": 1474,
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-03",
+        "agent_phone": "(512) 555-0102"
+      },
+      "version": 2,
+      "updatedAt": "2026-11-12T09:08:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T09:07:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001003",
+      "key": "listings/4br-burnet-rd-4492",
+      "url": "https://bluebonnet.example/listings/4br-burnet-rd-4492",
+      "data": {
+        "title": "4BR on Burnet Rd",
+        "price_usd": 1611,
+        "bedrooms": 4,
+        "bathrooms": 1,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-04",
+        "agent_phone": "(512) 555-0103"
+      },
+      "version": 2,
+      "updatedAt": "2026-11-12T08:57:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T08:56:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001004",
+      "key": "listings/1br-riverside-dr-4499",
+      "url": "https://bluebonnet.example/listings/1br-riverside-dr-4499",
+      "data": {
+        "title": "1BR on Riverside Dr",
+        "price_usd": 1748,
+        "bedrooms": 1,
+        "bathrooms": 1.5,
+        "city": "Austin",
+        "status": "leased",
+        "available_on": "2026-12-05",
+        "agent_phone": "(512) 555-0104"
+      },
+      "version": 2,
+      "updatedAt": "2026-11-12T08:46:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T08:45:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001005",
+      "key": "listings/2br-airport-blvd-4506",
+      "url": "https://bluebonnet.example/listings/2br-airport-blvd-4506",
+      "data": {
+        "title": "2BR on Airport Blvd",
+        "price_usd": 1885,
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-06",
+        "agent_phone": "(512) 555-0105"
+      },
+      "version": 2,
+      "updatedAt": "2026-11-12T08:35:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T08:34:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001006",
+      "key": "listings/3br-east-cesar-chavez-4513",
+      "url": "https://bluebonnet.example/listings/3br-east-cesar-chavez-4513",
+      "data": {
+        "title": "3BR on East Cesar Chavez",
+        "price_usd": 2022,
+        "bedrooms": 3,
+        "bathrooms": 1,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-07",
+        "agent_phone": "(512) 555-0106"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T08:24:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T08:23:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001007",
+      "key": "listings/4br-south-lamar-4520",
+      "url": "https://bluebonnet.example/listings/4br-south-lamar-4520",
+      "data": {
+        "title": "4BR on South Lamar",
+        "price_usd": 2159,
+        "bedrooms": 4,
+        "bathrooms": 1.5,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-08",
+        "agent_phone": "(512) 555-0107"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T08:13:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T08:12:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001008",
+      "key": "listings/1br-manor-rd-4527",
+      "url": "https://bluebonnet.example/listings/1br-manor-rd-4527",
+      "data": {
+        "title": "1BR on Manor Rd",
+        "price_usd": 2296,
+        "bedrooms": 1,
+        "bathrooms": 2,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-09",
+        "agent_phone": "(512) 555-0108"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T08:02:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T08:01:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001009",
+      "key": "listings/2br-burnet-rd-4534",
+      "url": "https://bluebonnet.example/listings/2br-burnet-rd-4534",
+      "data": {
+        "title": "2BR on Burnet Rd",
+        "price_usd": 2433,
+        "bedrooms": 2,
+        "bathrooms": 1,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-10",
+        "agent_phone": "(512) 555-0109"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T07:51:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T07:50:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001010",
+      "key": "listings/3br-riverside-dr-4541",
+      "url": "https://bluebonnet.example/listings/3br-riverside-dr-4541",
+      "data": {
+        "title": "3BR on Riverside Dr",
+        "price_usd": 2570,
+        "bedrooms": 3,
+        "bathrooms": 1.5,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-11",
+        "agent_phone": "(512) 555-0110"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T07:40:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T07:39:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001011",
+      "key": "listings/4br-airport-blvd-4548",
+      "url": "https://bluebonnet.example/listings/4br-airport-blvd-4548",
+      "data": {
+        "title": "4BR on Airport Blvd",
+        "price_usd": 2707,
+        "bedrooms": 4,
+        "bathrooms": 2,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-12",
+        "agent_phone": "(512) 555-0111"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T07:29:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T07:28:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001012",
+      "key": "listings/1br-east-cesar-chavez-4555",
+      "url": "https://bluebonnet.example/listings/1br-east-cesar-chavez-4555",
+      "data": {
+        "title": "1BR on East Cesar Chavez",
+        "price_usd": 2844,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-13",
+        "agent_phone": "(512) 555-0112"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T07:18:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T07:17:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001013",
+      "key": "listings/2br-south-lamar-4562",
+      "url": "https://bluebonnet.example/listings/2br-south-lamar-4562",
+      "data": {
+        "title": "2BR on South Lamar",
+        "price_usd": 2981,
+        "bedrooms": 2,
+        "bathrooms": 1.5,
+        "city": "Round Rock",
+        "status": "leased",
+        "available_on": "2026-12-14",
+        "agent_phone": "(512) 555-0113"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T07:07:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T07:06:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001014",
+      "key": "listings/3br-manor-rd-4569",
+      "url": "https://bluebonnet.example/listings/3br-manor-rd-4569",
+      "data": {
+        "title": "3BR on Manor Rd",
+        "price_usd": 1218,
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-15",
+        "agent_phone": "(512) 555-0114"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T06:56:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T06:55:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001015",
+      "key": "listings/4br-burnet-rd-4576",
+      "url": "https://bluebonnet.example/listings/4br-burnet-rd-4576",
+      "data": {
+        "title": "4BR on Burnet Rd",
+        "price_usd": 1355,
+        "bedrooms": 4,
+        "bathrooms": 1,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-16",
+        "agent_phone": "(512) 555-0115"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T06:45:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T06:44:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001016",
+      "key": "listings/1br-riverside-dr-4583",
+      "url": "https://bluebonnet.example/listings/1br-riverside-dr-4583",
+      "data": {
+        "title": "1BR on Riverside Dr",
+        "price_usd": 1492,
+        "bedrooms": 1,
+        "bathrooms": 1.5,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-17",
+        "agent_phone": "(512) 555-0116"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T06:34:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T06:33:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001017",
+      "key": "listings/2br-airport-blvd-4590",
+      "url": "https://bluebonnet.example/listings/2br-airport-blvd-4590",
+      "data": {
+        "title": "2BR on Airport Blvd",
+        "price_usd": 1629,
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-18",
+        "agent_phone": "(512) 555-0117"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T06:23:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T06:22:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001018",
+      "key": "listings/3br-east-cesar-chavez-4597",
+      "url": "https://bluebonnet.example/listings/3br-east-cesar-chavez-4597",
+      "data": {
+        "title": "3BR on East Cesar Chavez",
+        "price_usd": 1766,
+        "bedrooms": 3,
+        "bathrooms": 1,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-19",
+        "agent_phone": "(512) 555-0118"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T06:12:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T06:11:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001019",
+      "key": "listings/4br-south-lamar-4604",
+      "url": "https://bluebonnet.example/listings/4br-south-lamar-4604",
+      "data": {
+        "title": "4BR on South Lamar",
+        "price_usd": 1903,
+        "bedrooms": 4,
+        "bathrooms": 1.5,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-20",
+        "agent_phone": "(512) 555-0119"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T06:01:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T06:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001020",
+      "key": "listings/1br-manor-rd-4611",
+      "url": "https://bluebonnet.example/listings/1br-manor-rd-4611",
+      "data": {
+        "title": "1BR on Manor Rd",
+        "price_usd": 2040,
+        "bedrooms": 1,
+        "bathrooms": 2,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-21",
+        "agent_phone": "(512) 555-0120"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T05:50:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T05:49:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001021",
+      "key": "listings/2br-burnet-rd-4618",
+      "url": "https://bluebonnet.example/listings/2br-burnet-rd-4618",
+      "data": {
+        "title": "2BR on Burnet Rd",
+        "price_usd": 2177,
+        "bedrooms": 2,
+        "bathrooms": 1,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-22",
+        "agent_phone": "(512) 555-0121"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T05:39:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T05:38:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001022",
+      "key": "listings/3br-riverside-dr-4625",
+      "url": "https://bluebonnet.example/listings/3br-riverside-dr-4625",
+      "data": {
+        "title": "3BR on Riverside Dr",
+        "price_usd": 2314,
+        "bedrooms": 3,
+        "bathrooms": 1.5,
+        "city": "Cedar Park",
+        "status": "leased",
+        "available_on": "2026-12-23",
+        "agent_phone": "(512) 555-0122"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T05:28:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T05:27:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001023",
+      "key": "listings/4br-airport-blvd-4632",
+      "url": "https://bluebonnet.example/listings/4br-airport-blvd-4632",
+      "data": {
+        "title": "4BR on Airport Blvd",
+        "price_usd": 2451,
+        "bedrooms": 4,
+        "bathrooms": 2,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-24",
+        "agent_phone": "(512) 555-0123"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T05:17:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T05:16:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001024",
+      "key": "listings/1br-east-cesar-chavez-4639",
+      "url": "https://bluebonnet.example/listings/1br-east-cesar-chavez-4639",
+      "data": {
+        "title": "1BR on East Cesar Chavez",
+        "price_usd": 2588,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-25",
+        "agent_phone": "(512) 555-0124"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T05:06:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T05:05:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001025",
+      "key": "listings/2br-south-lamar-4646",
+      "url": "https://bluebonnet.example/listings/2br-south-lamar-4646",
+      "data": {
+        "title": "2BR on South Lamar",
+        "price_usd": 2725,
+        "bedrooms": 2,
+        "bathrooms": 1.5,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-26",
+        "agent_phone": "(512) 555-0125"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T04:55:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T04:54:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001026",
+      "key": "listings/3br-manor-rd-4653",
+      "url": "https://bluebonnet.example/listings/3br-manor-rd-4653",
+      "data": {
+        "title": "3BR on Manor Rd",
+        "price_usd": 2862,
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-27",
+        "agent_phone": "(512) 555-0126"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T04:44:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T04:43:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001027",
+      "key": "listings/4br-burnet-rd-4660",
+      "url": "https://bluebonnet.example/listings/4br-burnet-rd-4660",
+      "data": {
+        "title": "4BR on Burnet Rd",
+        "price_usd": 2999,
+        "bedrooms": 4,
+        "bathrooms": 1,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-28",
+        "agent_phone": "(512) 555-0127"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T04:33:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T04:32:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001028",
+      "key": "listings/1br-riverside-dr-4667",
+      "url": "https://bluebonnet.example/listings/1br-riverside-dr-4667",
+      "data": {
+        "title": "1BR on Riverside Dr",
+        "price_usd": 1236,
+        "bedrooms": 1,
+        "bathrooms": 1.5,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-01",
+        "agent_phone": "(512) 555-0128"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T04:22:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T04:21:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001029",
+      "key": "listings/2br-airport-blvd-4674",
+      "url": "https://bluebonnet.example/listings/2br-airport-blvd-4674",
+      "data": {
+        "title": "2BR on Airport Blvd",
+        "price_usd": 1373,
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-02",
+        "agent_phone": "(512) 555-0129"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T04:11:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T04:10:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001030",
+      "key": "listings/3br-east-cesar-chavez-4681",
+      "url": "https://bluebonnet.example/listings/3br-east-cesar-chavez-4681",
+      "data": {
+        "title": "3BR on East Cesar Chavez",
+        "price_usd": 1510,
+        "bedrooms": 3,
+        "bathrooms": 1,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-03",
+        "agent_phone": "(512) 555-0130"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T04:00:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T03:59:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001031",
+      "key": "listings/4br-south-lamar-4688",
+      "url": "https://bluebonnet.example/listings/4br-south-lamar-4688",
+      "data": {
+        "title": "4BR on South Lamar",
+        "price_usd": 1647,
+        "bedrooms": 4,
+        "bathrooms": 1.5,
+        "city": "Pflugerville",
+        "status": "leased",
+        "available_on": "2026-12-04",
+        "agent_phone": "(512) 555-0131"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T03:49:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T03:48:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001032",
+      "key": "listings/1br-manor-rd-4695",
+      "url": "https://bluebonnet.example/listings/1br-manor-rd-4695",
+      "data": {
+        "title": "1BR on Manor Rd",
+        "price_usd": 1784,
+        "bedrooms": 1,
+        "bathrooms": 2,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-05",
+        "agent_phone": "(512) 555-0132"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T03:38:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T03:37:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001033",
+      "key": "listings/2br-burnet-rd-4702",
+      "url": "https://bluebonnet.example/listings/2br-burnet-rd-4702",
+      "data": {
+        "title": "2BR on Burnet Rd",
+        "price_usd": 1921,
+        "bedrooms": 2,
+        "bathrooms": 1,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-06",
+        "agent_phone": "(512) 555-0133"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T03:27:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T03:26:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001034",
+      "key": "listings/3br-riverside-dr-4709",
+      "url": "https://bluebonnet.example/listings/3br-riverside-dr-4709",
+      "data": {
+        "title": "3BR on Riverside Dr",
+        "price_usd": 2058,
+        "bedrooms": 3,
+        "bathrooms": 1.5,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-07",
+        "agent_phone": "(512) 555-0134"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T03:16:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T03:15:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001035",
+      "key": "listings/4br-airport-blvd-4716",
+      "url": "https://bluebonnet.example/listings/4br-airport-blvd-4716",
+      "data": {
+        "title": "4BR on Airport Blvd",
+        "price_usd": 2195,
+        "bedrooms": 4,
+        "bathrooms": 2,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-08",
+        "agent_phone": "(512) 555-0135"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T03:05:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T03:04:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001036",
+      "key": "listings/1br-east-cesar-chavez-4723",
+      "url": "https://bluebonnet.example/listings/1br-east-cesar-chavez-4723",
+      "data": {
+        "title": "1BR on East Cesar Chavez",
+        "price_usd": 2332,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "city": "Austin",
+        "status": "available",
+        "available_on": "2026-12-09",
+        "agent_phone": "(512) 555-0136"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T02:54:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T02:53:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001037",
+      "key": "listings/2br-south-lamar-4730",
+      "url": "https://bluebonnet.example/listings/2br-south-lamar-4730",
+      "data": {
+        "title": "2BR on South Lamar",
+        "price_usd": 2469,
+        "bedrooms": 2,
+        "bathrooms": 1.5,
+        "city": "Round Rock",
+        "status": "available",
+        "available_on": "2026-12-10",
+        "agent_phone": "(512) 555-0137"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T02:43:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T02:42:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001038",
+      "key": "listings/3br-manor-rd-4737",
+      "url": "https://bluebonnet.example/listings/3br-manor-rd-4737",
+      "data": {
+        "title": "3BR on Manor Rd",
+        "price_usd": 2606,
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "city": "Cedar Park",
+        "status": "available",
+        "available_on": "2026-12-11",
+        "agent_phone": "(512) 555-0138"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T02:32:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T02:31:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000001039",
+      "key": "listings/4br-burnet-rd-4744",
+      "url": "https://bluebonnet.example/listings/4br-burnet-rd-4744",
+      "data": {
+        "title": "4BR on Burnet Rd",
+        "price_usd": 2743,
+        "bedrooms": 4,
+        "bathrooms": 1,
+        "city": "Pflugerville",
+        "status": "available",
+        "available_on": "2026-12-12",
+        "agent_phone": "(512) 555-0139"
+      },
+      "version": 1,
+      "updatedAt": "2026-11-12T02:21:00.000Z",
+      "crawledAt": "2026-11-12T09:31:00.000Z",
+      "sourceLastmod": "2026-11-12T02:20:00.000Z"
+    }
+  ],
+  "rowCount": 40,
+  "staleSince": null
+}

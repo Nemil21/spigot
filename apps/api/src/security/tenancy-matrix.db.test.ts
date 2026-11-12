@@ -70,6 +70,7 @@ interface Publisher {
   proposedDatasetId: string;
   proposedSchemaId: string;
   runId: string;
+  recordId: string;
 }
 
 interface Buyer {
@@ -229,6 +230,10 @@ describe.skipIf(!testDatabaseUrl)(
          FROM generate_series(1, 3) i`,
         [live!.id],
       );
+      const [rec] = await q<{ id: string }>(
+        `SELECT id FROM records WHERE dataset_id = $1 ORDER BY record_key LIMIT 1`,
+        [live!.id],
+      );
       const [proposed] = await q<{ id: string }>(
         `INSERT INTO datasets (site_id, slug, type_name, status) VALUES ($1, 'proposed', 'Thing', 'PROPOSED')
        RETURNING id`,
@@ -257,6 +262,7 @@ describe.skipIf(!testDatabaseUrl)(
         proposedDatasetId: proposed!.id,
         proposedSchemaId: psv!.id,
         runId: run!.id,
+        recordId: rec!.id,
       };
     }
 
@@ -397,6 +403,7 @@ describe.skipIf(!testDatabaseUrl)(
       B.proposedDatasetId,
       B.proposedSchemaId,
       B.runId,
+      B.recordId,
     ];
 
     function expectNoMarkers(r: Reply, markers: string[], label: string) {
@@ -418,6 +425,7 @@ describe.skipIf(!testDatabaseUrl)(
       apiKeyId: bB.keyId,
       topupId: bB.topupId,
       callId: bB.callId,
+      recordId: B.recordId,
     });
     /** B's real ids in the case's `:param`s (throws for an `/api` param with no known id). */
     const fillVariants = (c: LoadedCase) => tenantUrls(c, tenantB(), randomUUID);
