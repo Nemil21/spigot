@@ -11,7 +11,7 @@ Spigot is our second, separate entry for the [PayPal AI Hackathon 2026](https://
 
 - **Live API and dashboard:** `TODO(SP-046)`: deployed Render URL
 - **Demo site (Bluebonnet Rentals, fictional):** `TODO(SP-046)`: deployed Render URL
-- **Public catalog page:** `TODO(SP-046)`: `https://<api-host>/c/bluebonnet`
+- **Public catalog page:** `TODO(SP-046)`: `https://<api-host>/c/<site slug>` (the slug `seed:demo` prints; see [Setup](#setup))
 - **Video:** `TODO(SP-046)`: public YouTube link
 - **Licence:** [MIT](LICENSE)
 
@@ -141,21 +141,62 @@ We don't use the other sponsor tools (Bryntum, Channel3, Zapier, Postman, Astrop
 
 ## Setup
 
-You need Node 22, Docker (for the shared local Postgres) and, for the real sandbox, a PayPal developer account. With `PAYPAL_MODE=stub` the whole stack runs on **FakePayPal** with no PayPal keys.
+You need Node 22 or newer, Docker (for the local Postgres) and, for the real sandbox, a PayPal developer account. With `PAYPAL_MODE=stub` the whole stack runs on **FakePayPal**: no PayPal account and no network calls to PayPal.
 
-> The commands below are the agreed interface from the tickets (SP-001a, SP-002, SP-035). A second person re-runs this section from a fresh clone before the freeze (SP-044b) and fixes anything that doesn't work as written.
+> Verified from a fresh clone on 2026-11-12 (ticket SP-044b) with Node 24 / npm 11 and `PAYPAL_MODE=stub`, following only this section.
+
+**1. Clone, configure, database.**
 
 ```sh
 git clone https://github.com/Nemil21/spigot.git && cd spigot
-cp .env.example .env            # fill in values; PAYPAL_MODE=stub needs no PayPal keys
-scripts/dev-db.sh               # one shared local Postgres container + a database for this checkout
-npm install
-npm run migrate
-npm run seed:demo               # publisher, site, demo buyer, 20 SIM buyers (labelled)
-npm run dev                     # API + web app; the demo site runs on http://localhost:4100
+cp .env.example .env
+scripts/dev-db.sh               # starts the local Postgres container, creates the databases, prints two lines
 ```
 
-Then open the dashboard at `/app` and the catalog page at `/c/bluebonnet` on the API host that `npm run dev` prints.
+`scripts/dev-db.sh` starts one Postgres container (`spigot-dev-pg`, on `127.0.0.1:54329`) and creates a database named after the checkout's directory (`spigot_<dir>` and `spigot_<dir>_test`). If another checkout on the machine has the same directory name, set `SPIGOT_DB_WORKTREE=<something-else> scripts/dev-db.sh` so the two don't share a database.
+
+Now edit `.env`. For a FakePayPal run these are the only keys you need; leave the rest empty:
+
+```sh
+DATABASE_URL=…                  # the two lines scripts/dev-db.sh printed
+TEST_DATABASE_URL=…
+SESSION_SECRET=…                # 32+ characters: openssl rand -hex 32
+PAYPAL_MODE=stub
+PAYPAL_CLIENT_ID=stub           # still required at boot; any non-empty value works in stub mode
+PAYPAL_CLIENT_SECRET=stub
+PAYPAL_API_BASE=https://api-m.sandbox.paypal.com
+APP_BASE_URL=http://localhost:3000
+```
+
+**2. Install, migrate, seed, build.**
+
+```sh
+npm install                     # npm 11 may warn that install scripts were skipped (argon2, esbuild); that's fine, both ship prebuilt binaries
+npm run migrate
+npm run seed:demo               # publisher, site, demo buyer, 20 SIM buyers (labelled); safe to re-run
+npm run build                   # needed once: the API imports the built packages/shared, and serves the built web app
+```
+
+`seed:demo` prints everything you need next: the demo publisher's and demo buyer's logins (passwords are derived from `SESSION_SECRET`), the buyer's `sk_spg_` API key, and the demo site's `SPIGOT_API_BASE`, `SPIGOT_GATE_KEY` and `SPIGOT_VERIFY_TOKEN`.
+
+**3. Run the API and the demo site** (two terminals).
+
+```sh
+npm run dev                     # the API on http://localhost:3000; it also serves the web app (/app, /buyers) and the catalog (/c/:site)
+
+# Demo site "Bluebonnet Rentals" on http://localhost:4100. It doesn't read .env: pass the values seed:demo printed.
+SPIGOT_API_BASE=http://localhost:3000 SPIGOT_GATE_KEY=gk_… SPIGOT_VERIFY_TOKEN=spigot-verify=… \
+  npm run dev -w @spigot/demo-site
+```
+
+`npm run dev` starts only the API. If port 3000 is taken, set both `PORT` and `APP_BASE_URL` (e.g. `PORT=3100 APP_BASE_URL=http://localhost:3100 npm run dev`) and use that port for the demo site's `SPIGOT_API_BASE` too.
+
+**4. Open it.**
+
+- `http://localhost:3000/app`: the publisher dashboard; log in with the publisher email and password `seed:demo` printed.
+- `http://localhost:3000/buyers`: the buyer portal; log in as "Acme Agents (demo)".
+- `http://localhost:3000/c/localhost`: the catalog page. The site slug comes from the demo site's host name, so locally it is `localhost` (`seed:demo` prints it as `slug …`); on Render it is the first label of the demo site's host.
+- `http://localhost:4100`: the demo site. Until a dataset is published, the gate passes every request, bots included: `seed:demo` connects and verifies the site but leaves the crawl for the live demo. Start it from the dashboard (W03), approve a record type, and declared bots then get the 402.
 
 ### Environment
 
