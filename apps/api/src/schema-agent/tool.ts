@@ -18,8 +18,14 @@ const TRANSFORMS_HELP =
   `Whitelisted transforms, applied in order: ${SIMPLE_TRANSFORMS.join(', ')}, ` +
   'split:<sep>, bool:<truthy-word>, regex:<pattern> (first capture group, <= 100 chars).';
 
+/** A field's transform list (also the `repair_fields` tool's). */
+export const transformsSchema = z
+  .array(transformSchema.describe(TRANSFORMS_HELP))
+  .max(10)
+  .default([]);
+
 export const proposedFieldSchema = extractorFieldSchema.extend({
-  transforms: z.array(transformSchema.describe(TRANSFORMS_HELP)).max(10).default([]),
+  transforms: transformsSchema,
   description: z.string().trim().max(300).optional(),
   /** Filter ops buyers may use on this field (2–4 fields per type should have some). */
   filterable: z.array(z.enum(FILTER_OPS)).max(FILTER_OPS.length).optional(),

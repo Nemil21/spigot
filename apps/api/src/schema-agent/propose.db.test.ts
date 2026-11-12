@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { gzipSync } from 'node:zlib';
-import { compileExtractor } from '@spigot/shared';
+import { gunzipSync, gzipSync } from 'node:zlib';
+import Anthropic from '@anthropic-ai/sdk';
+import { clusterUrls, compileExtractor } from '@spigot/shared';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../config.js';
@@ -16,12 +17,16 @@ import { buildServer } from '../server.js';
 import { REQUIRED_ENV } from '../test/env.js';
 import { demoSite, type DemoPage } from '../test/schema-agent/demoPages.js';
 import {
+  createLiveModel,
   createRecordedModel,
   loadRecorded,
   ZERO_USAGE,
   type ModelTurn,
+  type RecordedProposal,
   type SchemaModel,
 } from './claude.js';
+import { AUTO_SCHEMA_LABEL } from './fallback.js';
+import { jsonLdBlocks, jsonLdTypes } from './outline.js';
 import { ALL_REJECTED_MESSAGE, EMPTY_STATE_MESSAGE, proposeForSite } from './propose.js';
 import resumeJob, { findResumableSites, resumeProposals } from './resume.job.js';
 import { startSchemaAgent } from './runtime.js';
@@ -44,6 +49,7 @@ type Answer = unknown | Error;
 function scriptedModel(
   script: Record<string, (attempt: number) => Answer> = {},
   delayMs = 0,
+  repairs: Record<string, (round: number) => Answer> = {},
 ): SchemaModel & { calls: number } {
   const m = {
     mode: 'live' as const,
@@ -66,6 +72,19 @@ function scriptedModel(
         };
       };
       return { first: turn, retry: turn };
+    },
+    async repair(req: { pathPattern: string; round: number }): Promise<ModelTurn> {
+      m.calls++;
+      const fn = repairs[req.pathPattern];
+      const a = fn ? fn(req.round) : undefined;
+      if (a instanceof Error) throw a;
+      return {
+        input: a,
+        usage: { ...ZERO_USAGE, inputTokens: 500, outputTokens: 100 },
+        model: 'test-model',
+        replayed: false,
+        stopReason: 'tool_use',
+      };
     },
   };
   return m;
@@ -224,7 +243,23 @@ describe.skipIf(!testDatabaseUrl)('schema agent: propose / persist / resume', ()
       });
       expect(v.ai_rationale.length).toBeGreaterThan(20);
       expect(v.record_key).toEqual({ from: 'url' });
-      expect(v.sample_stats).toMatchObject({ source: 'samples', sampled: 5, recordRate: 1 });
+      // SP-012b self-check: 5 seen + 15 unseen pages, nothing to repair or drop on the demo site.
+      expect(v.sample_stats, v.type_name).toMatchObject({
+        source: 'selfcheck',
+        sampled: 20,
+        seen: 5,
+        unseen: 15,
+        recordRate: 1,
+        repairRounds: 0,
+        repaired: [],
+        dropped: [],
+      });
+      for (const f of v.fields as { name: string; required: boolean }[]) {
+        const st = v.sample_stats.fields[f.name];
+        expect(st, `${v.type_name}.${f.name}`).toBeDefined();
+        expect(st.typeConformance, `${v.type_name}.${f.name}`).toBe(1);
+        if (f.required) expect(st.nullRate, `${v.type_name}.${f.name}`).toBeLessThanOrEqual(0.02);
+      }
     }
     const fieldsOf = (t: string) =>
       new Map(
@@ -257,7 +292,6 @@ describe.skipIf(!testDatabaseUrl)('schema agent: propose / persist / resume', ()
         `SELECT p.url, s.html_gz FROM pages p JOIN snapshots s ON s.page_id = p.id WHERE p.template_id = $1`,
         [d.template_id],
       );
-      const { gunzipSync } = await import('node:zlib');
       const recs = rows.rows.map((r) => ex.extract(gunzipSync(r.html_gz).toString('utf8'), r.url));
       expect(recs.filter(Boolean).length, d.type_name).toBe(d.record_count);
       for (const f of ex.spec.fields.filter((x) => x.required)) {
@@ -403,6 +437,182 @@ describe.skipIf(!testDatabaseUrl)('schema agent: propose / persist / resume', ()
     );
     expect(sv.fields.map((f) => f.name)).not.toContain('ssn');
     expect(sv.fields).toHaveLength(recordedInput('/agents/:slug').fields.length);
+  });
+
+  // --- SP-012b: self-check repair and the JSON-LD-only fallback --------------------------------
+  it('recorded repair end to end: a selector broken on unseen pages is repaired in 2 rounds before persist', async () => {
+    const { siteId, runId } = await seedSite(small);
+    // Same scan + clustering as proposeForSite, to learn which listing pages the model will see.
+    const rows = (
+      await pools.a.query<{ id: string; url: string; html_gz: Buffer }>(
+        `SELECT p.id, p.url, s.html_gz FROM pages p JOIN snapshots s ON s.page_id = p.id
+          WHERE p.site_id = $1 ORDER BY p.id`,
+        [siteId],
+      )
+    ).rows.map((r) => ({ ...r, html: gunzipSync(r.html_gz).toString('utf8') }));
+    const scanned = rows.map((r) => ({
+      id: r.id,
+      url: r.url,
+      types: jsonLdTypes(jsonLdBlocks(r.html)),
+    }));
+    const listingT = clusterUrls(scanned, new Map(scanned.map((p) => [p.url, p.types]))).find(
+      (t) => t.pathPattern === '/listings/:slug',
+    )!;
+    const seen = new Set(listingT.samplePageIds);
+    // A partial redesign: every listing page the model didn't see renames the facts attribute.
+    for (const r of rows.filter((x) => listingT.pageIds.includes(x.id) && !seen.has(x.id))) {
+      await pools.a.query('UPDATE snapshots SET html_gz = $2 WHERE page_id = $1', [
+        r.id,
+        gzipSync(r.html.replace('data-k="available"', 'data-key="available"')),
+      ]);
+    }
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL('./__fixtures__/recorded-repair/listings-available-from.json', import.meta.url),
+        'utf8',
+      ),
+    ) as { repairs: unknown[] };
+    const map = new Map<string, RecordedProposal>(recorded);
+    map.set('/listings/:slug', { ...recorded.get('/listings/:slug')!, repairs: fixture.repairs });
+
+    const result = await proposeForSite({ db, model: createRecordedModel(map) }, siteId, {
+      trigger: 'DISCOVERY',
+      runId,
+    });
+    expect(result.templates.map((t) => [t.pathPattern, t.status, t.modelCalls])).toEqual([
+      ['/agents/:slug', 'proposed', 1],
+      ['/listings/:slug', 'proposed', 3],
+      ['/open-houses/:id', 'proposed', 1],
+    ]);
+    // ai_calls counts the 2 repair calls too.
+    expect(result.aiCalls).toBe(5);
+    expect(await aiCalls(runId)).toBe(5);
+
+    const v = (
+      await pools.a.query(
+        `SELECT v.*, d.template_id FROM schema_versions v JOIN datasets d ON d.id = v.dataset_id
+          WHERE d.site_id = $1 AND d.type_name = 'Listing'`,
+        [siteId],
+      )
+    ).rows[0];
+    expect(v.sample_stats).toMatchObject({
+      source: 'selfcheck',
+      sampled: 20,
+      repairRounds: 2,
+      repaired: ['available_from'],
+      dropped: [],
+    });
+    expect(v.sample_stats.fields.available_from.nullRate).toBe(0);
+    expect(v.ai_rationale).toMatch(/repaired available_from\.$/);
+    const ex = compileExtractor(v.extractor, { regex: re2Engine });
+    expect(ex.spec.fields.find((f) => f.name === 'available_from')!.source).toMatchObject({
+      css: 'dl.facts dd[data-k=available], dl.facts dd[data-key=available]',
+    });
+    // The stored extractor fills available_from on every listing page, old layout and new.
+    const all = await pools.a.query<{ url: string; html_gz: Buffer }>(
+      `SELECT p.url, s.html_gz FROM pages p JOIN snapshots s ON s.page_id = p.id WHERE p.template_id = $1`,
+      [v.template_id],
+    );
+    const recs = all.rows.map((r) => ex.extract(gunzipSync(r.html_gz).toString('utf8'), r.url));
+    expect(recs.every((r) => r && r.data.available_from !== null)).toBe(true);
+    const audit = await one<{ data: { modelCalls: number; notes: string[] } }>(
+      `SELECT data FROM audit_events
+        WHERE entity_id = (SELECT id FROM datasets WHERE site_id = $1 AND type_name = 'Listing')
+          AND action = 'SCHEMA_PROPOSED'`,
+      [siteId],
+    );
+    expect(audit.data.modelCalls).toBe(3);
+    expect(audit.data.notes).toContain('self-check: repaired available_from');
+  });
+
+  it('Claude stubbed to 529: a JSON-LD-only Listing proposal appears, labelled "auto (no AI)"; the rest wait for the model', async () => {
+    const { siteId, runId, publisherId } = await seedSite(small);
+    let requests = 0;
+    const client = {
+      beta: {
+        messages: {
+          create: async () => {
+            requests++;
+            throw Anthropic.APIError.generate(
+              529,
+              { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } },
+              undefined,
+              new Headers(),
+            );
+          },
+        },
+      },
+    };
+    const model = createLiveModel({
+      apiKey: 'k',
+      client: client as never,
+      retry: { delaysMs: [0, 0] },
+    });
+    const result = await proposeForSite({ db, model }, siteId, { trigger: 'DISCOVERY', runId });
+
+    expect(requests).toBe(9); // 3 tries × 3 templates
+    expect(result.templates.map((t) => [t.pathPattern, t.status, t.auto ?? false])).toEqual([
+      ['/agents/:slug', 'failed', false], // no JSON-LD on agent pages: nothing to fall back to
+      ['/listings/:slug', 'proposed', true],
+      ['/open-houses/:id', 'failed', false],
+    ]);
+    expect(result.templates[0]!.reason).toMatch(/model unavailable after 3 tries \(529\)/);
+    expect(result).toMatchObject({ proposals: 1, siteStatus: 'READY' });
+
+    const v = (
+      await pools.a.query(
+        `SELECT d.type_name, d.slug, d.status AS ds_status, v.* FROM schema_versions v
+           JOIN datasets d ON d.id = v.dataset_id WHERE d.site_id = $1`,
+        [siteId],
+      )
+    ).rows;
+    expect(v).toHaveLength(1);
+    expect(v[0]).toMatchObject({
+      type_name: 'Listing',
+      slug: 'listings',
+      ds_status: 'PROPOSED',
+      status: 'PROPOSED',
+      proposed_by: 'AI',
+      ai_model: AUTO_SCHEMA_LABEL,
+    });
+    expect(v[0].ai_rationale).toMatch(
+      /^auto \(no AI\): Claude was unavailable \(HTTP 529 after 3 tries\)/,
+    );
+    expect(v[0].sample_stats).toMatchObject({ source: 'selfcheck', sampled: 20, repairRounds: 0 });
+    const fields = v[0].fields as { name: string; type: string; required: boolean }[];
+    expect(fields.map((f) => f.name)).toEqual(
+      expect.arrayContaining(['name', 'number_of_rooms', 'offers_price', 'address_postal_code']),
+    );
+    expect(fields.find((f) => f.name === 'offers_price')).toMatchObject({ type: 'integer' });
+    for (const f of fields.filter((x) => x.required))
+      expect(v[0].sample_stats.fields[f.name].nullRate, f.name).toBeLessThanOrEqual(0.02);
+    // Every extractor source is JSON-LD: no AI, no CSS.
+    expect((v[0].extractor.fields as { source: object }[]).every((f) => 'jsonld' in f.source)).toBe(
+      true,
+    );
+
+    const audit = await one<{ actor_id: string; data: Record<string, unknown> }>(
+      `SELECT actor_id, data FROM audit_events WHERE publisher_id = $1 AND action = 'SCHEMA_PROPOSED'`,
+      [publisherId],
+    );
+    expect(audit.data).toMatchObject({
+      label: AUTO_SCHEMA_LABEL,
+      auto: true,
+      model: AUTO_SCHEMA_LABEL,
+    });
+    expect(audit.actor_id).toBe(AUTO_SCHEMA_LABEL);
+
+    // Claude is back: the resume pass fills in the failed templates; the auto Listing stays.
+    const back = await proposeForSite({ db, model: createRecordedModel() }, siteId, {
+      trigger: 'RESUME',
+      runId,
+    });
+    expect(back.templates.map((t) => [t.pathPattern, t.status])).toEqual([
+      ['/agents/:slug', 'proposed'],
+      ['/listings/:slug', 'existing'],
+      ['/open-houses/:id', 'proposed'],
+    ]);
+    expect(back.proposals).toBe(3);
   });
 
   it('injection page in the listing samples (recorded mode): same field list as the clean site', async () => {

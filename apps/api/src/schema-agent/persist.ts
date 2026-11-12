@@ -13,6 +13,8 @@ export interface ProposalAiInfo {
   /** Model id that produced the proposal (`recorded` replays carry the recorded model id). */
   model: string;
   replayed: boolean;
+  /** JSON-LD-only auto-schema (model unavailable): `model` is "auto (no AI)". */
+  auto?: boolean;
   /** Model calls for this template (first answer + retry). */
   calls: number;
   usage: TokenUsage;
@@ -103,8 +105,9 @@ export async function persistProposal(db: Db, a: PersistArgs): Promise<Persisted
       entityId: datasetId,
       action: 'SCHEMA_PROPOSED',
       data: {
-        label: ai.replayed ? 'replayed proposal' : 'live proposal',
+        label: ai.auto ? ai.model : ai.replayed ? 'replayed proposal' : 'live proposal',
         replayed: ai.replayed,
+        auto: ai.auto === true,
         model: ai.model,
         siteId: a.siteId,
         runId: a.runId,

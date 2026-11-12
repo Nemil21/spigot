@@ -9,10 +9,16 @@
 // (`tool_choice: tool`) and, since 2026-10-21, any `temperature`, so we send `tool_choice: auto`
 // with a system instruction to call the one tool, and leave sampling at the API default. The
 // output is validated by Zod either way, and an answer without the tool call is a retry.
+//
+// SP-012b: `repair()` is the self-check's `repair_fields` turn (a fresh call, same cached system
+// prompt + DSL, one tool). Every live request is tried 3 times with backoff on overload / rate
+// limit / 5xx / connection errors (the SDK's own retries are off, so 3 means 3); after that it
+// throws `ModelUnavailableError` and the proposal falls back to the JSON-LD-only auto-schema.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import Anthropic from '@anthropic-ai/sdk';
 import { requireKeys, type Config } from '../config.js';
+import { REPAIR_FIELDS_TOOL, REPAIR_FIELDS_TOOL_NAME } from './repair.js';
 import { PROPOSE_SCHEMA_TOOL, PROPOSE_SCHEMA_TOOL_NAME } from './tool.js';
 
 export const DEFAULT_CLAUDE_MODEL = 'claude-opus-5-5';
@@ -58,6 +64,15 @@ export interface ModelTurn {
   stopReason: string | null;
 }
 
+/** One `repair_fields` turn of the self-check (features/04 §4; at most 2 per template). */
+export interface RepairRequest {
+  pathPattern: string;
+  /** 1 or 2. */
+  round: number;
+  /** The repair user message (`buildRepairPrompt`). */
+  userPrompt: string;
+}
+
 export interface ProposalConversation {
   first(): Promise<ModelTurn>;
   /** Second (and last) attempt: the previous answer failed validation with these errors. */
@@ -68,11 +83,81 @@ export interface SchemaModel {
   readonly mode: 'live' | 'recorded';
   readonly modelId: string;
   open(req: ProposeRequest): ProposalConversation;
+  /** A `repair_fields` call: `input` is the unvalidated tool input, or `undefined`. */
+  repair(req: RepairRequest): Promise<ModelTurn>;
 }
 
 /** No recorded response for this template (recorded mode): the template is skipped. */
 export class RecordedProposalMissingError extends Error {
   override name = 'RecordedProposalMissingError';
+}
+
+/**
+ * The model is overloaded, rate-limited or unreachable after every retry (features/04 §Edge
+ * cases): the template gets the JSON-LD-only auto-schema instead of an AI proposal.
+ */
+export class ModelUnavailableError extends Error {
+  override name = 'ModelUnavailableError';
+  constructor(
+    message: string,
+    readonly attempts: number,
+    readonly status: number | null,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+  }
+}
+
+/** Worth retrying: timeout, conflict, rate limit, 5xx (incl. 529 overloaded), connection error. */
+export function isTransientModelError(err: unknown): boolean {
+  if (err instanceof Anthropic.APIUserAbortError) return false;
+  if (err instanceof Anthropic.APIConnectionError) return true;
+  if (!(err instanceof Anthropic.APIError)) return false;
+  const s = err.status;
+  return s === 408 || s === 409 || s === 429 || (typeof s === 'number' && s >= 500);
+}
+
+export const MODEL_ATTEMPTS = 3;
+/** Wait before attempt 2 and 3; a `retry-after` header (≤ 30 s) wins when longer. */
+export const DEFAULT_RETRY_DELAYS_MS = [2_000, 8_000] as const;
+const MAX_RETRY_AFTER_MS = 30_000;
+
+export interface RetryOptions {
+  delaysMs?: readonly number[];
+  sleep?: (ms: number) => Promise<void>;
+}
+
+function retryAfterMs(err: unknown): number {
+  if (!(err instanceof Anthropic.APIError)) return 0;
+  const raw = err.headers?.get?.('retry-after');
+  const secs = raw ? Number(raw) : NaN;
+  return Number.isFinite(secs) && secs > 0 ? Math.min(secs * 1000, MAX_RETRY_AFTER_MS) : 0;
+}
+
+/**
+ * `fn` up to `MODEL_ATTEMPTS` times while it fails with a transient error; then
+ * `ModelUnavailableError`. Other errors (400, 401, a bug) propagate at once.
+ */
+export async function withModelRetry<T>(fn: () => Promise<T>, opts: RetryOptions = {}): Promise<T> {
+  const delays = opts.delaysMs ?? DEFAULT_RETRY_DELAYS_MS;
+  const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (!isTransientModelError(err)) throw err;
+      if (attempt >= MODEL_ATTEMPTS) {
+        const status = err instanceof Anthropic.APIError ? (err.status ?? null) : null;
+        throw new ModelUnavailableError(
+          `model unavailable after ${attempt} tries (${status ?? 'connection error'})`,
+          attempt,
+          status,
+          { cause: err },
+        );
+      }
+      await sleep(Math.max(delays[attempt - 1] ?? delays.at(-1) ?? 0, retryAfterMs(err)));
+    }
+  }
 }
 
 // --- prompts -----------------------------------------------------------------------------------
@@ -88,11 +173,12 @@ export function assetPath(rel: string): string {
   return existsSync(src) ? src : here;
 }
 
-let prompts: { system: string; dsl: string } | undefined;
-export function loadPrompts(): { system: string; dsl: string } {
+let prompts: { system: string; dsl: string; repair: string } | undefined;
+export function loadPrompts(): { system: string; dsl: string; repair: string } {
   prompts ??= {
     system: readFileSync(assetPath('prompts/system.md'), 'utf8'),
     dsl: readFileSync(assetPath('prompts/dsl.md'), 'utf8'),
+    repair: readFileSync(assetPath('prompts/repair.md'), 'utf8'),
   };
   return prompts;
 }
@@ -113,19 +199,40 @@ export interface LiveModelOptions {
   model?: string;
   /** Tests inject a client. */
   client?: Pick<Anthropic, 'beta'>;
+  /** Backoff between the 3 tries (tests pass zeros). */
+  retry?: RetryOptions;
 }
 
 export function createLiveModel(opts: LiveModelOptions): SchemaModel {
   const modelId = opts.model ?? DEFAULT_CLAUDE_MODEL;
-  // The SDK retries 408/409/429/5xx and connection errors with backoff.
+  // `withModelRetry` owns retries (3 tries, then the JSON-LD fallback), so the SDK makes one.
   const client =
-    opts.client ?? new Anthropic({ apiKey: opts.apiKey, maxRetries: 3, timeout: 120_000 });
-  const { system, dsl } = loadPrompts();
+    opts.client ?? new Anthropic({ apiKey: opts.apiKey, maxRetries: 0, timeout: 120_000 });
+  const create = (body: Anthropic.Beta.MessageCreateParamsNonStreaming) =>
+    withModelRetry(() => client.beta.messages.create(body), opts.retry);
+  const { system, dsl, repair } = loadPrompts();
   // tools render before system: one breakpoint on the last system block caches tool + both.
   const systemBlocks: Anthropic.Beta.BetaTextBlockParam[] = [
     { type: 'text', text: system },
     { type: 'text', text: dsl, cache_control: { type: 'ephemeral' } },
   ];
+  // Repair turns: same rules + DSL, then the repair instructions (which narrow the output tool).
+  const repairSystem: Anthropic.Beta.BetaTextBlockParam[] = [
+    ...systemBlocks,
+    { type: 'text', text: repair },
+  ];
+  const toTurn = (res: Anthropic.Beta.BetaMessage, toolName: string): ModelTurn => {
+    const tool = res.content.find(
+      (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use' && b.name === toolName,
+    );
+    return {
+      input: res.stop_reason === 'refusal' ? undefined : tool?.input,
+      usage: usageOf(res.usage),
+      model: res.model,
+      replayed: false,
+      stopReason: res.stop_reason ?? null,
+    };
+  };
 
   return {
     mode: 'live',
@@ -137,7 +244,7 @@ export function createLiveModel(opts: LiveModelOptions): SchemaModel {
       let last: Anthropic.Beta.BetaMessage | undefined;
 
       const call = async (): Promise<ModelTurn> => {
-        const res = await client.beta.messages.create({
+        const res = await create({
           model: modelId,
           max_tokens: MAX_TOKENS,
           system: systemBlocks,
@@ -150,17 +257,7 @@ export function createLiveModel(opts: LiveModelOptions): SchemaModel {
           messages,
         });
         last = res;
-        const tool = res.content.find(
-          (b): b is Anthropic.Beta.BetaToolUseBlock =>
-            b.type === 'tool_use' && b.name === PROPOSE_SCHEMA_TOOL_NAME,
-        );
-        return {
-          input: res.stop_reason === 'refusal' ? undefined : tool?.input,
-          usage: usageOf(res.usage),
-          model: res.model,
-          replayed: false,
-          stopReason: res.stop_reason ?? null,
-        };
+        return toTurn(res, PROPOSE_SCHEMA_TOOL_NAME);
       };
 
       return {
@@ -184,6 +281,20 @@ export function createLiveModel(opts: LiveModelOptions): SchemaModel {
         },
       };
     },
+    async repair(req) {
+      const res = await create({
+        model: modelId,
+        max_tokens: MAX_TOKENS,
+        system: repairSystem,
+        tools: [REPAIR_FIELDS_TOOL],
+        tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        output_config: { effort: 'medium' },
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        messages: [{ role: 'user', content: req.userPrompt }],
+      });
+      return toTurn(res, REPAIR_FIELDS_TOOL_NAME);
+    },
   };
 }
 
@@ -201,6 +312,8 @@ export interface RecordedProposal {
   input: unknown;
   /** Optional second answer for the retry turn; defaults to `input` again. */
   retryInput?: unknown;
+  /** `repair_fields` inputs for self-check rounds 1 and 2 (none → no repair, the field is dropped). */
+  repairs?: unknown[];
 }
 
 export const RECORDED_DIR = 'recorded/';
@@ -247,6 +360,16 @@ export function createRecordedModel(
         first: async () => turn(need(), need().input),
         retry: async () => turn(need(), need().retryInput ?? need().input),
       };
+    },
+    async repair(req) {
+      const rec = recorded.get(req.pathPattern);
+      const input = rec?.repairs?.[req.round - 1];
+      if (!rec || input === undefined) {
+        throw new RecordedProposalMissingError(
+          `no recorded repair round ${req.round} for ${req.pathPattern}`,
+        );
+      }
+      return turn(rec, input);
     },
   };
 }
