@@ -140,7 +140,8 @@ describe('web routes: loaded by the real server (autoload)', () => {
   });
   afterAll(() => app.close());
 
-  it.each(['/c/x', '/v1/nope'])(
+  // `/c/:site` itself is SP-033's page (routes/catalog.ts, catalog.db.test.ts).
+  it.each(['/c/x/nope', '/v1/nope'])(
     'GET %s is a JSON 404 envelope, never index.html',
     async (url) => {
       const res = await app.inject({ method: 'GET', url, headers: html });
