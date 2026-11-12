@@ -6,7 +6,8 @@
 <%- jsonLd %>
 </script>
 <article class="rental">
-  <div class="photo" role="img" aria-label="Photo coming soon">Photo coming soon</div>
+  <% var a = art(listing); %><nav class="crumbs" aria-label="Breadcrumb"><a href="/search">Rentals</a> / <a href="/search?neighbourhood=<%= encodeURIComponent(listing.neighbourhood) %>"><%= listing.neighbourhood %></a></nav>
+  <div class="photo" role="img" aria-label="Illustration of <%= listing.title %>"><svg viewBox="-80 24 480 160" preserveAspectRatio="xMidYMax slice" style="<%= a.style %>"><use href="#h-<%= a.kind %>" width="320" height="180"<%- a.flip ? ' transform="translate(320 0) scale(-1 1)"' : '' %>/><rect x="-80" y="148" width="480" height="40" fill="var(--ground)"/></svg></div>
   <div class="layout-2">
     <div>
       <span class="avail-pill avail-<%= listing.status %>"><%= listing.status === 'leased' ? 'Leased' : 'Available' %></span>
@@ -25,20 +26,20 @@
       </dl>
       <h2>About this place</h2>
       <p class="rental-blurb"><%= listing.description %></p>
-      <p class="muted">Last updated <time datetime="<%= listing.updated_at %>"><%= date(listing.updated_at) %></time></p>
+      <p class="muted updated">Last updated <time datetime="<%= listing.updated_at %>"><%= date(listing.updated_at) %></time></p>
     </div>
     <aside>
       <% if (agent) { %>
       <div class="card contact-box">
-        <h2 style="font-size:1rem;margin-top:0">Contact</h2>
+        <h2 class="aside-label">Contact</h2>
         <a class="contact-name" href="/agents/<%= agent.slug %>"><%= agent.name %></a>
         <div class="contact-firm muted"><%= agent.brokerage %></div>
         <a class="contact-tel" href="tel:<%= agent.phone.replace(/[^0-9]/g, '') %>"><%= agent.phone %></a>
       </div>
       <% } %>
       <% openHouses.forEach(function (oh) { %>
-      <div class="card open-house-box" style="margin-top:1rem">
-        <h2 style="font-size:1rem;margin-top:0">Open house</h2>
+      <div class="card open-house-box">
+        <h2 class="aside-label">Open house</h2>
         <a href="/open-houses/<%= oh.id %>"><time datetime="<%= oh.starts_at %>"><%= day(oh.starts_at) %>, <%= time(oh.starts_at) %></time></a>
       </div>
       <% }) %>

@@ -145,10 +145,10 @@ function buildD04(
     '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
     `<title>402 Payment Required: ${name}</title>` +
-    '<style>body{font:16px/1.5 system-ui,sans-serif;max-width:36rem;margin:3rem auto;padding:0 1rem;color:#1a1a1a}a{color:#0b5cad}</style>' +
+    '<style>body{font:17px/1.6 system-ui,sans-serif;max-width:34rem;margin:0 auto;padding:14vh 1.5rem;color:#364955}h1{font-size:1.9rem;line-height:1.2;color:#0d1b24;margin:0 0 1rem}a{color:#0b6e75}.c a{display:inline-block;padding:.65rem 1.1rem;border-radius:8px;background:#0b6e75;color:#fff;font-weight:600;text-decoration:none}</style>' +
     '</head><body><h1>402 Payment Required</h1>' +
     `<p>${name} sells this data as an API.${priceLine} Pay with a PayPal-funded balance.</p>` +
-    `<p><a href="${catalog}">See the catalog and prices</a></p>` +
+    `<p class="c"><a href="${catalog}">See the catalog and prices</a></p>` +
     `<p>For AI agents: MCP endpoint <a href="${mcp}">${mcp}</a></p>` +
     '</body></html>'
   );

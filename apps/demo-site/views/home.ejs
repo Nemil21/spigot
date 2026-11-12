@@ -1,8 +1,17 @@
 <%- include('partials/head') %>
-<h1>Find a place to rent around Austin</h1>
-<p class="muted"><%= num(counts.listings) %> listings from <%= num(counts.agents) %> local agents, <%= counts.openHouses %> upcoming open houses.</p>
-<%- include('partials/search-form') %>
-<h2>Featured listings</h2>
+<section class="hero">
+  <h1>Find a place to rent around Austin</h1>
+  <p class="lede"><%= num(counts.listings) %> listings from <%= num(counts.agents) %> local agents, <%= counts.openHouses %> upcoming open houses.</p>
+  <%- include('partials/search-form') %>
+  <nav class="hoods" aria-label="Browse by neighbourhood">
+    <span class="muted">Browse:</span>
+    <% neighbourhoods.slice(0, 8).forEach(function (n) { %><a href="/search?neighbourhood=<%= encodeURIComponent(n) %>"><%= n %></a><% }) %>
+  </nav>
+</section>
+<div class="section-head">
+  <h2>Featured listings</h2>
+  <a href="/search">See all rentals</a>
+</div>
 <ul class="grid featured">
   <% featured.forEach(function (l) { %><%- include('partials/listing-card', { l: l }) %><% }) %>
 </ul>
