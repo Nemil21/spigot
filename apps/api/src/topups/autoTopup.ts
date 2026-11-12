@@ -105,6 +105,12 @@ export interface ReserveVaultTopupInput {
    * (`BALANCE_OK`) unless the balance, re-read under the lock, is still below it.
    */
   whenBelowMicros?: number;
+  /**
+   * Stored as `topups.idempotency_key` (SP-047b's MCP `top_up`: `mcp:<key>`). A second reservation
+   * with the same key fails on `unique(buyer_id, idempotency_key)` (23505, nothing written): the
+   * caller replays the first top-up instead of charging twice.
+   */
+  idempotencyKey?: string;
   /** Clock for the cap's month (tests). */
   now?: Date;
 }
@@ -116,7 +122,18 @@ export interface VaultRefRow {
 
 export type Reservation =
   /** A `topups` row (VAULT_MIT, CREATED) is committed: run `chargeVaultTopup` next. */
-  | { kind: 'RESERVED'; topup: TopupRow; vault: VaultRefRow; balanceMicros: number }
+  | {
+      kind: 'RESERVED';
+      topup: TopupRow;
+      vault: VaultRefRow;
+      balanceMicros: number;
+      /**
+       * `npm run demo:decline` flagged this buyer (`mock_decline_next`, consumed here by the next
+       * AUTO reservation): send `PayPal-Mock-Response INSTRUMENT_DECLINED` on the create. The client
+       * drops the header unless sandbox + DEMO_MODE + ALLOW_MOCK_DECLINE.
+       */
+      mockDecline?: boolean;
+    }
   /** The balance already covers `priceMicros` (another call's top-up landed). */
   | { kind: 'BALANCE_OK'; balanceMicros: number }
   /** `trigger: 'AUTO'` and the buyer turned auto top-up off. */
@@ -135,6 +152,7 @@ interface BuyerVaultRow {
   capCents: number;
   vaultId: string | null;
   vaultKind: 'CARD' | 'PAYPAL' | null;
+  mockDeclineNext: boolean;
 }
 
 /** Steps 1–2: tx A. Holds the buyer row only for this transaction (milliseconds). */
@@ -146,7 +164,8 @@ export async function reserveVaultTopup(
     // NO KEY UPDATE, never UPDATE: see the lock order above (FOR UPDATE blocks FK checks).
     const { rows } = await tx.query<BuyerVaultRow>(
       `SELECT auto_topup_enabled AS enabled, auto_topup_amount_cents AS "amountCents",
-              monthly_topup_cap_cents AS "capCents", vault_id AS "vaultId", vault_kind AS "vaultKind"
+              monthly_topup_cap_cents AS "capCents", vault_id AS "vaultId", vault_kind AS "vaultKind",
+              mock_decline_next AS "mockDeclineNext"
          FROM buyers WHERE id = $1 FOR NO KEY UPDATE`,
       [input.buyerId],
     );
@@ -196,12 +215,17 @@ export async function reserveVaultTopup(
     }
 
     const inserted = await tx.query<TopupRow>(
-      `INSERT INTO topups (buyer_id, amount_cents, method, trigger)
-       VALUES ($1, $2, 'VAULT_MIT', $3)
+      `INSERT INTO topups (buyer_id, amount_cents, method, trigger, idempotency_key)
+       VALUES ($1, $2, 'VAULT_MIT', $3, $4)
        RETURNING ${TOPUP_COLUMNS}`,
-      [input.buyerId, amountCents, input.trigger],
+      [input.buyerId, amountCents, input.trigger, input.idempotencyKey ?? null],
     );
     const topup = inserted.rows[0]!;
+    // demo:decline's flag is one-shot and only for an AUTO top-up (features/15 §Demo hooks).
+    const mockDecline = input.trigger === 'AUTO' && b.mockDeclineNext;
+    if (mockDecline) {
+      await tx.query(`UPDATE buyers SET mock_decline_next = false WHERE id = $1`, [input.buyerId]);
+    }
     await audit(tx, {
       actorType: actorTypeOf(input.trigger),
       actorId: input.buyerId,
@@ -217,6 +241,7 @@ export async function reserveVaultTopup(
         monthlyCapCents: b.capCents,
         ...(input.priceMicros !== undefined ? { shortCallPriceMicros: input.priceMicros } : {}),
         ...(input.whenBelowMicros !== undefined ? { thresholdMicros: input.whenBelowMicros } : {}),
+        ...(mockDecline ? { mockDecline: true } : {}),
       },
     });
     return {
@@ -224,6 +249,7 @@ export async function reserveVaultTopup(
       topup,
       vault: { id: b.vaultId, kind: b.vaultKind ?? 'CARD' },
       balanceMicros,
+      ...(mockDecline ? { mockDecline: true } : {}),
     };
   });
 }
@@ -267,6 +293,7 @@ export async function chargeVaultTopup(
         topupId: topup.id,
         amountCents: topup.amountCents,
         source: vaultSource(vault),
+        ...(r.mockDecline ? { mockResponse: 'INSTRUMENT_DECLINED' as const } : {}),
       });
     } catch {
       // Auth failure or a bug: nothing is known. The row stays CREATED for the sweep (SP-047c).
@@ -352,9 +379,12 @@ export async function failVaultTopupTx(
     },
   );
   if (!failed) return false;
-  await tx.query(`UPDATE buyers SET auto_topup_enabled = false, updated_at = now() WHERE id = $1`, [
-    topup.buyerId,
-  ]);
+  // `auto_topup_declined_at` drives W11's declined banner until the buyer saves the card again.
+  await tx.query(
+    `UPDATE buyers SET auto_topup_enabled = false, auto_topup_declined_at = now(), updated_at = now()
+      WHERE id = $1`,
+    [topup.buyerId],
+  );
   await audit(tx, {
     ...args.actor,
     entity: 'topups',

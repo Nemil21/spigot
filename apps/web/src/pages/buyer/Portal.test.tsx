@@ -63,6 +63,18 @@ function fakeApi(over: Partial<ApiState> = {}) {
     if (method === 'GET' && url === '/api/buyer/paypal-config') return json(200, state.paypal);
     if (method === 'GET' && url === '/api/buyer/payment-method')
       return json(200, { savedMethod: state.savedMethod ?? null });
+    if (method === 'GET' && url === '/api/buyer/auto-topup')
+      return json(200, {
+        enabled: false,
+        amountCents: 2000,
+        thresholdMicros: 2_000_000,
+        monthlyCapCents: 10_000,
+        usedThisMonthCents: 0,
+        remainingThisMonthCents: 10_000,
+        savedMethod: state.savedMethod ?? null,
+        capReached: false,
+        declinedAt: null,
+      });
     if (method === 'POST' && url === '/api/buyer/topups') {
       return json(201, { topupId: TOPUP_ID, status: 'AWAITING_APPROVAL', orderId: ORDER_ID });
     }

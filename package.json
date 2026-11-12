@@ -33,7 +33,7 @@
     "demo:mutate": "npm run demo:mutate -w @spigot/demo-site --",
     "demo:reset": "npm run demo:reset -w @spigot/api --",
     "demo:payout": "npm run demo:payout -w @spigot/api --",
-    "demo:decline": "node scripts/not-yet.mjs demo:decline SP-047b"
+    "demo:decline": "npm run demo:decline -w @spigot/api --"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

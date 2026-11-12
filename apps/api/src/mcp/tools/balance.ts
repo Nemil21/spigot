@@ -1,7 +1,13 @@
-// Balance MCP tools (api.md §MCP server; features/11 §Logic 2; SP-022b): `get_balance` (free) and
-// `top_up`. Each calls the same service as `/v1` (`GET /v1/balance`, `POST /v1/topups`).
+// Balance MCP tools (api.md §MCP server; features/11 §Logic 2; SP-022b, SP-047b): `get_balance`
+// (free) and `top_up`. Each calls the same service as `/v1` (`GET /v1/balance`, `POST /v1/topups`).
 import { z } from 'zod';
-import { formatCents, formatMicros, topupStatusLabel, type TopupStatus } from '@spigot/shared';
+import {
+  autoTopupDoneMessage,
+  formatCents,
+  formatMicros,
+  topupStatusLabel,
+  type TopupStatus,
+} from '@spigot/shared';
 import { balance, type BuyerBalance } from '../../services/balance.js';
 import { agentTopUp, type AgentTopUpResult } from '../../services/agentTopUp.js';
 import { topupPayPal } from '../../topups/index.js';
@@ -9,15 +15,13 @@ import { guard, ok, toolError } from '../results.js';
 import { callerOf, idempotencyKeyFor, type Caller, type ToolModule } from '../tools.js';
 import { idempotencyKeyInput } from '../inputs.js';
 
-/**
- * P0 wording. SP-047b (vault charge within the cap) switches this to api.md's "Charges the saved
- * PayPal payment method of the account owner, up to their monthly cap."
- */
+/** api.md §MCP server wording (SP-047b), plus what happens without a saved method (SP-022b). */
 const TOP_UP_DESCRIPTION =
-  'Asks the account owner to add money to your Spigot balance with PayPal. Returns a PayPal ' +
-  'approval link (approveUrl): show it to your user; the balance is credited once they approve ' +
-  'it in PayPal (check with get_balance). amountCents is $5–$500 in cents (2000 = $20). Nothing ' +
-  'moves until they approve.';
+  'Charges the saved PayPal payment method of the account owner, up to their monthly cap, and ' +
+  'adds it to your Spigot balance at once. Past the cap it fails: ask your user to top up by ' +
+  'hand or raise the cap. With no saved method it returns a PayPal approval link (approveUrl) ' +
+  'instead: show it to your user; the balance is credited once they approve it in PayPal (check ' +
+  'with get_balance). amountCents is $5–$500 in cents (2000 = $20).';
 
 const balanceOutput = {
   balanceMicros: z.number(),
@@ -44,6 +48,21 @@ export function balanceSummary(b: BuyerBalance): string {
 /** The agent-facing line for a `top_up` result. */
 export function topUpSummary(t: AgentTopUpResult): string {
   const amount = formatCents(t.amountCents);
+  if (t.method === 'VAULT_MIT') {
+    if (t.status === 'COMPLETED' && !t.replay) {
+      // "Topped up $20 from your saved PayPal method. Balance $20.01."
+      return (
+        autoTopupDoneMessage({ amountCents: t.amountCents }) +
+        (t.balanceMicros !== undefined ? ` Balance ${formatMicros(t.balanceMicros)}.` : '')
+      );
+    }
+    if (t.status === 'CREATED') {
+      return (
+        `PayPal is still confirming this ${amount} charge to your saved method. Call get_balance ` +
+        'in a minute; do not top up again until it shows.'
+      );
+    }
+  }
   if (t.status === 'AWAITING_APPROVAL' || t.status === 'CREATED') {
     return t.approveUrl
       ? `Open this PayPal link to add ${amount} to your Spigot balance: ${t.approveUrl}\n` +
@@ -53,7 +72,8 @@ export function topUpSummary(t: AgentTopUpResult): string {
   }
   if (t.status === 'COMPLETED') {
     return (
-      `This ${amount} top-up was already added via PayPal` +
+      `This ${amount} top-up was already added` +
+      (t.method === 'VAULT_MIT' ? ' from your saved PayPal method' : ' via PayPal') +
       (t.balanceMicros !== undefined ? `; balance ${formatMicros(t.balanceMicros)}.` : '.')
     );
   }

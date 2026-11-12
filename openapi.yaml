@@ -205,6 +205,7 @@ components:
                 - CURSOR_EXPIRED
                 - TOPUP_FAILED
                 - AUTO_TOPUP_CAP_REACHED
+                - NO_SAVED_METHOD
                 - REFUND_EXCEEDS_UNUSED
                 - CLAIM_NOT_ELIGIBLE
                 - RATE_LIMITED
@@ -337,6 +338,7 @@ components:
                 - CURSOR_EXPIRED
                 - TOPUP_FAILED
                 - AUTO_TOPUP_CAP_REACHED
+                - NO_SAVED_METHOD
                 - REFUND_EXCEEDS_UNUSED
                 - CLAIM_NOT_ELIGIBLE
                 - RATE_LIMITED
@@ -446,6 +448,7 @@ components:
                 - CURSOR_EXPIRED
                 - TOPUP_FAILED
                 - AUTO_TOPUP_CAP_REACHED
+                - NO_SAVED_METHOD
                 - REFUND_EXCEEDS_UNUSED
                 - CLAIM_NOT_ELIGIBLE
                 - RATE_LIMITED
@@ -553,6 +556,7 @@ components:
                 - CURSOR_EXPIRED
                 - TOPUP_FAILED
                 - AUTO_TOPUP_CAP_REACHED
+                - NO_SAVED_METHOD
                 - REFUND_EXCEEDS_UNUSED
                 - CLAIM_NOT_ELIGIBLE
                 - RATE_LIMITED
@@ -800,7 +804,10 @@ components:
           type: string
         status:
           type: string
-          description: "`AWAITING_APPROVAL` for a new link; a replay returns the final status."
+          description: "`COMPLETED` when charged to the saved method (`CREATED` while PayPal confirms); `AWAITING_APPROVAL` for a new link; a replay returns the final status."
+        method:
+          type: string
+          description: "`VAULT_MIT` (charged the saved method) or `PAYPAL_WALLET` (approval link)."
         amountCents:
           type: integer
         orderId:
@@ -816,9 +823,13 @@ components:
         balanceMicros:
           type: integer
           description: Your balance, once `COMPLETED`.
+        replay:
+          type: boolean
+          description: "A retry with the same key: the first top-up, nothing new charged."
       required:
         - topupId
         - status
+        - method
         - amountCents
         - orderId
         - approveUrl

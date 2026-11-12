@@ -4,7 +4,7 @@ Executed in **SP-039b** (local stack, a person at Claude Desktop and the PayPal 
 
 Run: ☐ 1 ☐ 2 · Date ________ · Operator ________ · Stack: ☐ local ☐ Render · Git SHA ________ · `PAYPAL_ENV` ________
 
-Command owners, in case one still prints "not yet" (`scripts/not-yet.mjs`): `seed:demo` SP-035, `sim:bots` SP-037, `sim:buyers` SP-036, `demo:reset` / `demo:payout` SP-038, `demo:mutate` SP-004b.
+Command owners, in case one still prints "not yet" (`scripts/not-yet.mjs`): `seed:demo` SP-035, `sim:bots` SP-037, `sim:buyers` SP-036, `demo:reset` / `demo:payout` SP-038, `demo:mutate` SP-004b, `demo:decline` SP-047b.
 
 ## 0. Prerequisites (once per machine)
 

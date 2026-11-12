@@ -27,6 +27,8 @@ export const ERROR_STATUS = {
   CURSOR_EXPIRED: 410,
   TOPUP_FAILED: 422,
   AUTO_TOPUP_CAP_REACHED: 422,
+  /** SP-047b: auto top-up can't be turned on without a saved (vaulted) PayPal method. */
+  NO_SAVED_METHOD: 422,
   REFUND_EXCEEDS_UNUSED: 422,
   /** SP-048a: call not charged, older than 7 days, or the record wasn't in its response. */
   CLAIM_NOT_ELIGIBLE: 422,
