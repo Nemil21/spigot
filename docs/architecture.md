@@ -27,7 +27,7 @@ The system diagram and its rules, copied from the build spec ([`docs/spec/README
                                                                  ▼
                       PayPal REST: Orders v2 (top-up, CAPTURE) · Vault (auto top-up, MIT) · Refunds (P1)
                                    Payouts (batched) · Webhooks (verify + reconcile)
- Buyer: Claude Desktop ──MCP──> /mcp      Python scraper ──HTML──> gate 402 ──> catalog page ──> sign up + top up
+ Buyer: Claude Code ──MCP──> /mcp         Python scraper ──HTML──> gate 402 ──> catalog page ──> sign up + top up
 ```
 
 
