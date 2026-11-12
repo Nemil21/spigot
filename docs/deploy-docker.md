@@ -29,6 +29,10 @@ site). On Cloudflare use **DNS only**: its proxy cuts SSE / MCP connections afte
 `DEMO_ADMIN_TOKEN` (same as in `.env`), `SPIGOT_API_BASE=https://spigot.<domain>`,
 `SPIGOT_VERIFY_TOKEN` (same as in `.env`), `SPIGOT_GATE_KEY` (empty until step 5).
 
+The demo site runs with **10 listings** (+ 1 agent, 1 open house) by default, so a live crawl and Claude's
+proposal finish in seconds. For the full 2,341 / 88 / 40 set `DEMO_LISTINGS=2341` in `.env`, then
+`docker compose up -d demo-site`.
+
 ## 3. Start
 
 ```sh

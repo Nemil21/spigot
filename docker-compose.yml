@@ -51,6 +51,9 @@ services:
     environment:
       PORT: '4100'
       DEMO_DATA_DIR: /data/bluebonnet
+      # 10 listings (+ 1 agent, 1 open house): a crawl and proposal that finish in seconds live.
+      # Full size: DEMO_LISTINGS=2341 in .env.
+      DEMO_LISTINGS: ${DEMO_LISTINGS:-10}
     volumes:
       - demodata:/data
     depends_on:

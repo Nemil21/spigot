@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FOCUS_EVERY, countsForScale, generateSeed, isFocusListing } from './seed.js';
+import { BASE_COUNTS, FOCUS_EVERY, countsForScale, generateSeed, isFocusListing, scaleFromEnv } from './seed.js';
 
 const full = generateSeed(1);
 
@@ -92,5 +92,25 @@ describe('seed', () => {
       const weekday = new Date(`${o.starts_at.slice(0, 10)}T12:00:00Z`).getUTCDay();
       expect([0, 6]).toContain(weekday);
     }
+  });
+});
+
+describe('scaleFromEnv', () => {
+  it('DEMO_LISTINGS gives exactly that many listings, at least 1 agent and 1 open house', () => {
+    const scale = scaleFromEnv({ DEMO_LISTINGS: '10', DEMO_SEED_SCALE: '1' });
+    expect(countsForScale(scale)).toEqual({ listings: 10, agents: 1, openHouses: 1 });
+    const data = generateSeed(scale);
+    expect([data.listings.length, data.agents.length, data.openHouses.length]).toEqual([10, 1, 1]);
+  });
+
+  it('falls back to DEMO_SEED_SCALE, then full size', () => {
+    expect(scaleFromEnv({ DEMO_SEED_SCALE: '0.5' })).toBe(0.5);
+    expect(scaleFromEnv({})).toBe(1);
+    expect(countsForScale(scaleFromEnv({ DEMO_LISTINGS: String(BASE_COUNTS.listings) }))).toEqual(BASE_COUNTS);
+  });
+
+  it('rejects a DEMO_LISTINGS that is not a positive integer', () => {
+    expect(() => scaleFromEnv({ DEMO_LISTINGS: '0' })).toThrow(/positive integer/);
+    expect(() => scaleFromEnv({ DEMO_LISTINGS: '2.5' })).toThrow(/positive integer/);
   });
 });
