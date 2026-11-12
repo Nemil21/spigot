@@ -20,7 +20,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run --project unit --maxWorkers=2",
+    "test": "vitest run --project unit --project web --maxWorkers=2",
     "test:db": "npm test -w @spigot/db",
     "migrate": "npm run migrate -w @spigot/db",
     "security:secrets": "bash scripts/secret-scan.sh",

@@ -30,7 +30,8 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: SOURCES.map((s) => `${s}/*.test.ts`),
-          exclude: [DB_TESTS, '**/node_modules/**', '**/dist/**'],
+          // apps/web runs in its own `web` project (jsdom, React, .tsx).
+          exclude: [DB_TESTS, '**/node_modules/**', '**/dist/**', 'apps/web/**'],
         },
       },
       {
@@ -45,6 +46,8 @@ export default defineConfig({
           fileParallelism: false,
         },
       },
+      // Web app tests (SP-024a): jsdom + Testing Library, configured in apps/web.
+      'apps/web/vitest.config.ts',
     ],
   },
 });

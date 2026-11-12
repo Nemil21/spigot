@@ -1,0 +1,148 @@
+@import 'tailwindcss';
+
+/*
+ * Spigot semantic tokens (SP-024a; features/13 §6 Theme). Deliberately not Holdfast's look:
+ * Holdfast is white / charcoal / orange with Geist; Spigot is cool slate with a deep "tap water"
+ * teal accent and a brass/amber money colour, in light and dark.
+ *
+ * Components use the semantic names only (bg-surface, text-ink, border-line, text-accent …), never
+ * raw hex. Values live in the CSS variables below and are mirrored in src/theme/tokens.ts for
+ * canvas consumers (AG Charts); tokens.test.ts fails if the two drift.
+ *
+ * Dark mode: `data-theme="dark"` on <html> (set by src/theme/mode.ts from the user's choice or the
+ * OS preference).
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root {
+  --sp-canvas: #f3f6f7;
+  --sp-surface: #ffffff;
+  --sp-surface-2: #e9eef1;
+  --sp-border: #cdd7dd;
+  --sp-line: #dfe6ea;
+  --sp-ink: #0d1b24;
+  --sp-body: #364955;
+  --sp-muted: #677a86;
+  --sp-accent: #0b6e75;
+  --sp-accent-strong: #08545a;
+  --sp-accent-tint: #dbeff0;
+  --sp-on-accent: #ffffff;
+  --sp-money: #8a5a00;
+  --sp-money-tint: #fbf0d9;
+  --sp-positive: #1b7a4b;
+  --sp-positive-tint: #dcf2e5;
+  --sp-warning: #a15c00;
+  --sp-warning-tint: #fdeccf;
+  --sp-danger: #b8322a;
+  --sp-danger-tint: #fbe4e1;
+  --sp-info: #2a5db0;
+  --sp-info-tint: #e0eafa;
+  --sp-sim: #6c45c9;
+  --sp-sim-tint: #ece5fb;
+  --sp-focus: #1f9aa3;
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --sp-canvas: #0a1217;
+  --sp-surface: #101b21;
+  --sp-surface-2: #16242c;
+  --sp-border: #2b3c46;
+  --sp-line: #1d2b33;
+  --sp-ink: #e4edf1;
+  --sp-body: #b3c3cc;
+  --sp-muted: #7e919c;
+  --sp-accent: #3cc0c8;
+  --sp-accent-strong: #74d8de;
+  --sp-accent-tint: #0f3438;
+  --sp-on-accent: #04191b;
+  --sp-money: #f2b33d;
+  --sp-money-tint: #3a2a08;
+  --sp-positive: #4cc38a;
+  --sp-positive-tint: #0f3121;
+  --sp-warning: #f0aa45;
+  --sp-warning-tint: #3a2809;
+  --sp-danger: #f27b70;
+  --sp-danger-tint: #3d1512;
+  --sp-info: #7fa8f2;
+  --sp-info-tint: #15264a;
+  --sp-sim: #b49cff;
+  --sp-sim-tint: #2a1f4d;
+  --sp-focus: #5fd3da;
+  color-scheme: dark;
+}
+
+/* Tailwind utilities resolve to the variables, so one class works in both modes. */
+@theme inline {
+  --color-canvas: var(--sp-canvas);
+  --color-surface: var(--sp-surface);
+  --color-surface-2: var(--sp-surface-2);
+  --color-border: var(--sp-border);
+  --color-line: var(--sp-line);
+  --color-ink: var(--sp-ink);
+  --color-body: var(--sp-body);
+  --color-muted: var(--sp-muted);
+  --color-accent: var(--sp-accent);
+  --color-accent-strong: var(--sp-accent-strong);
+  --color-accent-tint: var(--sp-accent-tint);
+  --color-on-accent: var(--sp-on-accent);
+  --color-money: var(--sp-money);
+  --color-money-tint: var(--sp-money-tint);
+  --color-positive: var(--sp-positive);
+  --color-positive-tint: var(--sp-positive-tint);
+  --color-warning: var(--sp-warning);
+  --color-warning-tint: var(--sp-warning-tint);
+  --color-danger: var(--sp-danger);
+  --color-danger-tint: var(--sp-danger-tint);
+  --color-info: var(--sp-info);
+  --color-info-tint: var(--sp-info-tint);
+  --color-sim: var(--sp-sim);
+  --color-sim-tint: var(--sp-sim-tint);
+  --color-focus: var(--sp-focus);
+}
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-card: 0 1px 2px 0 rgb(13 27 36 / 0.06), 0 2px 8px 0 rgb(13 27 36 / 0.05);
+
+  /* Loading = skeletons, never spinners on money numbers (screens.md). */
+  --animate-skeleton: skeleton 1.3s ease-in-out infinite;
+  @keyframes skeleton {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}
+
+@layer base {
+  html {
+    background: var(--sp-canvas);
+    color: var(--sp-ink);
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--sp-focus);
+    outline-offset: 2px;
+  }
+  /* Money and counts line up in columns. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
