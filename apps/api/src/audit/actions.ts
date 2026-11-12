@@ -34,6 +34,10 @@ export const AUDIT_ACTIONS = [
   // SP-034 (settings/settings.ts): W16 account, payout email and gate policy edits; key rotation.
   'SETTINGS_CHANGED',
   'SITE_KEY_ROTATED',
+  // SP-059 (webhooks/paypal.ts): a verified PayPal event no handler takes (marked processed), and
+  // `CUSTOMER.DISPUTE.CREATED` (audit only; freezing the buyer's keys is P2).
+  'WEBHOOK_UNHANDLED',
+  'DISPUTE_CREATED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
