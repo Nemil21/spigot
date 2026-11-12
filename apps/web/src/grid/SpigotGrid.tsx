@@ -22,7 +22,10 @@ export function SpigotGrid<TData>({
   ...props
 }: SpigotGridProps<TData>) {
   return (
-    <div style={{ height }} className="w-full [&_.ag-cell]:tabular-nums [&_.ag-cell_span.inline-flex]:leading-4">
+    <div
+      style={{ height }}
+      className="w-full [&_.ag-cell]:tabular-nums [&_.ag-cell_span.inline-flex]:leading-4"
+    >
       <AgGridReact<TData>
         ref={gridRef}
         theme={bare ? gridThemeBare : gridTheme}
