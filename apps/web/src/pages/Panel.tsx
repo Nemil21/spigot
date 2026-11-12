@@ -24,11 +24,11 @@ export function Panel({
   return (
     <section
       aria-labelledby={id}
-      className={`min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-card ${className}`}
+      className={`min-w-0 overflow-hidden rounded-lg border border-line bg-surface ${className}`}
     >
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-5 py-3.5">
         <div className="min-w-0">
-          <h2 id={id} className="text-sm font-semibold text-ink">
+          <h2 id={id} className={`${LABEL} text-ink`}>
             {title}
           </h2>
           {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
@@ -40,9 +40,15 @@ export function Panel({
   );
 }
 
+/**
+ * Mono UPPERCASE letter-spaced label (Holdfast v4 voice, in Spigot's colours) for panel titles,
+ * tabs and buttons. Stands in for D1's `label` utility until it lands on main.
+ */
+export const LABEL = 'font-mono text-[11px] font-medium uppercase tracking-[0.06em]';
+
 /** Joins KPI tiles into one ruled strip instead of a row of separate boxes. */
 export const KPI_STRIP =
-  'grid gap-px overflow-hidden rounded-xl border border-line bg-line shadow-card [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&>div]:px-5 [&>div]:py-4';
+  'grid gap-px overflow-hidden rounded-lg border border-line bg-line [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&>div]:px-5 [&>div]:py-4';
 
 /** Page frame shared by the publisher pages: width, gutters, vertical rhythm. */
 export const PAGE = 'mx-auto max-w-7xl space-y-6 px-5 py-8 sm:px-8 sm:py-10';

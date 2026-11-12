@@ -211,7 +211,7 @@ export function EarningsScreen({
               role="tab"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className={`border-b-2 pb-3 pt-1 text-sm font-medium transition-colors ${
+              className={`border-b-2 pb-3 pt-1 font-mono text-[11px] font-medium uppercase tracking-[0.06em] transition-colors ${
                 tab === t
                   ? 'border-accent text-ink'
                   : 'border-transparent text-muted hover:text-ink'
@@ -246,7 +246,7 @@ export function EarningsScreen({
                 type="button"
                 onClick={() => gridApi.current && exportEarningsCsv(gridApi.current)}
                 disabled={loading}
-                className="h-8 rounded-md border border-border bg-surface px-3 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-surface-2 disabled:opacity-60"
+                className="h-8 rounded-md border border-border bg-surface px-3 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
               >
                 Export CSV
               </button>
@@ -354,10 +354,7 @@ function RowDetail({ row, onClose }: { row: EarningsGridRow; onClose: () => void
     ['Last sale', row.lastDay],
   ];
   return (
-    <section
-      aria-label="Sales detail"
-      className="rounded-xl border border-line bg-surface p-5 shadow-card"
-    >
+    <section aria-label="Sales detail" className="rounded-lg border border-line bg-surface p-5">
       <div className="flex items-start justify-between gap-4">
         <h2 className="text-sm font-semibold text-ink">
           {row.buyer} · {row.dataset} · {row.channel}

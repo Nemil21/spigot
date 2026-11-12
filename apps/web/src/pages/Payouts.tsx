@@ -180,7 +180,7 @@ export function PayoutsScreen({
       <section
         aria-label="Next payout"
         aria-busy={!ready || undefined}
-        className="flex flex-wrap items-stretch justify-between gap-5 rounded-xl border border-line bg-surface p-5 shadow-card sm:p-6"
+        className="flex flex-wrap items-stretch justify-between gap-5 rounded-lg border border-line bg-surface p-5 sm:p-6"
       >
         <div className="min-w-0">
           {ready ? (
@@ -213,11 +213,13 @@ export function PayoutsScreen({
         </div>
         {ready && data.isDemo && (
           <div className="flex flex-col items-start justify-center gap-2 rounded-lg border border-dashed border-warning/50 bg-warning-tint/40 px-4 py-3 sm:items-end">
-            <span className="text-xs font-semibold text-warning">Demo control</span>
+            <span className="font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-warning">
+              Demo control
+            </span>
             <button
               type="button"
               onClick={openRun}
-              className="h-8 rounded-md bg-accent px-3.5 text-sm font-medium text-on-accent shadow-sm transition-colors hover:bg-accent-strong"
+              className="h-8 rounded-md bg-accent px-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-on-accent transition-colors hover:bg-accent-strong"
             >
               Run payout now
             </button>
@@ -239,7 +241,7 @@ export function PayoutsScreen({
       {ready && newest && <StatusBanner item={newest} />}
 
       {!ready ? (
-        <div aria-busy="true" className="rounded-xl border border-line bg-surface p-5 shadow-card">
+        <div aria-busy="true" className="rounded-lg border border-line bg-surface p-5">
           <SkeletonText lines={4} />
         </div>
       ) : data.batches.length === 0 ? (

@@ -131,7 +131,7 @@ export function ClaimsTab({
         </p>
       )}
       {claims.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface px-6 py-12 text-center text-body">
+        <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-12 text-center text-body">
           No open claims. Nothing needs your decision.
         </div>
       ) : (
@@ -140,7 +140,7 @@ export function ClaimsTab({
             <li
               key={c.id}
               data-claim={c.id}
-              className="rounded-xl border border-line bg-surface p-5 shadow-card"
+              className="rounded-lg border border-line bg-surface p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -166,7 +166,7 @@ export function ClaimsTab({
                     disabled={busy !== null}
                     onClick={() => void decide(c, 'CREDIT')}
                     aria-label={`Credit ${c.recordKey}`}
-                    className="h-8 rounded-md bg-accent px-3.5 text-sm font-medium text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-60"
+                    className="h-8 rounded-md bg-accent px-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-on-accent transition-colors hover:bg-accent-strong disabled:opacity-60"
                   >
                     {busy === c.id ? 'Saving…' : 'Credit'}
                   </button>
@@ -175,7 +175,7 @@ export function ClaimsTab({
                     disabled={busy !== null}
                     onClick={() => void decide(c, 'REJECT')}
                     aria-label={`Reject ${c.recordKey}`}
-                    className="h-8 rounded-md border border-border bg-surface px-3.5 text-sm font-medium text-ink shadow-sm transition-colors hover:bg-surface-2 disabled:opacity-60"
+                    className="h-8 rounded-md border border-border bg-surface px-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
                   >
                     Reject
                   </button>

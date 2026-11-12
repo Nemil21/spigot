@@ -175,7 +175,7 @@ export default function SettingsPage({ client = defaultApi }: { client?: ApiClie
   let body: ReactNode;
   if (state.status === 'loading') {
     body = (
-      <div aria-busy="true" className="rounded-xl border border-line bg-surface p-6">
+      <div aria-busy="true" className="rounded-lg border border-line bg-surface p-6">
         <SkeletonText lines={4} />
       </div>
     );
@@ -262,7 +262,7 @@ export default function SettingsPage({ client = defaultApi }: { client?: ApiClie
               aria-selected={tab === t.id}
               aria-controls={`settings-panel-${t.id}`}
               onClick={() => setParams({ tab: t.id }, { replace: true })}
-              className={`-mb-px shrink-0 border-b-2 pb-3 pt-1 text-sm font-medium transition-colors ${
+              className={`-mb-px shrink-0 border-b-2 pb-3 pt-1 font-mono text-[11px] font-medium uppercase tracking-[0.06em] transition-colors ${
                 tab === t.id
                   ? 'border-accent text-ink'
                   : 'border-transparent text-muted hover:text-ink'
@@ -277,7 +277,7 @@ export default function SettingsPage({ client = defaultApi }: { client?: ApiClie
       {toast && (
         <div
           role="status"
-          className="fixed right-6 bottom-6 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-surface shadow-card"
+          className="fixed right-6 bottom-6 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-surface"
         >
           {toast}
         </div>
@@ -292,7 +292,7 @@ const inputCls =
   'mt-1 w-full max-w-md rounded-md border border-border bg-surface px-3 py-2 text-ink focus:outline-2 focus:outline-focus aria-invalid:border-danger';
 const buttonCls =
   'rounded-md bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60';
-const cardCls = 'rounded-xl border border-line bg-surface p-6 shadow-card';
+const cardCls = 'rounded-lg border border-line bg-surface p-6';
 
 function FieldError({ id, message }: { id: string; message?: string | null }) {
   if (!message) return null;

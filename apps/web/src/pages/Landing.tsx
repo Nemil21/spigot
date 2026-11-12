@@ -34,7 +34,6 @@ export const STEPS = [
   },
 ] as const;
 
-
 /** A paid read and its response (api.md §`GET /v1/:site/datasets/:dataset/records`). */
 export function sampleRequest(origin: string = window.location.origin): string {
   return `curl -g -H "Authorization: Bearer sk_spg_…" \\

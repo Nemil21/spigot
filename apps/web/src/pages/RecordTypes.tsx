@@ -160,7 +160,7 @@ export default function RecordTypesPage({
     body = (
       <div aria-busy="true" className="mt-8 grid gap-5">
         {[0, 1].map((i) => (
-          <div key={i} className="rounded-xl border border-line bg-surface p-6 shadow-card">
+          <div key={i} className="rounded-lg border border-line bg-surface p-6">
             <Skeleton className="block h-5 w-44" />
             <Skeleton className="mt-2 block h-3 w-32" />
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem]">
@@ -243,7 +243,7 @@ export default function RecordTypesPage({
 
         {(reading.length > 0 || skipped.length > 0) && (
           <ul
-            className="mt-6 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface text-sm"
+            className="mt-6 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface text-sm"
             aria-label="Templates"
           >
             {reading.map((t) => (
@@ -267,7 +267,7 @@ export default function RecordTypesPage({
         )}
 
         {proposals.length > 0 && (
-          <div className="mt-6 flex items-start gap-3 rounded-xl border border-accent-tint bg-accent-tint/50 px-4 py-3.5">
+          <div className="mt-6 flex items-start gap-3 rounded-lg border border-accent-tint bg-accent-tint/50 px-4 py-3.5">
             <svg
               aria-hidden="true"
               viewBox="0 0 20 20"
@@ -311,7 +311,7 @@ export default function RecordTypesPage({
         ) : proposing || crawling ? (
           <div
             aria-busy="true"
-            className="mt-6 rounded-xl border border-dashed border-border bg-surface p-6"
+            className="mt-6 rounded-lg border border-dashed border-border bg-surface p-6"
           >
             <Skeleton className="block h-5 w-44" />
             <div className="mt-5">
@@ -338,7 +338,17 @@ export default function RecordTypesPage({
   return (
     <section className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10" data-screen="W05">
       <h1 className="text-balance text-2xl font-semibold tracking-tight text-ink sm:text-[1.75rem] sm:leading-9">
-        {visible > 0 ? headline(visible) : 'Record types on your site'}
+        {visible > 0 ? (
+          <span>
+            I found {visible}{' '}
+            <em className="font-serif font-normal italic text-accent">
+              {visible === 1 ? 'kind of record' : 'kinds of records'}
+            </em>{' '}
+            on your site
+          </span>
+        ) : (
+          'Record types on your site'
+        )}
       </h1>
       {body}
     </section>
@@ -383,7 +393,7 @@ const STEPS = ['Crawl the site', 'Claude reads each template', 'You review and p
 /** Where the discovery run is: crawl → agent → owner review. Decorative; the live line says it. */
 function Steps({ current, retrying }: { current: number; retrying: boolean }) {
   return (
-    <ol aria-hidden="true" className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-2 text-xs">
+    <ol aria-hidden="true" className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-2">
       {STEPS.map((label, i) => {
         const done = i < current;
         const now = i === current;
@@ -391,7 +401,7 @@ function Steps({ current, retrying }: { current: number; retrying: boolean }) {
           <li key={label} className="flex items-center gap-2">
             {i > 0 && <span className={`h-px w-6 ${done || now ? 'bg-accent' : 'bg-border'}`} />}
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
+              className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.06em] ${
                 now
                   ? retrying
                     ? 'border-warning-tint bg-warning-tint text-warning'

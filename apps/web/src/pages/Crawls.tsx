@@ -375,10 +375,12 @@ function SiteCrawls({
       ) : (
         <section
           aria-label="Crawl runs"
-          className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-card"
+          className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface"
         >
           <div className="border-b border-line px-5 py-3.5">
-            <h2 className="text-sm font-semibold text-ink">Crawl runs</h2>
+            <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink">
+              Crawl runs
+            </h2>
             <p className="mt-0.5 text-xs text-muted">Open a run for its pages and changes.</p>
           </div>
           <RunsGrid bare runs={list} now={clock} onOpen={(r) => setOpenId(r.id)} />

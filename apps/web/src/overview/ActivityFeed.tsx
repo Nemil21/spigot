@@ -40,11 +40,11 @@ export function ActivityFeed({
   return (
     <section
       aria-labelledby="activity-heading"
-      className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface shadow-card"
+      className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface"
     >
       <h2
         id="activity-heading"
-        className="border-b border-line px-5 py-3.5 text-sm font-semibold text-ink"
+        className="border-b border-line px-5 py-3.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-ink"
       >
         Activity
       </h2>
