@@ -59,6 +59,11 @@ export interface CreditInput {
   callId: string;
   buyerId: string;
   publisherId: string;
+  /**
+   * Default true. A publisher's decision (SP-048b) passes `false`: the 10% limit only caps
+   * automatic credits; above it "claims stay OPEN for the publisher" (features/10 §Claims 5).
+   */
+  enforceAbuseLimit?: boolean;
 }
 
 export type CreditResult =
@@ -81,7 +86,10 @@ export async function creditClaim(tx: Tx, input: CreditInput): Promise<CreditRes
   if (!c || unit <= 0 || c.commissionBps === null)
     return { credited: false, why: 'NOTHING_TO_CREDIT' };
 
-  if (!withinAbuseLimit(await abuseWindow(tx, input.buyerId), unit)) {
+  if (
+    input.enforceAbuseLimit !== false &&
+    !withinAbuseLimit(await abuseWindow(tx, input.buyerId), unit)
+  ) {
     return { credited: false, why: 'ABUSE_LIMIT' };
   }
 
