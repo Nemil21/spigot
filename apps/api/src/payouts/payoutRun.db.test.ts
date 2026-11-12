@@ -513,7 +513,10 @@ describe.skipIf(!testDatabaseUrl)('payoutRun', { timeout: 30_000 }, () => {
     await expect(payoutRun({ trigger: 'MANUAL_DEMO' }, deps({ pp: boom }))).rejects.toThrow('boom');
     await expectLockFree();
     const [r] = await q<{ n: number }>(
-      `SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND granted`,
+      // pg_locks is cluster-wide: count only this test database's locks (other test files and
+      // worktrees share the Postgres server).
+      `SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND granted
+         AND database = (SELECT oid FROM pg_database WHERE datname = current_database())`,
     );
     expect(r!.n).toBe(0);
   });
