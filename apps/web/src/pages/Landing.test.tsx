@@ -97,6 +97,21 @@ describe('W01 Landing (SP-057)', () => {
     expect(within(agents).getByText('$0.0555 charged')).toBeInTheDocument();
   });
 
+  it('switches the agent code card between MCP and REST tabs', async () => {
+    setup();
+    const agents = screen.getByRole('region', { name: 'For agents' });
+    const rest = within(agents).getByRole('tab', { name: 'REST API' });
+    expect(within(agents).getByRole('tab', { name: 'Claude Desktop (MCP)' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(within(agents).getByLabelText('Sample request')).not.toBeVisible();
+    await userEvent.click(rest);
+    expect(rest).toHaveAttribute('aria-selected', 'true');
+    expect(within(agents).getByLabelText('Sample request')).toBeVisible();
+    expect(within(agents).getByLabelText('MCP config')).not.toBeVisible();
+  });
+
   it('builds the sample request on this origin with bracket filters', () => {
     expect(sampleRequest('https://spigot.example/')).toContain(
       '"https://spigot.example/v1/bluebonnet/datasets/listings/records?city=Austin&bedrooms[gte]=3&limit=50"',
