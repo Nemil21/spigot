@@ -14,8 +14,8 @@ import { withAdvisoryXactLock, type Db } from '../db/index.js';
  * run's last step), never from inside a batch transaction on the same dataset.
  */
 export async function publishWatermark(
-  db: Db,
   args: { datasetId: string },
+  { db }: { db: Db },
 ): Promise<{ publishedSeq: number; recordCount: number }> {
   return db.tx(async (tx) => {
     await withAdvisoryXactLock(tx, `dataset:${args.datasetId}`);

@@ -70,7 +70,7 @@ describe.skipIf(!testDatabaseUrl)(
       pageIds = await upsertListingPages(pools.a, ds, base);
       await insertSnapshots(pools.a, pageIds, base, T0);
       const approveRun = await newRun(pools.a, ds.siteId, 'APPROVE');
-      const res = await extractTemplate(db, { datasetId: ds.datasetId, runId: approveRun });
+      const res = await extractTemplate({ datasetId: ds.datasetId, runId: approveRun }, { db });
       return { approveRun, res };
     };
 
@@ -130,7 +130,7 @@ describe.skipIf(!testDatabaseUrl)(
       await insertSnapshots(pools.a, ids, all, T1); // every page re-crawled, new crawl-time bytes
 
       const crawlRun = await newRun(pools.a, ds.siteId, 'DEMO_MUTATE');
-      const res = await extractTemplate(db, { datasetId: ds.datasetId, runId: crawlRun });
+      const res = await extractTemplate({ datasetId: ds.datasetId, runId: crawlRun }, { db });
       expect(res).toMatchObject({
         added: 3,
         updated: 35,
@@ -172,7 +172,9 @@ describe.skipIf(!testDatabaseUrl)(
       const before = await versions(pools.a, ds.datasetId);
 
       const again = await newRun(pools.a, ds.siteId, 'MANUAL');
-      expect(await extractTemplate(db, { datasetId: ds.datasetId, runId: again })).toMatchObject({
+      expect(
+        await extractTemplate({ datasetId: ds.datasetId, runId: again }, { db }),
+      ).toMatchObject({
         added: 0,
         updated: 0,
         removed: 0,
@@ -181,7 +183,9 @@ describe.skipIf(!testDatabaseUrl)(
 
       await insertSnapshots(pools.a, pageIds, base, T1);
       const recrawl = await newRun(pools.a, ds.siteId, 'SCHEDULE');
-      expect(await extractTemplate(db, { datasetId: ds.datasetId, runId: recrawl })).toMatchObject({
+      expect(
+        await extractTemplate({ datasetId: ds.datasetId, runId: recrawl }, { db }),
+      ).toMatchObject({
         unchanged: 120,
       });
 
@@ -209,11 +213,14 @@ describe.skipIf(!testDatabaseUrl)(
       );
       const crawlRun = await newRun(pools.a, ds.siteId, 'PING');
       expect(
-        await extractPage(db, {
-          pageId: pageIds.get(slug)!,
-          datasetId: ds.datasetId,
-          runId: crawlRun,
-        }),
+        await extractPage(
+          {
+            pageId: pageIds.get(slug)!,
+            datasetId: ds.datasetId,
+            runId: crawlRun,
+          },
+          { db },
+        ),
       ).toMatchObject({
         unchanged: 1,
         added: 0,
@@ -244,7 +251,7 @@ describe.skipIf(!testDatabaseUrl)(
           gzipSync('<html><body>This listing is no longer available.</body></html>'),
         ],
       );
-      const res = await extractTemplate(db, { datasetId: ds.datasetId, runId: crawlRun });
+      const res = await extractTemplate({ datasetId: ds.datasetId, runId: crawlRun }, { db });
       expect(res).toMatchObject({ removed: 2, added: 0, updated: 0, recordCount: 3 });
 
       const vs = await versions(pools.a, ds.datasetId, crawlRun);
@@ -259,7 +266,9 @@ describe.skipIf(!testDatabaseUrl)(
 
       // Removing again is a no-op.
       const again = await newRun(pools.a, ds.siteId, 'SCHEDULE');
-      expect(await extractTemplate(db, { datasetId: ds.datasetId, runId: again })).toMatchObject({
+      expect(
+        await extractTemplate({ datasetId: ds.datasetId, runId: again }, { db }),
+      ).toMatchObject({
         removed: 0,
       });
 
@@ -270,11 +279,14 @@ describe.skipIf(!testDatabaseUrl)(
       );
       const back = await newRun(pools.a, ds.siteId, 'PING');
       expect(
-        await extractPage(db, {
-          pageId: pageIds.get(nulled!.slug)!,
-          datasetId: ds.datasetId,
-          runId: back,
-        }),
+        await extractPage(
+          {
+            pageId: pageIds.get(nulled!.slug)!,
+            datasetId: ds.datasetId,
+            runId: back,
+          },
+          { db },
+        ),
       ).toMatchObject({
         added: 1,
       });
@@ -295,11 +307,14 @@ describe.skipIf(!testDatabaseUrl)(
       await insertSnapshots(pools.a, pageIds, [changed], T1);
 
       const crawlRun = await newRun(pools.a, ds.siteId, 'MANUAL');
-      const res = await extractPage(db, {
-        pageId: pageIds.get(changed.slug)!,
-        datasetId: ds.datasetId,
-        runId: crawlRun,
-      });
+      const res = await extractPage(
+        {
+          pageId: pageIds.get(changed.slug)!,
+          datasetId: ds.datasetId,
+          runId: crawlRun,
+        },
+        { db },
+      );
       expect(res).toMatchObject({ skipped: 'LIVE_STALE', updated: 0 });
       expect((await record(changed.slug))!.data.price_usd).toBe(base[0]!.price);
       expect((await record(changed.slug))!.crawled_at).toEqual(T0);
@@ -312,11 +327,14 @@ describe.skipIf(!testDatabaseUrl)(
       const newer = { ...base[0]!, price: 2500 };
       await insertSnapshots(pools.a, pageIds, [newer], T2);
       const crawlRun = await newRun(pools.a, ds.siteId, 'MANUAL');
-      await extractPage(db, {
-        pageId: pageIds.get(slug)!,
-        datasetId: ds.datasetId,
-        runId: crawlRun,
-      });
+      await extractPage(
+        {
+          pageId: pageIds.get(slug)!,
+          datasetId: ds.datasetId,
+          runId: crawlRun,
+        },
+        { db },
+      );
 
       // An overlapping run that loaded the T1-era content before the crawl stored T2's.
       const outcome = await db.tx((tx) =>

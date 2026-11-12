@@ -81,8 +81,8 @@ describe.skipIf(!testDatabaseUrl)(
       const releaseA = gate();
       let aCommitted = false;
       const batchA = extractPages(
-        dbA,
         { datasetId: ds.datasetId, runId, pageIds: ordered.slice(0, 40) },
+        { db: dbA },
         {
           beforeCommit: async () => {
             aWritten.open();
@@ -93,14 +93,17 @@ describe.skipIf(!testDatabaseUrl)(
       await aWritten.opened;
 
       // Batch B writes higher seqs and commits, then publishes. The publish must wait for A.
-      const resB = await extractPages(dbB, {
-        datasetId: ds.datasetId,
-        runId,
-        pageIds: ordered.slice(40),
-      });
+      const resB = await extractPages(
+        {
+          datasetId: ds.datasetId,
+          runId,
+          pageIds: ordered.slice(40),
+        },
+        { db: dbB },
+      );
       expect(resB.added).toBe(40);
       let published = false;
-      const publish = publishWatermark(dbB, { datasetId: ds.datasetId }).then(
+      const publish = publishWatermark({ datasetId: ds.datasetId }, { db: dbB }).then(
         (r) => ((published = true), r),
       );
       await sleep(300);
@@ -127,12 +130,15 @@ describe.skipIf(!testDatabaseUrl)(
       const aWritten = gate();
       const releaseA = gate();
       const batchA = extractPages(
-        dbA,
         { datasetId: ds.datasetId, runId, pageIds: ordered.slice(0, 10) },
+        { db: dbA },
         { beforeCommit: async () => (aWritten.open(), releaseA.opened) },
       );
       await aWritten.opened;
-      await extractPages(dbB, { datasetId: ds.datasetId, runId, pageIds: ordered.slice(10) });
+      await extractPages(
+        { datasetId: ds.datasetId, runId, pageIds: ordered.slice(10) },
+        { db: dbB },
+      );
       // Naive publish: max(seq) with no lock, while A's lower seqs are still uncommitted.
       await pools.b.query(
         `UPDATE datasets SET published_seq = (SELECT max(seq) FROM record_versions WHERE dataset_id = $1) WHERE id = $1`,
@@ -141,7 +147,7 @@ describe.skipIf(!testDatabaseUrl)(
       await sleep(100); // let the reader advance past A's seqs
       releaseA.open();
       await batchA;
-      await publishWatermark(dbB, { datasetId: ds.datasetId });
+      await publishWatermark({ datasetId: ds.datasetId }, { db: dbB });
 
       const seen = await reader.stop();
       expect(seen.length).toBeLessThan((await allSeqs()).length); // the race the locks prevent is real
@@ -158,11 +164,13 @@ describe.skipIf(!testDatabaseUrl)(
           const db = i % 2 ? dbB : dbA;
           await sleep(i * 3);
           await extractPages(
-            db,
             { datasetId: ds.datasetId, runId, pageIds: ordered.slice(i * 25, i * 25 + 25) },
+            { db },
             { beforeCommit: () => sleep(Math.floor(Math.random() * 40)) },
           );
-          watermarks.push((await publishWatermark(db, { datasetId: ds.datasetId })).publishedSeq);
+          watermarks.push(
+            (await publishWatermark({ datasetId: ds.datasetId }, { db })).publishedSeq,
+          );
         }),
       );
 
@@ -187,8 +195,8 @@ describe.skipIf(!testDatabaseUrl)(
       const watermarks: number[] = [];
 
       const approve = extractTemplate(
-        dbA,
         { datasetId: ds.datasetId, runId: approveRun },
+        { db: dbA },
         { batchSize: 50 },
       ).then((r) => {
         watermarks.push(r.publishedSeq);
@@ -197,20 +205,25 @@ describe.skipIf(!testDatabaseUrl)(
       const crawl = (async () => {
         for (const [i, l] of recrawled.entries()) {
           await insertSnapshots(pools.b, ids, [l], T1);
-          await extractPage(dbB, {
-            pageId: ids.get(l.slug)!,
-            datasetId: ds.datasetId,
-            runId: crawlRun,
-          });
+          await extractPage(
+            {
+              pageId: ids.get(l.slug)!,
+              datasetId: ds.datasetId,
+              runId: crawlRun,
+            },
+            { db: dbB },
+          );
           if (i % 10 === 9)
             watermarks.push(
-              (await publishWatermark(dbB, { datasetId: ds.datasetId })).publishedSeq,
+              (await publishWatermark({ datasetId: ds.datasetId }, { db: dbB })).publishedSeq,
             );
         }
-        watermarks.push((await publishWatermark(dbB, { datasetId: ds.datasetId })).publishedSeq);
+        watermarks.push(
+          (await publishWatermark({ datasetId: ds.datasetId }, { db: dbB })).publishedSeq,
+        );
       })();
       await Promise.all([approve, crawl]);
-      const final = await publishWatermark(dbA, { datasetId: ds.datasetId });
+      const final = await publishWatermark({ datasetId: ds.datasetId }, { db: dbA });
 
       const seen = await reader.stop();
       const all = await allSeqs();

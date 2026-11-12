@@ -1,9 +1,9 @@
-import type { Db } from '../db/index.js';
 import {
   addCounts,
   extractPages,
   type ExtractBatchResult,
   type ExtractCounts,
+  type ExtractDeps,
 } from './extractPage.js';
 import { publishWatermark } from './publishWatermark.js';
 
@@ -25,13 +25,13 @@ export interface ExtractTemplateResult extends ExtractCounts {
  * record) remove their record. Idempotent: a re-run writes no versions.
  */
 export async function extractTemplate(
-  db: Db,
   args: { datasetId: string; runId: string },
+  deps: ExtractDeps,
   opts: { batchSize?: number } = {},
 ): Promise<ExtractTemplateResult> {
   const batchSize = opts.batchSize ?? EXTRACT_BATCH_SIZE;
   const pageIds = (
-    await db.pool.query<{ id: string }>(
+    await deps.db.pool.query<{ id: string }>(
       `SELECT p.id FROM pages p JOIN datasets d ON d.template_id = p.template_id
         WHERE d.id = $1 ORDER BY p.id`,
       [args.datasetId],
@@ -42,7 +42,7 @@ export async function extractTemplate(
   let batches = 0;
   let skipped: ExtractBatchResult['skipped'];
   for (let i = 0; i < pageIds.length; i += batchSize) {
-    const res = await extractPages(db, { ...args, pageIds: pageIds.slice(i, i + batchSize) });
+    const res = await extractPages({ ...args, pageIds: pageIds.slice(i, i + batchSize) }, deps);
     batches += 1;
     if (res.skipped) {
       skipped = res.skipped;
@@ -51,6 +51,6 @@ export async function extractTemplate(
     totals = addCounts(totals, res);
   }
 
-  const { publishedSeq, recordCount } = await publishWatermark(db, { datasetId: args.datasetId });
+  const { publishedSeq, recordCount } = await publishWatermark({ datasetId: args.datasetId }, deps);
   return { ...totals, batches, ...(skipped ? { skipped } : {}), publishedSeq, recordCount };
 }

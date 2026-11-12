@@ -22,6 +22,11 @@ import {
  * Never call `publishWatermark` while holding a batch transaction open on the same dataset.
  */
 
+/** What the extract tasks need; a `CrawlDeps` (SP-009a2) satisfies it, so one dispatcher shape fits all tasks. */
+export interface ExtractDeps {
+  db: Db;
+}
+
 export interface ExtractCounts {
   added: number;
   updated: number;
@@ -81,8 +86,8 @@ const keyOf = (op: Op) => (op.kind === 'upsert' ? op.w.recordKey : op.r.recordKe
 
 /** Extract and write a batch of pages of one dataset in one transaction. */
 export async function extractPages(
-  db: Db,
   args: { datasetId: string; runId: string; pageIds: readonly string[] },
+  { db }: ExtractDeps,
   opts: ExtractBatchOptions = {},
 ): Promise<ExtractBatchResult> {
   const { datasetId, runId } = args;
@@ -217,8 +222,11 @@ export async function extractPages(
  * `publishWatermark`. Idempotent: a re-run upserts by `record_key` with hash compare.
  */
 export async function extractPage(
-  db: Db,
   args: { pageId: string; datasetId: string; runId: string },
+  deps: ExtractDeps,
 ): Promise<ExtractBatchResult> {
-  return extractPages(db, { datasetId: args.datasetId, runId: args.runId, pageIds: [args.pageId] });
+  return extractPages(
+    { datasetId: args.datasetId, runId: args.runId, pageIds: [args.pageId] },
+    deps,
+  );
 }

@@ -55,7 +55,7 @@ describe.skipIf(!testDatabaseUrl)('full re-extract of 2,341 pages', () => {
     await insertSnapshots(pools.a, ids, ls, new Date('2026-11-12T06:00:00Z'));
 
     const approveRun = await newRun(pools.a, ds.siteId, 'APPROVE');
-    const first = await extractTemplate(db, { datasetId: ds.datasetId, runId: approveRun });
+    const first = await extractTemplate({ datasetId: ds.datasetId, runId: approveRun }, { db });
     expect(first).toMatchObject({
       added: DEMO_LISTINGS,
       batches: Math.ceil(DEMO_LISTINGS / 200),
@@ -63,7 +63,7 @@ describe.skipIf(!testDatabaseUrl)('full re-extract of 2,341 pages', () => {
     });
 
     const reRun = await newRun(pools.a, ds.siteId, 'MANUAL');
-    const again = await extractTemplate(db, { datasetId: ds.datasetId, runId: reRun });
+    const again = await extractTemplate({ datasetId: ds.datasetId, runId: reRun }, { db });
     expect(again).toMatchObject({ added: 0, updated: 0, removed: 0, unchanged: DEMO_LISTINGS });
 
     const runs = (
