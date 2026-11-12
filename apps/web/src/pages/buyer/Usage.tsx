@@ -6,6 +6,7 @@ import { EmptyState, ErrorBanner, Money, SimChip, Skeleton } from '../../compone
 import { SpigotGrid } from '../../grid';
 import { paths } from '../../routes';
 import { CallDrawer, CLAIMS_PATH } from './CallDrawer';
+import * as ui from '../../components/buyer/ui';
 import { ClaimsList } from './ClaimsList';
 import { RefundCard } from './RefundCard';
 import { formatWhen, type BuyerClaim, type UsagePage, type UsageRow } from './usageModel';
@@ -33,6 +34,13 @@ type Cell = ICellRendererParams<UsageRow>;
  * PayPal" with the allowed amount. States: empty, claim auto-credited, claim pending the
  * publisher, refund requested / completed.
  */
+/** Calls grid rows fit a two-line Charged cell ("$0.0555" over "$0.0015 credited"). */
+const GRID_ROW_PX = 52;
+const AUTO_HEIGHT_ROWS = 15;
+/** Cells centre vertically so one-line cells line up with the two-line Charged cell. */
+const CELL = { display: 'flex', alignItems: 'center' } as const;
+const CELL_END = { ...CELL, justifyContent: 'flex-end' } as const;
+
 export function UsageScreen({
   client = defaultApi,
   now,
@@ -102,13 +110,15 @@ export function UsageScreen({
       {
         headerName: 'Time',
         colId: 'time',
-        minWidth: 150,
+        minWidth: 140,
+        flex: 1,
         valueGetter: (p) => (p.data ? formatWhen(p.data.time) : ''),
       },
       {
         headerName: 'Dataset',
         colId: 'dataset',
         minWidth: 170,
+        flex: 1.4,
         cellRenderer: (p: Cell) =>
           p.data ? (
             <span className="flex items-center gap-2">
@@ -117,11 +127,12 @@ export function UsageScreen({
             </span>
           ) : null,
       },
-      { headerName: 'Endpoint', field: 'endpoint', minWidth: 140 },
+      { headerName: 'Endpoint', field: 'endpoint', minWidth: 130, flex: 1 },
       {
         headerName: 'Records',
         colId: 'records',
         type: 'rightAligned',
+        cellStyle: CELL_END,
         width: 110,
         valueGetter: (p) =>
           p.data
@@ -136,7 +147,8 @@ export function UsageScreen({
         headerName: 'Charged',
         colId: 'charged',
         type: 'rightAligned',
-        minWidth: 150,
+        cellStyle: CELL_END,
+        minWidth: 140,
         cellRenderer: (p: Cell) =>
           p.data ? (
             <span className="flex flex-col items-end leading-tight">
@@ -153,7 +165,17 @@ export function UsageScreen({
             </span>
           ) : null,
       },
-      { headerName: 'Channel', field: 'channel', width: 100 },
+      {
+        headerName: 'Channel',
+        field: 'channel',
+        width: 100,
+        cellRenderer: (p: Cell) =>
+          p.data ? (
+            <span>
+              <span className={ui.tag}>{p.data.channel}</span>
+            </span>
+          ) : null,
+      },
       {
         headerName: 'Replay',
         colId: 'replay',
@@ -164,13 +186,13 @@ export function UsageScreen({
       {
         headerName: '',
         colId: 'open',
-        width: 90,
+        width: 84,
         sortable: false,
         cellRenderer: (p: Cell) =>
           p.data ? (
             <button
               type="button"
-              className="text-sm font-medium text-accent hover:underline"
+              className={ui.btnSmSecondary}
               aria-label={`Open call ${p.data.id}`}
               onClick={() => setOpenCall(p.data!.id)}
             >
@@ -196,11 +218,16 @@ export function UsageScreen({
         <ErrorBanner error={error} title="Couldn't load more calls." />
       )}
       <section aria-labelledby="calls-title" className="space-y-3">
-        <h2 id="calls-title" className="text-lg font-semibold text-ink">
-          Calls
-        </h2>
+        <div>
+          <h2 id="calls-title" className={ui.panelTitle}>
+            Calls
+          </h2>
+          <p className={ui.panelDesc}>
+            Every paid call, newest first. Open one to see its records or report a bad one.
+          </p>
+        </div>
         {rows === null ? (
-          <Skeleton className="block h-64 w-full" />
+          <Skeleton className="block h-64 w-full rounded-xl" />
         ) : rows.length === 0 ? (
           <EmptyState
             message={W12_COPY.empty}
@@ -209,10 +236,18 @@ export function UsageScreen({
         ) : (
           <>
             <SpigotGrid<UsageRow>
-              height={Math.min(560, 56 + Math.max(rows.length, 3) * 42)}
+              // Short pages size to their rows (no empty band); long ones scroll inside the grid.
+              height={rows.length <= AUTO_HEIGHT_ROWS ? 'auto' : 600}
+              domLayout={rows.length <= AUTO_HEIGHT_ROWS ? 'autoHeight' : 'normal'}
+              rowHeight={GRID_ROW_PX}
               rowData={rows}
               columnDefs={columns}
-              defaultColDef={{ sortable: false, resizable: true }}
+              defaultColDef={{
+                sortable: false,
+                resizable: true,
+                suppressHeaderMenuButton: true,
+                cellStyle: CELL,
+              }}
               getRowId={(p: GetRowIdParams<UsageRow>) => p.data.id}
               suppressColumnVirtualisation
               suppressRowVirtualisation
@@ -223,7 +258,7 @@ export function UsageScreen({
                 type="button"
                 onClick={() => void loadMore()}
                 disabled={loadingMore}
-                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-2 disabled:opacity-60"
+                className={ui.btnSecondary}
               >
                 {loadingMore ? 'Loading…' : 'Load more'}
               </button>
@@ -232,7 +267,7 @@ export function UsageScreen({
         )}
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="space-y-6">
         {claimsError !== null && claims === null ? (
           <ErrorBanner
             error={claimsError}
@@ -240,7 +275,7 @@ export function UsageScreen({
             onRetry={() => void loadClaims()}
           />
         ) : claims === null ? (
-          <Skeleton className="block h-32 w-full" />
+          <Skeleton className="block h-32 w-full rounded-xl" />
         ) : (
           <ClaimsList claims={claims} onOpenCall={setOpenCall} />
         )}
@@ -269,7 +304,12 @@ export function UsageScreen({
 function Frame({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto max-w-6xl space-y-6" data-screen="W12">
-      <h1 className="text-2xl font-semibold text-ink">Usage and claims</h1>
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Usage and claims</h1>
+        <p className="mt-1 text-sm text-muted">
+          What your agent bought, what it was charged, and claims for records that were wrong.
+        </p>
+      </header>
       {children}
     </div>
   );

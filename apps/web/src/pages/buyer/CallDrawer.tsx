@@ -14,6 +14,7 @@ import {
   type ClaimReason,
   type ClaimResult,
 } from './usageModel';
+import * as ui from '../../components/buyer/ui';
 import { Pill } from './Pill';
 
 export const callPath = (id: string) => `/api/buyer/calls/${encodeURIComponent(id)}`;
@@ -69,20 +70,20 @@ export function CallDrawer({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-ink/30" aria-hidden="true" onClick={onClose} />
+      <div className="absolute inset-0 bg-ink/40" aria-hidden="true" onClick={onClose} />
       <aside
         role="dialog"
         aria-modal="true"
         aria-labelledby="call-title"
-        className="relative flex h-full w-full max-w-md flex-col gap-5 overflow-y-auto border-l border-line bg-surface p-6 shadow-card"
+        className="relative flex h-full w-full max-w-md flex-col gap-6 overflow-y-auto border-l border-line bg-surface px-6 pb-8 shadow-[0_0_48px_-12px_rgb(0_0_0/0.35)]"
       >
-        <header className="flex items-start justify-between gap-4">
+        <header className="sticky top-0 z-10 -mx-6 flex items-start justify-between gap-4 border-b border-line bg-surface px-6 py-4">
           <div>
-            <h2 id="call-title" className="text-lg font-semibold text-ink">
+            <h2 id="call-title" className="text-base font-semibold text-ink">
               Call
             </h2>
             {call && (
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-0.5 text-sm text-muted tabular-nums">
                 {formatWhen(call.time)} · {call.channel}
                 {call.isSimulated && (
                   <span className="ml-2">
@@ -92,12 +93,7 @@ export function CallDrawer({
               </p>
             )}
           </div>
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            className="rounded-md px-2 py-1 text-sm text-muted hover:bg-surface-2 hover:text-ink"
-          >
+          <button ref={closeRef} type="button" onClick={onClose} className={ui.btnGhost}>
             Close
           </button>
         </header>
@@ -211,8 +207,8 @@ function ReportBadRecord({
   }
 
   return (
-    <section aria-labelledby="report-title" className="space-y-3">
-      <h3 id="report-title" className="font-semibold text-ink">
+    <section aria-labelledby="report-title" className="space-y-3 border-t border-line pt-6">
+      <h3 id="report-title" className="text-sm font-semibold text-ink">
         Report a bad record
       </h3>
       {blocked ? (
@@ -227,12 +223,12 @@ function ReportBadRecord({
             <p className="text-sm text-muted">Every record in this call already has a claim.</p>
           ) : (
             <form onSubmit={submit} className="space-y-3">
-              <label className="block text-sm">
-                <span className="text-muted">Record</span>
+              <label className={ui.label}>
+                <span>Record</span>
                 <select
                   value={recordKey}
                   onChange={(e) => setRecordKey(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-xs"
+                  className={`${ui.input} font-mono text-xs`}
                 >
                   {open.map((r) => (
                     <option key={r.key} value={r.key}>
@@ -241,12 +237,12 @@ function ReportBadRecord({
                   ))}
                 </select>
               </label>
-              <label className="block text-sm">
-                <span className="text-muted">What's wrong</span>
+              <label className={ui.label}>
+                <span>What's wrong</span>
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value as ClaimReason)}
-                  className="mt-1 block w-full rounded-md border border-border bg-surface px-2 py-1.5"
+                  className={ui.input}
                 >
                   {CLAIM_REASONS.map((r) => (
                     <option key={r} value={r}>
@@ -255,22 +251,20 @@ function ReportBadRecord({
                   ))}
                 </select>
               </label>
-              <label className="block text-sm">
-                <span className="text-muted">Note (optional)</span>
+              <label className={ui.label}>
+                <span>
+                  Note <span className="font-normal text-muted">(optional)</span>
+                </span>
                 <textarea
                   value={note}
                   maxLength={2000}
                   rows={2}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Listing says leased on the site"
-                  className="mt-1 block w-full rounded-md border border-border bg-surface px-2 py-1.5"
+                  className={`${ui.input} h-auto py-2`}
                 />
               </label>
-              <button
-                type="submit"
-                disabled={sending || !recordKey}
-                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60"
-              >
+              <button type="submit" disabled={sending || !recordKey} className={ui.btnPrimary}>
                 {sending ? 'Sending…' : 'Report record'}
               </button>
             </form>
@@ -283,7 +277,7 @@ function ReportBadRecord({
         </p>
       )}
       {result && (
-        <p role="status" className="rounded-md bg-info-tint px-3 py-2 text-sm text-info">
+        <p role="status" className={ui.notice.info}>
           {result}
         </p>
       )}
@@ -305,9 +299,9 @@ function ReportBadRecord({
 
 function Line({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2">
-      <dt className="text-muted">{label}</dt>
-      <dd className="text-right text-ink">{children}</dd>
+    <div className="flex items-baseline justify-between gap-6 py-2.5">
+      <dt className="shrink-0 text-muted">{label}</dt>
+      <dd className="min-w-0 text-right font-medium text-ink">{children}</dd>
     </div>
   );
 }
