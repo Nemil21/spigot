@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AUTO_SCHEMA_LABEL } from '../schema-agent/fallback.js';
 import { fieldView, isAutoSchema, sourceOf } from './samples.js';
 
 const extractor = (...sources: Record<string, unknown>[]) => ({
@@ -24,13 +25,14 @@ describe('sourceOf', () => {
 
   it('labels a version with no model behind it "auto (no AI)"', () => {
     const auto = sourceOf(extractor({ jsonld: '$.name' }), ['Apartment'], {
-      ai_model: null,
+      ai_model: AUTO_SCHEMA_LABEL,
       proposed_by: 'AI',
     });
     expect(auto.badge).toBe('auto (no AI)');
     expect(auto.source).toBe('auto (no AI): JSON-LD (Apartment)');
-    expect(isAutoSchema({ ai_model: 'auto-jsonld', proposed_by: 'AI' })).toBe(true);
-    expect(isAutoSchema({ ai_model: null, proposed_by: 'OWNER' })).toBe(false);
+    expect(isAutoSchema({ ai_model: 'claude-x', proposed_by: 'AI' })).toBe(false);
+    expect(isAutoSchema({ ai_model: null, proposed_by: 'AI' })).toBe(false);
+    expect(isAutoSchema({ ai_model: AUTO_SCHEMA_LABEL, proposed_by: 'OWNER' })).toBe(false);
   });
 });
 

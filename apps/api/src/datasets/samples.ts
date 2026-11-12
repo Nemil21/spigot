@@ -18,6 +18,7 @@ import {
 import { ZodError } from 'zod';
 import type { Queryable } from '../db/index.js';
 import { re2Engine } from '../extract/adapters.js';
+import { AUTO_SCHEMA_LABEL } from '../schema-agent/fallback.js';
 
 export const PROPOSAL_SAMPLE_ROWS = 5;
 export const DATASET_SAMPLE_ROWS = 20;
@@ -185,13 +186,9 @@ export function fieldView(
 
 // --- source badge ------------------------------------------------------------------------------
 
-/**
- * SP-012b's JSON-LD-only fallback writes a version with no model behind it. Until that lands the
- * marker is: an AI-proposed version with no `ai_model`, or an `ai_model` starting with `auto`.
- */
+/** SP-012b's JSON-LD-only fallback stores `ai_model = AUTO_SCHEMA_LABEL` ("auto (no AI)"). */
 export function isAutoSchema(v: { ai_model: string | null; proposed_by: string | null }): boolean {
-  if (v.proposed_by === 'OWNER') return false;
-  return v.ai_model === null || /^auto\b/i.test(v.ai_model);
+  return v.proposed_by !== 'OWNER' && v.ai_model === AUTO_SCHEMA_LABEL;
 }
 
 /** `{ badge: 'JSON-LD', source: 'JSON-LD (Apartment, Offer) + 2 CSS fields' }`. */
@@ -211,6 +208,8 @@ export function sourceOf(
   if (jsonld) parts.push(types.length ? `JSON-LD (${types.join(', ')})` : 'JSON-LD');
   if (css) parts.push(jsonld ? plural(css) : `CSS (${plural(css)})`);
   const detail = parts.join(' + ') || 'no fields';
-  if (isAutoSchema(version)) return { badge: 'auto (no AI)', source: `auto (no AI): ${detail}` };
+  if (isAutoSchema(version)) {
+    return { badge: AUTO_SCHEMA_LABEL, source: `${AUTO_SCHEMA_LABEL}: ${detail}` };
+  }
   return { badge: jsonld ? 'JSON-LD' : 'CSS', source: detail };
 }
