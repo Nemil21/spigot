@@ -4,6 +4,7 @@ import {
   DATASET_UNPUBLISHED_MESSAGE,
   MONEY_WORDS,
   PAYOUT_ITEM_STATUSES,
+  TOPUP_STATUSES,
   autoTopupCapReachedMessage,
   autoTopupDeclinedMessage,
   chargedLine,
@@ -13,6 +14,7 @@ import {
   insufficientBalanceMessage,
   payoutLine,
   payoutStatusLabel,
+  topupStatusLabel,
   payoutUnclaimedMessage,
   priceAboveMaxMessage,
   refundedToPayPalLine,
@@ -157,5 +159,23 @@ describe('money copy rule (screens.md)', () => {
       'Failed → retrying next batch',
       'Returned → retrying next batch',
     ]);
+  });
+
+  it('labels W11 top-up status pills, naming PayPal and keeping the reserved words', () => {
+    const labels = TOPUP_STATUSES.map(topupStatusLabel);
+    expect(labels).toEqual([
+      'Started',
+      'Waiting for PayPal approval',
+      'Added via PayPal',
+      "PayPal couldn't complete this payment",
+      'Not approved in PayPal',
+      'Partly refunded to PayPal',
+      'Refunded to PayPal',
+    ]);
+    // "charged" and "credited" belong to calls and claims, never to a top-up.
+    expect(labels.filter((l) => /charged|credited/.test(l))).toEqual([]);
+    expect(
+      TOPUP_STATUSES.filter((s) => topupStatusLabel(s).toLowerCase().includes('refunded')),
+    ).toEqual(['PARTIALLY_REFUNDED', 'REFUNDED']);
   });
 });

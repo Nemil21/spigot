@@ -90,6 +90,42 @@ export function payoutLine(status: PayoutItemStatus, cents: number): string {
   }
 }
 
+/** Top-up states (data-model.md §State machines: Top-up). */
+export const TOPUP_STATUSES = [
+  'CREATED',
+  'AWAITING_APPROVAL',
+  'COMPLETED',
+  'FAILED',
+  'ABANDONED',
+  'PARTIALLY_REFUNDED',
+  'REFUNDED',
+] as const;
+export type TopupStatus = (typeof TOPUP_STATUSES)[number];
+
+/**
+ * W11 top-up status pill (SP-024b). Names PayPal on every money moment; "refunded to PayPal" only
+ * once the Refund completed (both refund states are set only then). A completed top-up is "Added
+ * via PayPal", never "charged" or "credited", which the copy rule reserves for calls and claims.
+ */
+export function topupStatusLabel(status: TopupStatus): string {
+  switch (status) {
+    case 'CREATED':
+      return 'Started';
+    case 'AWAITING_APPROVAL':
+      return 'Waiting for PayPal approval';
+    case 'COMPLETED':
+      return 'Added via PayPal';
+    case 'FAILED':
+      return "PayPal couldn't complete this payment";
+    case 'ABANDONED':
+      return 'Not approved in PayPal';
+    case 'PARTIALLY_REFUNDED':
+      return `Partly ${MONEY_WORDS.refundedToPayPal}`;
+    case 'REFUNDED':
+      return 'Refunded to PayPal';
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 // W15 error & edge states
 

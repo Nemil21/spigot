@@ -1,6 +1,15 @@
-import { ComingSoon } from './ComingSoon';
+import { LoginForm } from '../components/LoginForm';
+import { paths } from '../routes';
 
-// Stub (SP-024a). SP-024b replaces this file; keep the default export.
+/** Publisher login (features/14 §Auth): `POST /api/auth/login`, then the dashboard. */
 export default function LoginPage() {
-  return <ComingSoon title="Log in" screen="Publisher login" />;
+  return (
+    <LoginForm
+      endpoint="/api/auth/login"
+      home={paths.overview}
+      title="Log in"
+      subtitle="See who's crawling your site and what they've paid."
+      signUp={{ to: paths.signUp, label: 'Connect your site' }}
+    />
+  );
 }
