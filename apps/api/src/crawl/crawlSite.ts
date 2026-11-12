@@ -25,8 +25,10 @@ import { readSitemap } from './sitemap.js';
  *    with ≥ 90% of pages fetched, `VERIFIED → PROPOSING` in the same transaction; after commit
  *    `onRunFinished(runId)`, then `onDiscoveryDone(siteId, runId)`.
  *
- * `WORKFLOWS_MODE=inproc` only: `workflow_run_id = inproc:<id>`. SP-041a runs the same
- * functions on Render Workflows. `crawl_runs.ai_calls` is never touched here.
+ * Where it runs (SP-041a): the run is inserted with `workflow_run_id = inproc:<id>`; when
+ * `deps.handOff` starts it on Render Workflows instead, the id becomes the Workflows run id and
+ * the Workflows `crawlSite` task executes it (`args.runId`), fanning pages out as 2 `fetchBatch`
+ * tasks (`deps.fanOut`). `crawl_runs.ai_calls` is never touched here.
  */
 
 export const CRAWL_TRIGGERS = ['CONNECT', 'MANUAL', 'SCHEDULE', 'PING', 'DEMO_MUTATE'] as const;
@@ -37,6 +39,13 @@ export interface CrawlSiteArgs {
   trigger: CrawlTrigger;
   /** The client's `Idempotency-Key` (SP-009b), stored on the run this call creates. */
   idempotencyKey?: string;
+  /**
+   * SP-041a (Workflows task): execute this existing run, which the API created and handed off,
+   * instead of creating one.
+   */
+  runId?: string;
+  /** SP-041a: this Workflows task run's id; a RUNNING run carrying it is ours to resume at once. */
+  workflowRunId?: string;
 }
 
 export type RunStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'PARTIAL' | 'FAILED' | 'PAUSED';
@@ -114,12 +123,8 @@ export async function startCrawl(
       [id, siteId, trigger, idempotencyKey ?? null],
     );
     if (inserted.rowCount) {
-      return {
-        runId: id,
-        created: true,
-        resumed: false,
-        done: track(id, () => execute(id, siteId, deps)),
-      };
+      const { done } = await launch(id, args, deps);
+      return { runId: id, created: true, resumed: false, done };
     }
 
     const live = await db.pool.query<{ id: string }>(
@@ -146,7 +151,7 @@ export async function startCrawl(
         runId: liveId,
         created: false,
         resumed: true,
-        done: track(liveId, () => execute(liveId, siteId, deps)),
+        done: track(liveId, () => execute(liveId, siteId, deps, true)),
       };
     }
     return { runId: liveId, created: false, resumed: false, done: waitForEnd(db, liveId, deps) };
@@ -154,14 +159,114 @@ export async function startCrawl(
   throw new Error(`crawlSite: could not start or find a live run for site ${siteId}`);
 }
 
+/**
+ * A new run: offer it to `deps.handOff` (Render Workflows); if that declines (in-process mode, or
+ * Workflows couldn't be reached) execute it here. A handed-off run is watched until it ends.
+ */
+async function launch(
+  runId: string,
+  args: CrawlSiteArgs,
+  deps: CrawlDeps,
+): Promise<{ done: Promise<CrawlRunResult> }> {
+  if (deps.handOff) {
+    const remote = await deps
+      .handOff({ siteId: args.siteId, trigger: args.trigger, runId })
+      .catch(() => null);
+    if (remote) return { done: waitForEnd(deps.db, runId, deps) };
+  }
+  return { done: track(runId, () => execute(runId, args.siteId, deps)) };
+}
+
 /** The Workflows / in-process task: start (or join) the crawl and wait for it to end. */
 export async function crawlSite(
   args: CrawlSiteArgs,
   deps: CrawlDeps = defaultCrawlDeps(),
 ): Promise<CrawlRunResult & { created: boolean; resumed: boolean }> {
+  if (args.runId) return runHandedOff(args as CrawlSiteArgs & { runId: string }, deps);
   const started = await startCrawl(args, deps);
   const result = await started.done;
   return { ...result, created: started.created, resumed: started.resumed };
+}
+
+/**
+ * The Workflows side of a handed-off run (SP-041a). QUEUED: execute it. RUNNING: resume it when
+ * it carries this task run's id (Render retried us) or nobody has touched it for `staleRunMs`
+ * (its executor died); otherwise someone else is executing it, so wait. One claimer wins.
+ */
+async function runHandedOff(
+  args: CrawlSiteArgs & { runId: string },
+  deps: CrawlDeps,
+): Promise<CrawlRunResult & { created: boolean; resumed: boolean }> {
+  const { db } = deps;
+  const { runId } = args;
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const staleMs = deps.staleRunMs ?? CRAWL_DEFAULTS.staleRunMs;
+  for (;;) {
+    const mine = active.get(runId);
+    if (mine) return { ...(await mine), created: false, resumed: false };
+    const { rows } = await db.pool.query<{
+      status: RunStatus;
+      site_id: string;
+      claimable: boolean;
+    }>(
+      `SELECT status, site_id,
+              (workflow_run_id = $2
+               OR updated_at <= now() - make_interval(secs => $3::double precision / 1000)) AS claimable
+         FROM crawl_runs WHERE id = $1`,
+      [runId, args.workflowRunId ?? null, staleMs],
+    );
+    const row = rows[0];
+    if (!row) throw new CrawlSiteError('SITE_NOT_FOUND', `crawlSite: run ${runId} not found`);
+    if (row.site_id !== args.siteId) {
+      throw new CrawlSiteError(
+        'SITE_NOT_FOUND',
+        `crawlSite: run ${runId} is not site ${args.siteId}'s`,
+      );
+    }
+    if (TERMINAL.includes(row.status)) {
+      const r = await readRun(db, runId);
+      return {
+        runId,
+        status: r.status,
+        counters: countersOf(r),
+        discovery: false,
+        aborted: false,
+        created: false,
+        resumed: false,
+      };
+    }
+    if (row.status === 'QUEUED') {
+      const r = await track(runId, () => execute(runId, row.site_id, deps));
+      return { ...r, created: false, resumed: false };
+    }
+    if (row.claimable) {
+      const claimed = await db.pool.query(
+        `UPDATE crawl_runs SET error = error
+          WHERE id = $1 AND status = 'RUNNING'
+            AND (workflow_run_id = $2
+                 OR updated_at <= now() - make_interval(secs => $3::double precision / 1000))
+          RETURNING id`,
+        [runId, args.workflowRunId ?? null, staleMs],
+      );
+      if (claimed.rowCount) {
+        const r = await track(runId, () => execute(runId, row.site_id, deps, true));
+        return { ...r, created: false, resumed: true };
+      }
+    }
+    if (deps.signal?.aborted) {
+      const r = await readRun(db, runId);
+      return {
+        runId,
+        status: r.status,
+        counters: countersOf(r),
+        discovery: false,
+        aborted: true,
+        created: false,
+        resumed: false,
+      };
+    }
+    await sleep(Math.min(5_000, deps.heartbeatMs ?? CRAWL_DEFAULTS.heartbeatMs));
+  }
 }
 
 function track(runId: string, fn: () => Promise<CrawlRunResult>): Promise<CrawlRunResult> {
@@ -199,6 +304,7 @@ async function waitForEnd(db: Db, runId: string, deps: CrawlDeps): Promise<Crawl
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   for (;;) {
     const run = await readRun(db, runId);
+    if (!run) throw new Error(`crawlSite: run ${runId} not found while waiting for it to end`);
     if (TERMINAL.includes(run.status)) {
       return {
         runId,
@@ -206,6 +312,15 @@ async function waitForEnd(db: Db, runId: string, deps: CrawlDeps): Promise<Crawl
         counters: countersOf(run),
         discovery: false,
         aborted: false,
+      };
+    }
+    if (deps.signal?.aborted) {
+      return {
+        runId,
+        status: run.status,
+        counters: countersOf(run),
+        discovery: false,
+        aborted: true,
       };
     }
     await sleep(1_000);
@@ -223,7 +338,13 @@ export function finalStatus(c: CrawlCounters): 'SUCCEEDED' | 'PARTIAL' | 'FAILED
   return c.pages_fetched + c.pages_not_modified > 0 ? 'PARTIAL' : 'FAILED';
 }
 
-async function execute(runId: string, siteId: string, deps: CrawlDeps): Promise<CrawlRunResult> {
+/** `adopted`: this caller claimed a RUNNING run (orphan or Render retry) and resumes it. */
+async function execute(
+  runId: string,
+  siteId: string,
+  deps: CrawlDeps,
+  adopted = false,
+): Promise<CrawlRunResult> {
   const { db } = deps;
   const heartbeat = setInterval(() => {
     // The touch trigger moves updated_at: proof of life for the orphan check.
@@ -234,7 +355,7 @@ async function execute(runId: string, siteId: string, deps: CrawlDeps): Promise<
   heartbeat.unref();
 
   try {
-    return await runCrawl(runId, siteId, deps);
+    return await runCrawl(runId, siteId, deps, adopted);
   } catch (err) {
     return finishRun(deps, runId, siteId, `Crawl failed: ${(err as Error).message}`);
   } finally {
@@ -242,15 +363,26 @@ async function execute(runId: string, siteId: string, deps: CrawlDeps): Promise<
   }
 }
 
-async function runCrawl(runId: string, siteId: string, deps: CrawlDeps): Promise<CrawlRunResult> {
+async function runCrawl(
+  runId: string,
+  siteId: string,
+  deps: CrawlDeps,
+  adopted: boolean,
+): Promise<CrawlRunResult> {
   const { db } = deps;
 
   // QUEUED → RUNNING (a resumed run is already RUNNING). started_at comes from the DB clock,
   // the same clock that writes pages.fetched_at.
-  await db.tx(async (tx) => {
+  const won = await db.tx(async (tx) => {
     const { rows } = await tx.query<{ now: Date }>('SELECT now() AS now');
-    await transition(tx, 'crawl_runs', runId, 'QUEUED', 'RUNNING', { started_at: rows[0]!.now });
+    const row = await transition(tx, 'crawl_runs', runId, 'QUEUED', 'RUNNING', {
+      started_at: rows[0]!.now,
+    });
+    return row !== null;
   });
+  // Someone else started this QUEUED run first (e.g. Render did start it although the API's
+  // start call failed and it fell back to running here): watch theirs instead of running twice.
+  if (!won && !adopted) return waitForEnd(db, runId, deps);
   const run = await readRun(db, runId);
   if (run.status !== 'RUNNING') {
     return {
@@ -313,6 +445,32 @@ async function runCrawl(runId: string, siteId: string, deps: CrawlDeps): Promise
       runId,
       todo.length,
     ]);
+  }
+
+  if (deps.fanOut) {
+    // Render Workflows: at most 2 sequential fetchBatch tasks per host (fetchBatch.ts).
+    const batches = await deps.fanOut(
+      runId,
+      todo.map((r) => r.id),
+    );
+    if (deps.signal?.aborted) {
+      const r = await readRun(db, runId);
+      return { runId, status: r.status, counters: countersOf(r), discovery: false, aborted: true };
+    }
+    if (batches.some((b) => b.stopped)) {
+      const r = await readRun(db, runId);
+      if (r.status !== 'RUNNING') {
+        await progress(db, runId, r.status);
+        return {
+          runId,
+          status: r.status,
+          counters: countersOf(r),
+          discovery: false,
+          aborted: false,
+        };
+      }
+    }
+    return finishRun(deps, runId, siteId);
   }
 
   const workers = new PQueue({ concurrency: deps.pageWorkers ?? CRAWL_DEFAULTS.pageWorkers });

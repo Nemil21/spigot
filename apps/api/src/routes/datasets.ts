@@ -10,6 +10,7 @@ import {
 import { patchBody, patchDataset } from '../datasets/patch.js';
 import { unpublishDataset } from '../datasets/unpublish.js';
 import { parse } from '../http/errors.js';
+import { handOffToWorkflows } from '../workflows/dispatch.js';
 
 /**
  * Dataset write API (SP-014a; api.md §Publisher endpoints). Publisher session only; another
@@ -72,18 +73,18 @@ const datasetRoutes: FastifyPluginAsync = async (app) => {
       req.params.id,
       body,
     );
-    track(
-      runApproveExtract(
-        app.db,
-        {
-          datasetId: approved.datasetId,
-          runId: approved.crawlRunId,
-          publisherId: approved.publisherId,
-          fields: approved.fields,
-        },
-        { log: app.log },
-      ),
-    );
+    const extractArgs = {
+      datasetId: approved.datasetId,
+      runId: approved.crawlRunId,
+      publisherId: approved.publisherId,
+      fields: approved.fields,
+    };
+    // SP-041a: on Render Workflows when WORKFLOWS_MODE=workflows, else (or if Render is down) here.
+    const remote = await handOffToWorkflows('extractTemplate', extractArgs, {
+      db: app.db,
+      log: app.log,
+    });
+    if (!remote) track(runApproveExtract(app.db, extractArgs, { log: app.log }));
     return {
       status: approved.status,
       endpoint: approved.endpoint,

@@ -7,7 +7,7 @@ after the code freeze from the human's Render account; nothing here has been app
 |---|---|---|---|
 | Web | `spigot-api` | starter, 1 instance | API (publisher REST, buyer `/v1`, `/mcp`, gate endpoints, webhooks, in-process jobs) and the web app, served same-origin. Build `npm ci --include=dev && npm run build`; start `npm run migrate && npm start`; health `/api/healthz` |
 | Web | `bluebonnet-rentals` | starter, 1 instance | The fictional demo site with `spigot-gate`. 1 GB disk at `/var/data`, `DEMO_DATA_DIR=/var/data/bluebonnet`; health `/healthz` |
-| Workflow | `spigot-workflows` | per task (in code) | Render Workflows **stub**: SP-041a registers the crawl / extract tasks, SP-041b adds `payoutRun` and checks it on Render. Unused while `WORKFLOWS_MODE=inproc` |
+| Workflow | `spigot-workflows` | per task (in code) | Render Workflows: `crawlSite`, `fetchBatch` (2 per host), `fetchPage`, `extractTemplate`, `extractPage`, `publishWatermark` (SP-041a, `apps/workflows/src/index.ts`); SP-041b adds `payoutRun` and checks it on Render. Unused while `WORKFLOWS_MODE=inproc` |
 | Postgres | `spigot-db` | `basic-256mb`, 1 GB, PG 16 | Private network only (`ipAllowList: []`) |
 | Env group | `spigot-config` | | Non-secret flags only (table below) |
 
@@ -57,7 +57,7 @@ first applied, and never reads them from git. Set them by hand afterwards under 
 | `VITE_AG_GRID_LICENSE_KEY`, `VITE_PAYPAL_CLIENT_ID` | no (prompted) | Baked into the web build, so they're public. Same values as `AG_GRID_LICENSE_KEY` / `PAYPAL_CLIENT_ID`. **Changing them needs a redeploy** |
 | `ADMIN_EMAILS` | no (prompted) | Comma-separated admin logins |
 | `DEMO_PUBLISHER_PAYOUT_EMAIL` | no (prompted) | The **separate** sandbox business account that receives payouts (paying the merchant's own account fails `SELF_PAY_NOT_ALLOWED`) |
-| `RENDER_API_KEY`, `RENDER_WORKFLOWS_SERVICE_ID` | yes / no | Leave empty until SP-041b. Account Settings → API Keys; the workflow's id from its page |
+| `RENDER_API_KEY`, `RENDER_WORKFLOWS_SERVICE_ID` | yes / no | Leave empty until SP-041b. Account Settings → API Keys; `RENDER_WORKFLOWS_SERVICE_ID` is the workflow's **slug** (task slugs are `<slug>/<task>`); empty means `spigot-workflows` |
 | `DEMO_SITE_URL` | no (prompted) | `https://<bluebonnet-rentals host>`. Public URL: the crawler refuses private addresses in production |
 | `DEMO_ADMIN_TOKEN` | yes | From `bluebonnet-rentals` (`fromService`), so the two always match |
 
@@ -138,7 +138,9 @@ Keep payouts small (the demo's ~$400 is fine; $2,500+ returned `INSUFFICIENT_FUN
    Manual Deploy.
 8. Approve and publish a dataset (W05/W06), then the strict smoke (below).
 9. Workflows (SP-041b, optional for the video): set `RENDER_API_KEY` and
-   `RENDER_WORKFLOWS_SERVICE_ID`, then `WORKFLOWS_MODE=workflows` on `spigot-api` only.
+   `RENDER_WORKFLOWS_SERVICE_ID`, then `WORKFLOWS_MODE=workflows` on `spigot-api` only. The API
+   reads the mode per run, so setting it back to `inproc` needs no change to `spigot-workflows`;
+   if Render can't start a run, the API runs it in process (`workflow_run_id = inproc:<id>`).
 
 ## Smoke
 

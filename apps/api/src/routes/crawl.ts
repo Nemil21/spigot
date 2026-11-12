@@ -18,6 +18,7 @@ import { CrawlProgressBus } from '../crawl/progressBus.js';
 import { ApiError, parse } from '../http/errors.js';
 import { checkClientKey } from '../meter/idempotency.js';
 import { onSiteVerified } from '../sites/hooks.js';
+import { handOffToWorkflows } from '../workflows/dispatch.js';
 
 /**
  * Crawl API (SP-009b; api.md §Publisher endpoints). Publisher session only; another publisher's
@@ -32,7 +33,8 @@ import { onSiteVerified } from '../sites/hooks.js';
  *
  * Also wired here: `site.verified` → `crawlSite(siteId, 'CONNECT')` (the discovery crawl), and
  * `onRunFinished` → audit `CRAWL_RUN_DONE` with the counters. Runs execute in this process
- * (`workflow_run_id = inproc:<id>`); SP-041a moves them onto Render Workflows.
+ * (`workflow_run_id = inproc:<id>`), or on Render Workflows when `WORKFLOWS_MODE=workflows`
+ * (SP-041a; the workflow service registers the same hooks, `workflows/runtime.ts`).
  */
 
 /** Client reconnect delay sent as `retry:`. */
@@ -75,6 +77,8 @@ const crawlRoutes: FastifyPluginAsync = async (app) => {
     // Same rule as defaultCrawlDeps(): only an explicit CRAWL_MIN_GAP_MS overrides the adaptive gap.
     minGapMs: process.env.CRAWL_MIN_GAP_MS?.trim() ? app.config.CRAWL_MIN_GAP_MS : undefined,
     signal: abort.signal,
+    // SP-041a: WORKFLOWS_MODE=workflows starts the run on Render Workflows (read per run).
+    handOff: (args) => handOffToWorkflows('crawlSite', args, { db: app.db, log: app.log }),
   };
   const running = new Set<Promise<unknown>>();
   const track = (done: Promise<unknown>) => {
