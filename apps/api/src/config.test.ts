@@ -69,6 +69,18 @@ describe('loadConfig', () => {
     expect(err.message).not.toContain('short-secret-value');
   });
 
+  it('SCHEMA_AGENT_MODE defaults to recorded under NODE_ENV=test, live otherwise', () => {
+    expect(loadConfig({ ...REQUIRED_ENV, NODE_ENV: 'test' }).SCHEMA_AGENT_MODE).toBe('recorded');
+    expect(loadConfig({ ...REQUIRED_ENV, NODE_ENV: 'production' }).SCHEMA_AGENT_MODE).toBe('live');
+    expect(
+      loadConfig({ ...REQUIRED_ENV, NODE_ENV: 'test', SCHEMA_AGENT_MODE: 'LIVE' })
+        .SCHEMA_AGENT_MODE,
+    ).toBe('live');
+    expect(configError({ ...REQUIRED_ENV, SCHEMA_AGENT_MODE: 'fixture' }).problems).toEqual([
+      expect.stringContaining('SCHEMA_AGENT_MODE'),
+    ]);
+  });
+
   it('parses flags', () => {
     const config = loadConfig({
       ...REQUIRED_ENV,

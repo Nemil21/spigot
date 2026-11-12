@@ -100,7 +100,10 @@ const envSchema = z.object({
   PAYPAL_ENV: enumWithDefault(['sandbox', 'live'] as const, 'sandbox'),
   ALLOW_MOCK_DECLINE: bool(false),
   WORKFLOWS_MODE: enumWithDefault(['inproc', 'workflows'] as const, 'inproc'),
-  SCHEMA_AGENT_MODE: enumWithDefault(['live', 'recorded'] as const, 'live'),
+  // Unset → `recorded` under NODE_ENV=test (tests and CI never need ANTHROPIC_API_KEY), else `live`.
+  SCHEMA_AGENT_MODE: optionalString
+    .transform((v) => v?.toLowerCase())
+    .pipe(z.enum(['live', 'recorded']).optional()),
   DEMO_MODE: bool(false),
   // Wallet vault on top-ups stays behind this flag until SP-003's S8b passes.
   PAYPAL_WALLET_VAULT: enumWithDefault(['on', 'off'] as const, 'off'),
@@ -135,7 +138,8 @@ const envSchema = z.object({
 
 type ParsedEnv = z.infer<typeof envSchema>;
 
-export interface Config extends ParsedEnv {
+export interface Config extends Omit<ParsedEnv, 'SCHEMA_AGENT_MODE'> {
+  readonly SCHEMA_AGENT_MODE: 'live' | 'recorded';
   /** True when `PAYPAL_API_BASE` points at a PayPal sandbox host. */
   readonly paypalIsSandbox: boolean;
 }
@@ -215,6 +219,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
 
   return Object.freeze({
     ...parsed,
+    SCHEMA_AGENT_MODE:
+      parsed.SCHEMA_AGENT_MODE ?? (parsed.NODE_ENV === 'test' ? 'recorded' : 'live'),
     // Mock declines are a sandbox-only demo aid: never allowed against a live base.
     ALLOW_MOCK_DECLINE: paypalIsSandbox ? parsed.ALLOW_MOCK_DECLINE : false,
     // Turns off the crawler's SSRF guard for a local demo site: never in production.

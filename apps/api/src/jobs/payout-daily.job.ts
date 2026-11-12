@@ -11,7 +11,8 @@ const job: Job = {
   name: 'payouts.daily',
   everyMs: DAILY_MS,
   run: async () => {
-    await pollStaleBatches(payoutJobDeps());
+    const deps = payoutJobDeps();
+    if (deps) await pollStaleBatches(deps);
   },
 };
 
