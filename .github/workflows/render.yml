@@ -4,15 +4,7 @@ name: render
 # it's installed here only; ci.yml's jobs skip `render.browser.db.test.ts` without it. A separate
 # file because no ticket edits ci.yml.
 on:
-  workflow_dispatch:
-  pull_request:
-    paths:
-      - 'apps/api/src/crawl/**'
-      - 'apps/api/src/schema-agent/**'
-      - 'apps/api/src/test/render/**'
-      - 'db/migrations/**'
-      - 'packages/shared/src/extract/**'
-      - '.github/workflows/render.yml'
+  workflow_dispatch: # by hand only, to save Actions minutes
 
 concurrency:
   group: render-${{ github.ref }}

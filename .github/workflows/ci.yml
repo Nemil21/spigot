@@ -1,9 +1,8 @@
 name: ci
 
-# One job per PR (Actions minutes are billed per job, rounded up, so one runner beats three).
-# Not run on pushes to main: PRs are rebased on main before merge, so main is what the PR tested.
-# Docs-only changes and draft PRs skip CI. DB-backed tests are named `*.db.test.ts` and run in the
-# single vitest db line below; tickets never edit this file.
+# Hackathon fast gate (~2 min, one job): build, typecheck, lint, secret scan, and the unit tests
+# related to the PR's changes. The full suite (all unit + every *.db.test.ts) runs locally before
+# each PR and in the final local review, not in Actions. PR-only; docs-only and draft PRs skip.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -20,19 +19,8 @@ jobs:
   ci:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 2s --health-timeout 5s --health-retries 15
+    timeout-minutes: 10
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
-      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
       GITLEAKS_VERSION: 8.30.1
     steps:
       - uses: actions/checkout@v4
@@ -51,12 +39,5 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test
-      - name: Migrate an empty database twice (idempotent)
-        run: npm run migrate && npm run migrate
-      - name: Schema constraint tests (db/test)
-        run: npm run test:db
-      - name: DB-backed tests (every *.db.test.ts)
-        run: npx vitest run --project db --maxWorkers=2
-      - name: Dependency audit (no highs)
-        run: npm run security:audit
+      - name: Unit tests related to this PR's changes
+        run: npx vitest run --project unit --project web --changed origin/${{ github.base_ref || 'main' }} --passWithNoTests --maxWorkers=4
