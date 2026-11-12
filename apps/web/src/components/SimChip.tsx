@@ -5,7 +5,7 @@
 export function SimChip({ noPayPal = false }: { noPayPal?: boolean }) {
   return (
     <span
-      className="inline-flex items-center rounded-sm border border-border bg-surface-2 px-1.5 py-px text-[11px] font-semibold tracking-wide text-muted"
+      className="inline-flex h-[18px] items-center rounded-xs border border-border bg-surface-2 px-1.5 font-mono text-2xs font-medium tracking-wider text-muted"
       title={
         noPayPal ? 'Simulated demo data, recorded without a PayPal payment' : 'Simulated demo data'
       }

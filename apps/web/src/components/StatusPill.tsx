@@ -36,6 +36,14 @@ const TONE_CLASS: Record<PillTone, string> = {
   neutral: 'bg-surface-2 text-body',
 };
 
+const DOT_CLASS: Record<PillTone, string> = {
+  positive: 'bg-positive',
+  info: 'bg-info',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+  neutral: 'bg-muted',
+};
+
 /** Payout item (W09) and top-up (W11) status, worded by `@spigot/shared/copy` only. */
 export function StatusPill(props: StatusPillProps) {
   const [label, tone] =
@@ -44,10 +52,11 @@ export function StatusPill(props: StatusPillProps) {
       : [topupStatusLabel(props.status), TOPUP_TONE[props.status]];
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${TONE_CLASS[tone]}`}
+      className={`inline-flex h-5 items-center gap-1.5 whitespace-nowrap rounded-full pr-2 pl-1.5 text-xs font-medium ${TONE_CLASS[tone]}`}
       data-status={props.status}
       data-tone={tone}
     >
+      <span aria-hidden="true" className={`size-1.5 rounded-full ${DOT_CLASS[tone]}`} />
       {label}
     </span>
   );
