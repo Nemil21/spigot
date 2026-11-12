@@ -1,0 +1,31 @@
+{
+  "pathPattern": "/listings/:slug",
+  "model": "claude-opus-5-5",
+  "source": "hand-authored",
+  "note": "Recorded repair_fields answers for the SP-012b repair tests: the listing proposal (recorded/listings.json) is run on pages where a redesign renamed data-k=\"available\" to data-key=\"available\" on every page the model didn't see. Round 1 guesses a selector that matches nothing; round 2 fixes it with a selector list that matches both layouts.",
+  "repairs": [
+    {
+      "fields": [
+        {
+          "name": "available_from",
+          "source": { "css": "dl.facts dd.available", "attr": "text" },
+          "transforms": ["trim", "date"]
+        }
+      ],
+      "note": "The facts list seems to use a class on unseen pages."
+    },
+    {
+      "fields": [
+        {
+          "name": "available_from",
+          "source": {
+            "css": "dl.facts dd[data-k=available], dl.facts dd[data-key=available]",
+            "attr": "text"
+          },
+          "transforms": ["trim", "date"]
+        }
+      ],
+      "note": "Some pages use data-key instead of data-k on the facts list; match both."
+    }
+  ]
+}

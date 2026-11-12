@@ -11,6 +11,25 @@ export const TRUNCATED_MARKER = '… [outline truncated]';
 
 export const estimateTokens = (s: string) => Math.ceil(s.length / CHARS_PER_TOKEN);
 
+const MAX_JSONLD_CHARS = 24_000;
+
+/** Page content can't close our data wrapper early. */
+export const fenceUntrusted = (s: string) =>
+  s.replace(/<\/?untrusted_page/gi, (m) => m.replace('<', '&lt;'));
+
+/** One page as the model sees it (propose and repair prompts): JSON-LD + outline, fenced. */
+export function untrustedPageBlock(index: number, page: { url: string; html: string }): string {
+  let jsonld = JSON.stringify(jsonLdBlocks(page.html), null, 1);
+  if (jsonld.length > MAX_JSONLD_CHARS)
+    jsonld = jsonld.slice(0, MAX_JSONLD_CHARS) + '… [JSON-LD truncated]';
+  return (
+    `<untrusted_page index="${index}" url=${JSON.stringify(page.url)}>\n` +
+    `<jsonld>\n${fenceUntrusted(jsonld)}\n</jsonld>\n` +
+    `<outline>\n${fenceUntrusted(domOutline(page.html))}\n</outline>\n` +
+    `</untrusted_page>`
+  );
+}
+
 /** Every `application/ld+json` block, parsed, in document order. Unparseable blocks are skipped. */
 export function jsonLdBlocks(html: string): unknown[] {
   const $ = cheerio.load(html);
