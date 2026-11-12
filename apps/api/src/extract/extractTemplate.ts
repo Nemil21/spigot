@@ -27,7 +27,15 @@ export interface ExtractTemplateResult extends ExtractCounts {
 export async function extractTemplate(
   args: { datasetId: string; runId: string },
   deps: ExtractDeps,
-  opts: { batchSize?: number } = {},
+  opts: {
+    batchSize?: number;
+    /** Called after each committed batch (SP-014a: `dataset.extract.progress`). */
+    onBatch?: (progress: {
+      done: number;
+      total: number;
+      totals: ExtractCounts;
+    }) => Promise<void> | void;
+  } = {},
 ): Promise<ExtractTemplateResult> {
   const batchSize = opts.batchSize ?? EXTRACT_BATCH_SIZE;
   const pageIds = (
@@ -49,6 +57,11 @@ export async function extractTemplate(
       break;
     }
     totals = addCounts(totals, res);
+    await opts.onBatch?.({
+      done: Math.min(i + batchSize, pageIds.length),
+      total: pageIds.length,
+      totals,
+    });
   }
 
   const { publishedSeq, recordCount } = await publishWatermark({ datasetId: args.datasetId }, deps);
