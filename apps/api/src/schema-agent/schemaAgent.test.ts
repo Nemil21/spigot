@@ -10,7 +10,14 @@ import {
 } from './claude.js';
 import type { SamplePage } from './dryrun.js';
 import { slugForTypeName } from './persist.js';
-import { BYLINE_RE, EMAIL_RE, guardFields, PHONE_RE, STREET_UNIT_RE } from './pii.js';
+import {
+  BYLINE_RE,
+  CONTACT_URI_RE,
+  EMAIL_RE,
+  guardFields,
+  PHONE_RE,
+  STREET_UNIT_RE,
+} from './pii.js';
 import { buildUserPrompt, validateProposal } from './propose.js';
 import { PROPOSE_SCHEMA_TOOL, proposalSchema, type Proposal } from './tool.js';
 
@@ -173,6 +180,25 @@ describe('recorded proposals on real SP-004a pages', () => {
     expect(field(r, 'agent_phone')).toMatchObject({ pii: true, visible: false });
   });
 
+  it('a contact link under an innocuous name (tel: href) is still hidden', () => {
+    const p = recordedInput('/listings/:slug');
+    p.fields.push({
+      name: 'agent_contact',
+      type: 'string',
+      required: false,
+      source: { css: '.agent-card a.agent-phone', attr: 'href' },
+      transforms: [],
+      visible: true,
+    });
+    const samples = [
+      { id: 'inj', url: 'https://bluebonnet.example/listings/x', html: injectionHtml },
+      ...sample('/listings/').slice(1),
+    ];
+    const r = run(p, samples, ['Apartment', 'Product']);
+    expect(r.run.values.agent_contact![0]).toMatch(/^tel:\d{10}$/);
+    expect(field(r, 'agent_contact')).toMatchObject({ pii: true, visible: false });
+  });
+
   it('dry run: a selector that matches nothing is a validation problem', () => {
     const p = recordedInput('/listings/:slug');
     p.fields.find((f) => f.name === 'pets_allowed')!.source = {
@@ -191,6 +217,30 @@ describe('PII / rights regexes', () => {
   it('match what features/04 lists', () => {
     expect(PHONE_RE.test('(512) 555-0158')).toBe(true);
     expect(PHONE_RE.test('512-555-0158')).toBe(true);
+    for (const phone of [
+      '512 555 0158',
+      '5125550158',
+      'tel:5125550158',
+      '+1 512 555 0158',
+      '+1-512-555-0158',
+      '512.555.0158',
+      '+44 20 7946 0958',
+    ]) {
+      expect(PHONE_RE.test(phone), phone).toBe(true);
+    }
+    expect(CONTACT_URI_RE.test('tel:5125550158')).toBe(true);
+    expect(CONTACT_URI_RE.test('mailto:a@b.example')).toBe(true);
+    expect(CONTACT_URI_RE.test('https://bluebonnet.example/listings/x')).toBe(false);
+    for (const notPhone of [
+      '2026-11-10',
+      '2026-12-12T17:00:00.000Z',
+      '$1,865',
+      '1,870 sq ft',
+      '78750',
+      '1794454788038',
+    ]) {
+      expect(PHONE_RE.test(notPhone), notPhone).toBe(false);
+    }
     expect(PHONE_RE.test('2026-11-10')).toBe(false);
     expect(PHONE_RE.test('TX-DEMO-100000')).toBe(false);
     expect(EMAIL_RE.test('neil.m.1@example.com')).toBe(true);

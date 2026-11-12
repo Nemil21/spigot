@@ -8,7 +8,16 @@ import { OPS_BY_TYPE, type FilterOp } from '../records/fields.js';
 import type { DryRun } from './dryrun.js';
 import type { Proposal } from './tool.js';
 
-export const PHONE_RE = /\(?\b\d{3}\)?[ .-]?\d{3}[-.]\d{4}\b/;
+/**
+ * North-American and international numbers: optional `+<country code>`, optional parentheses,
+ * and an optional space / dot / dash between every group (`(512) 555-0158`, `512 555 0158`,
+ * `5125550158`, `+1 512 555 0158`, `+44 20 7946 0958`). A bare run of 10 digits counts too:
+ * the guard can only hide a field, so over-matching costs the owner one toggle on W06.
+ */
+export const PHONE_RE =
+  /(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,4}\)|\b\d{2,4})[\s.-]?\d{3,4}[\s.-]?\d{4}\b/;
+/** `tel:`, `sms:` and `mailto:` links are contact data whatever follows. */
+export const CONTACT_URI_RE = /(?:^|[^A-Za-z])(?:tel|sms|mailto|callto):/i;
 export const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/;
 export const STREET_UNIT_RE =
   /\b\d{1,6}\s+(?:[A-Za-z0-9.'-]+\s+){1,4}(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Ter|Terrace|Pkwy|Parkway|Cir|Circle|Hwy|Highway|Loop|Trail|Trl)\b\.?(?:,?\s*(?:Apt|Apartment|Unit|Suite|Ste|#)\.?\s*[A-Za-z0-9-]+)?/i;
@@ -71,6 +80,7 @@ export function guardFields(
       f.pii === true && 'flagged by the model',
       own.some((t) => PHONE_RE.test(t)) && 'phone number in sample values',
       own.some((t) => EMAIL_RE.test(t)) && 'email address in sample values',
+      own.some((t) => CONTACT_URI_RE.test(t)) && 'tel: / mailto: link in sample values',
       person && own.some((t) => STREET_UNIT_RE.test(t)) && 'street address in a person-like record',
       PII_NAME_RE.test(f.name) && 'field name denotes contact data',
     ].filter((r): r is string => typeof r === 'string');

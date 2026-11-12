@@ -463,7 +463,7 @@ describe.skipIf(!testDatabaseUrl)('schema agent: propose / persist / resume', ()
     expect(r1.templates.find((t) => t.pathPattern === '/agents/:slug')).toMatchObject({
       status: 'failed',
     });
-    // ≥ 1 proposal → READY (W05 shows the cards it has); the admin repropose fills the gap.
+    // ≥ 1 proposal → READY (W05 shows the cards it has); the resume job fills the gap later.
     expect(r1).toMatchObject({ proposals: 2, siteStatus: 'READY' });
     expect(await aiCalls(runId)).toBe(3);
 
@@ -491,6 +491,47 @@ describe.skipIf(!testDatabaseUrl)('schema agent: propose / persist / resume', ()
       siteStatus: 'READY',
     });
     expect(await aiCalls(s2.runId)).toBe(6);
+    // The READY site with a failed template was revisited too: only the missing type, one call.
+    expect(results.find((r) => r.siteId === siteId)).toMatchObject({ proposals: 3, aiCalls: 1 });
+    expect((await datasets(siteId)).map((d) => d.type_name).sort()).toEqual([
+      'Agent',
+      'Listing',
+      'Open House',
+    ]);
+    expect(await aiCalls(runId)).toBe(4);
+    // Nothing failed any more: no further resume.
+    expect(await findResumableSites(pools.a, 0)).not.toContain(siteId);
+  });
+
+  it('one template throwing (persist error) fails only that template; the run finishes under the lock', async () => {
+    const { siteId, runId } = await seedSite(small);
+    // A NUL character can't be stored in jsonb: persistProposal throws for Agent only.
+    const nul = () => {
+      const p = recordedInput('/agents/:slug');
+      p.fields[0]!.description = 'name\u0000';
+      return p;
+    };
+    const slow = scriptedModel({ '/agents/:slug': nul }, 30);
+    const r = await proposeForSite({ db, model: slow }, siteId, { trigger: 'DISCOVERY', runId });
+    expect(r.status).toBe('done');
+    expect(r.templates.find((t) => t.pathPattern === '/agents/:slug')).toMatchObject({
+      status: 'failed',
+      reason: expect.stringMatching(/^error: /),
+    });
+    // The siblings all finished before the run returned (and released the lock).
+    expect(r.proposals).toBe(2);
+    expect(slow.calls).toBe(3);
+    expect(await aiCalls(runId)).toBe(3);
+    expect((await datasets(siteId)).map((d) => d.type_name).sort()).toEqual([
+      'Listing',
+      'Open House',
+    ]);
+    expect(await doneAudit(siteId)).toMatchObject({ proposals: 2, siteReady: true });
+    // The lock was released: the next run proceeds and fills in Agent.
+    const again = await proposeForSite({ db, model: scriptedModel() }, siteId, {
+      trigger: 'ADMIN',
+    });
+    expect(again).toMatchObject({ status: 'done', proposals: 3, aiCalls: 1 });
   });
 
   it('re-running skips templates that already have a dataset: no second model call', async () => {

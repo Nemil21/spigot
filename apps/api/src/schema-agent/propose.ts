@@ -412,8 +412,9 @@ export async function proposeForSite(
     proposals: 0,
     aiCalls: 0,
   });
-  // ADMIN repropose may also fill in missing templates of a READY site; it stays READY.
-  const allowed = opts.trigger === 'ADMIN' ? ['PROPOSING', 'READY'] : ['PROPOSING'];
+  // ADMIN and RESUME may also fill in missing templates of a READY site (a model outage that left
+  // some templates failed); it stays READY. The discovery hook only acts on PROPOSING.
+  const allowed = opts.trigger === 'DISCOVERY' ? ['PROPOSING'] : ['PROPOSING', 'READY'];
 
   const before = await loadSite(db.pool, siteId);
   if (!before) return empty('not_found', null);
@@ -450,30 +451,47 @@ export async function proposeForSite(
       }
     };
 
+    const runTemplate = async (t: Template): Promise<TemplateOutcome> => {
+      const templateId = await saveTemplate(db, siteId, t);
+      const existing = await db.pool.query<{ id: string; type_name: string }>(
+        'SELECT id, type_name FROM datasets WHERE template_id = $1',
+        [templateId],
+      );
+      const ds = existing.rows[0];
+      if (!ds)
+        return proposeTemplate(deps, { site, runId, countCall }, { template: t, templateId });
+      return {
+        templateId,
+        pathPattern: t.pathPattern,
+        urlPattern: t.urlPattern,
+        pageCount: t.pageCount,
+        status: 'existing',
+        datasetId: ds.id,
+        typeName: ds.type_name,
+        modelCalls: 0,
+      };
+    };
+
     const outcomes: TemplateOutcome[] = [];
     const queue = new PQueue({ concurrency: deps.concurrency ?? 4 });
     await Promise.all(
       templates.map((t) =>
         queue.add(async () => {
-          const templateId = await saveTemplate(db, siteId, t);
-          const existing = await db.pool.query<{ id: string; type_name: string }>(
-            'SELECT id, type_name FROM datasets WHERE template_id = $1',
-            [templateId],
-          );
-          const ds = existing.rows[0];
-          const outcome: TemplateOutcome = ds
-            ? {
-                templateId,
-                pathPattern: t.pathPattern,
-                urlPattern: t.urlPattern,
-                pageCount: t.pageCount,
-                status: 'existing',
-                datasetId: ds.id,
-                typeName: ds.type_name,
-                modelCalls: 0,
-              }
-            : await proposeTemplate(deps, { site, runId, countCall }, { template: t, templateId });
-          outcomes.push(outcome);
+          // Never let one template's error reject the batch: every task finishes under the
+          // site lock and the run always writes its DONE row (no lock-less stragglers).
+          try {
+            outcomes.push(await runTemplate(t));
+          } catch (err) {
+            outcomes.push({
+              templateId: '',
+              pathPattern: t.pathPattern,
+              urlPattern: t.urlPattern,
+              pageCount: t.pageCount,
+              status: 'failed',
+              modelCalls: 0,
+              reason: `error: ${err instanceof Error ? err.message : String(err)}`,
+            });
+          }
         }),
       ),
     );
