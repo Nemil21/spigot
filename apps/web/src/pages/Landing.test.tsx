@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { paths } from '../routes';
 import LandingPage, { STAT_SOURCE_URL, STEPS, sampleRequest } from './Landing';
 
@@ -90,5 +90,52 @@ describe('W01 Landing (SP-057)', () => {
       '"https://spigot.example/v1/bluebonnet/datasets/listings/records?city=Austin&bedrooms[gte]=3&limit=50"',
     );
     expect(sampleRequest('https://spigot.example')).toMatch(/^curl -g /);
+  });
+
+  describe('nav auth', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
+
+    it('says Sign in when nobody is signed in', async () => {
+      vi.stubGlobal('fetch', async () => json(401, { error: { code: 'UNAUTHENTICATED' } }));
+      setup();
+      expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute(
+        'href',
+        paths.login,
+      );
+    });
+
+    it('says Sign out when signed in, and signing out logs out and flips back', async () => {
+      const posts: string[] = [];
+      vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+        if (init?.method === 'POST') {
+          posts.push(url);
+          return json(200, { ok: true });
+        }
+        return json(200, {
+          publisher: {
+            id: 'p1',
+            name: 'Pub',
+            email: 'p@x.example',
+            payoutEmail: 'p@x.example',
+            isDemo: false,
+          },
+          buyer: null,
+          isAdmin: false,
+        });
+      });
+      setup();
+      await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+      expect(posts).toEqual(['/api/auth/logout']);
+      expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+    });
+  });
+
+  it('the logo goes home', () => {
+    setup();
+    expect(screen.getAllByRole('link', { name: /Spigot/ })[0]).toHaveAttribute(
+      'href',
+      paths.landing,
+    );
   });
 });

@@ -1,7 +1,9 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router';
+import { api } from '../api/client';
 import { Money } from '../components';
 import { Logo } from '../components/Brand';
+import type { AuthMe } from '../layout/session';
 import { paths } from '../routes';
 
 /**
@@ -175,7 +177,34 @@ function Plan({
   );
 }
 
+const authButton = `${glass} h-[max(40px,calc(44*var(--u)))] px-[max(16px,calc(18*var(--u)))] text-[max(14px,calc(14*var(--u)))]`;
+
+/** Who is signed in (publisher and/or buyer); null while unknown or signed out. */
+function useMe() {
+  const [me, setMe] = useState<AuthMe | null>(null);
+  useEffect(() => {
+    let live = true;
+    api.get<AuthMe>('/api/auth/me').then(
+      (m) => live && setMe(m),
+      () => live && setMe(null), // 401 or offline: show Sign in.
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  return [me, setMe] as const;
+}
+
 export default function LandingPage() {
+  const [me, setMe] = useMe();
+  const signedIn = !!(me?.publisher || me?.buyer);
+  async function signOut() {
+    await Promise.allSettled([
+      me?.publisher ? api.post('/api/auth/logout') : null,
+      me?.buyer ? api.post('/api/buyer/logout') : null,
+    ]);
+    setMe(null);
+  }
   return (
     <div className="min-h-screen bg-canvas text-body" data-screen="W01" data-theme="dark">
       <a
@@ -200,7 +229,7 @@ export default function LandingPage() {
                 to={paths.landing}
                 className={`${glass} h-[max(40px,calc(44*var(--u)))] px-[calc(16*var(--u))] [&_svg]:size-[max(20px,calc(24*var(--u)))] [&_span]:text-[max(18px,calc(20*var(--u)))]`}
               >
-                <Logo />
+                <Logo link={false} />
               </Link>
               <ul
                 className={`${glass} hidden h-[calc(44*var(--u))] gap-[calc(4*var(--u))] p-[calc(6*var(--u))] text-[calc(14*var(--u))] sm:flex`}
@@ -223,12 +252,15 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-            <Link
-              to={paths.login}
-              className={`${glass} h-[max(40px,calc(44*var(--u)))] px-[max(16px,calc(18*var(--u)))] text-[max(14px,calc(14*var(--u)))]`}
-            >
-              Sign in
-            </Link>
+            {signedIn ? (
+              <button type="button" onClick={() => void signOut()} className={authButton}>
+                Sign out
+              </button>
+            ) : (
+              <Link to={paths.login} className={authButton}>
+                Sign in
+              </Link>
+            )}
           </nav>
 
           <div className="grid gap-8 px-[max(16px,calc(72*var(--u)))] pt-24 sm:grid-cols-[1fr_calc(460*var(--u))] sm:gap-0 sm:pt-[calc(176*var(--u))]">

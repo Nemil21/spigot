@@ -1,9 +1,27 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
+import { paths } from '../routes';
 
-/** Shield mark + "spigot" wordmark (Sora). The logo font is deliberately not the site font. */
-export function Logo({ size = 24, suffix }: { size?: number; suffix?: string }) {
+/**
+ * Shield mark + "spigot" wordmark (Sora; deliberately not the site font). Always a link home,
+ * unless the caller already wraps it in one (`link={false}`).
+ */
+export function Logo({
+  size = 24,
+  suffix,
+  link = true,
+}: {
+  size?: number;
+  suffix?: string;
+  link?: boolean;
+}) {
+  const Tag = link ? Link : 'span';
   return (
-    <span className="inline-flex items-center gap-2 text-ink" aria-label="Spigot">
+    <Tag
+      to={paths.landing}
+      className="inline-flex items-center gap-2 text-ink"
+      aria-label={link ? 'Spigot home' : 'Spigot'}
+    >
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path
           d="M12 2.5 19.5 5.4v6c0 4.4-3 8.2-7.5 10.1C7.5 19.6 4.5 15.8 4.5 11.4v-6z"
@@ -24,7 +42,7 @@ export function Logo({ size = 24, suffix }: { size?: number; suffix?: string }) 
           {suffix}
         </span>
       )}
-    </span>
+    </Tag>
   );
 }
 
