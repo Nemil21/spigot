@@ -1,0 +1,22 @@
+{
+  "runs": [
+    {
+      "id": "run-fx-onboard-crawling",
+      "siteId": "fx-onboard-crawling",
+      "trigger": "CONNECT",
+      "status": "RUNNING",
+      "workflowRunId": "inproc:run-fx-onboard-crawling",
+      "pagesTotal": 2469,
+      "pagesFetched": 1012,
+      "pagesNotModified": 0,
+      "pagesFailed": 3,
+      "recordsAdded": 0,
+      "recordsUpdated": 0,
+      "recordsRemoved": 0,
+      "error": null,
+      "startedAt": "2026-11-12T10:05:00.000Z",
+      "finishedAt": null,
+      "createdAt": "2026-11-12T10:05:00.000Z"
+    }
+  ]
+}
