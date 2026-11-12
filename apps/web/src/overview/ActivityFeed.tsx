@@ -1,6 +1,7 @@
 import { formatAge } from '@spigot/shared/copy';
 import { ErrorBanner, SimChip, SkeletonText } from '../components';
 import type { ActivityEvent } from './types';
+import { LABEL } from '../theme/label';
 
 /** Merge a fresh page of the feed into what's shown: new events go on top, newest first. */
 export function mergeActivity(
@@ -40,38 +41,38 @@ export function ActivityFeed({
   return (
     <section
       aria-labelledby="activity-heading"
-      className="rounded-lg border border-line bg-surface p-4 shadow-card"
+      className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface"
     >
-      <h2 id="activity-heading" className="text-sm font-semibold text-ink">
+      <h2 id="activity-heading" className={`border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
         Activity
       </h2>
       {error ? (
-        <div className="mt-3">
+        <div className="p-4">
           <ErrorBanner error={error} title="Activity didn't load." onRetry={onRetry} />
         </div>
       ) : loading ? (
-        <div className="mt-3">
+        <div className="p-5">
           <SkeletonText lines={5} />
         </div>
       ) : events.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">
+        <p className="px-5 py-8 text-sm text-muted">
           Nothing yet. Proposals, charged calls and payouts show up here.
         </p>
       ) : (
-        <ol className="mt-3 space-y-2" aria-live="polite">
+        <ol className="grid md:grid-cols-2" aria-live="polite">
           {events.map((e) => (
             <li
               key={e.id}
               data-action={e.action}
               data-fresh={fresh.has(e.id) || undefined}
-              className={`rounded-md px-2 py-1.5 text-sm transition-colors duration-1000 ${
+              className={`border-b border-line px-5 py-3 text-sm transition-colors duration-1000 md:odd:border-r ${
                 fresh.has(e.id) ? 'bg-accent-tint' : ''
               }`}
             >
-              <p className="text-body">
+              <p className="leading-5 text-ink">
                 {e.line} {e.isSimulated && <SimChip />}
               </p>
-              <p className="text-xs text-muted">
+              <p className="mt-1 text-xs text-muted">
                 <time dateTime={e.at}>{formatAge(now() - Date.parse(e.at))} ago</time>
               </p>
             </li>

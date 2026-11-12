@@ -2,6 +2,7 @@ import type { TopupStatus } from '@spigot/shared/copy';
 import { Money } from '../Money';
 import { PayPalId } from '../PayPalId';
 import { StatusPill } from '../StatusPill';
+import * as ui from './ui';
 
 /** `GET /api/buyer/topups` row (SP-018a `topupView`). */
 export interface TopupRowView {
@@ -31,54 +32,56 @@ const METHOD_LABEL: Record<NonNullable<TopupRowView['method']>, string> = {
  */
 export function TopupsTable({ topups }: { topups: TopupRowView[] }) {
   return (
-    <section
-      aria-labelledby="topups-title"
-      className="rounded-lg border border-line bg-surface p-5 shadow-card"
-    >
-      <h2 id="topups-title" className="text-lg font-semibold text-ink">
-        Top-ups
-      </h2>
+    <section aria-labelledby="topups-title" className={ui.panel}>
+      <div className={ui.panelHead}>
+        <div>
+          <h2 id="topups-title" className={ui.panelTitle}>
+            Top-ups
+          </h2>
+          <p className={ui.panelDesc}>Every payment into your balance, with its PayPal ids.</p>
+        </div>
+      </div>
       {topups.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">No top-ups yet.</p>
+        <p className={`${ui.panelBody} text-sm text-muted`}>No top-ups yet.</p>
       ) : (
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-muted">
+        <div className={ui.tableWrap}>
+          <table className={ui.table}>
+            <thead>
               <tr>
-                <th className="py-2 pr-4 font-medium">When</th>
-                <th className="py-2 pr-4 text-right font-medium">Amount</th>
-                <th className="py-2 pr-4 font-medium">Method</th>
-                <th className="py-2 pr-4 font-medium">Trigger</th>
-                <th className="py-2 pr-4 font-medium">PayPal order</th>
-                <th className="py-2 pr-4 font-medium">PayPal capture</th>
-                <th className="py-2 font-medium">Status</th>
+                <th className={ui.th}>When</th>
+                <th className={`${ui.th} text-right`}>Amount</th>
+                <th className={ui.th}>Method</th>
+                <th className={ui.th}>Trigger</th>
+                <th className={ui.th}>PayPal order</th>
+                <th className={ui.th}>PayPal capture</th>
+                <th className={ui.th}>Status</th>
               </tr>
             </thead>
             <tbody>
               {topups.map((t) => (
-                <tr key={t.topupId} className="border-t border-line" data-topup={t.topupId}>
-                  <td className="whitespace-nowrap py-2 pr-4 text-body">
+                <tr key={t.topupId} className={ui.tr} data-topup={t.topupId}>
+                  <td className={`${ui.td} whitespace-nowrap text-body tabular-nums`}>
                     {new Date(t.createdAt).toLocaleString(undefined, {
                       dateStyle: 'medium',
                       timeStyle: 'short',
                     })}
                   </td>
-                  <td className="py-2 pr-4 text-right text-ink">
+                  <td className={`${ui.td} text-right font-medium text-ink`}>
                     <Money cents={t.amountCents} />
                   </td>
-                  <td className="py-2 pr-4 text-body">{t.method ? METHOD_LABEL[t.method] : '—'}</td>
-                  <td className="py-2 pr-4">
-                    <span className="rounded-sm bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-body">
-                      {t.trigger}
-                    </span>
+                  <td className={`${ui.td} whitespace-nowrap text-body`}>
+                    {t.method ? METHOD_LABEL[t.method] : '—'}
                   </td>
-                  <td className="py-2 pr-4">
+                  <td className={ui.td}>
+                    <span className={ui.tag}>{t.trigger}</span>
+                  </td>
+                  <td className={ui.td}>
                     <PayPalId id={t.orderId} label="PayPal order id" />
                   </td>
-                  <td className="py-2 pr-4">
+                  <td className={ui.td}>
                     <PayPalId id={t.captureId} label="PayPal capture id" />
                   </td>
-                  <td className="py-2">
+                  <td className={ui.td}>
                     <StatusPill kind="topup" status={t.status} />
                   </td>
                 </tr>

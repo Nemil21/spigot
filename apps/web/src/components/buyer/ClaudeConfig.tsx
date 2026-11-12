@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import * as ui from './ui';
 
 /** The MCP endpoint on this deployment (`/mcp` on the API, same origin as the portal). */
 export function mcpUrl(origin: string = window.location.origin): string {
@@ -50,11 +51,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
     }
   }
   return (
-    <button
-      type="button"
-      onClick={copy}
-      className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-2"
-    >
+    <button type="button" onClick={copy} className={ui.btnSmSecondary}>
       {copied ? 'Copied' : label}
     </button>
   );
@@ -82,53 +79,80 @@ export function ClaudeConfig({
   const snippet = claudeDesktopConfig(url, key);
 
   return (
-    <section
-      aria-labelledby="claude-title"
-      className="rounded-lg border border-line bg-surface p-5 shadow-card"
-    >
-      <h2 id="claude-title" className="text-lg font-semibold text-ink">
-        Connect your agent
-      </h2>
-      {!revealedKey && (
-        <p className="mt-2 text-sm text-warning">
-          Replace the key with the one you saved when you created it (we only show it once), or
-          create a new key above.
-        </p>
-      )}
-
-      <div className="mt-4 flex items-start justify-between gap-4">
+    <section aria-labelledby="claude-title" className={ui.panel}>
+      <div className={ui.panelHead}>
         <div>
-          <h3 className="font-semibold text-ink">Claude Code</h3>
-          <p className="mt-1 text-sm text-muted">
+          <h2 id="claude-title" className={ui.panelTitle}>
+            Connect your agent
+          </h2>
+          <p className={ui.panelDesc}>
+            Add Spigot's MCP server to Claude so your agent can query datasets and pay per record.
+          </p>
+        </div>
+      </div>
+      <div className={`${ui.panelBody} space-y-6`}>
+        {!revealedKey && (
+          <p className={ui.notice.warning}>
+            Replace the key with the one you saved when you created it (we only show it once), or
+            create a new key above.
+          </p>
+        )}
+
+        <div>
+          <h3 className="text-sm font-semibold text-ink">Claude Code</h3>
+          <p className="mt-0.5 text-sm text-muted">
             Run this in a terminal, then check <code className="font-mono text-xs">/mcp</code> lists
             Spigot&apos;s tools.
           </p>
+          <CodeBlock caption="Terminal" copy={<CopyButton text={command} label="Copy command" />}>
+            <pre
+              data-testid="claude-code-command"
+              className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-ink select-all"
+            >
+              {command}
+            </pre>
+          </CodeBlock>
         </div>
-        <CopyButton text={command} label="Copy command" />
-      </div>
-      <pre
-        data-testid="claude-code-command"
-        className="mt-3 overflow-x-auto rounded-md bg-surface-2 p-3 font-mono text-xs text-ink select-all"
-      >
-        {command}
-      </pre>
 
-      <div className="mt-5 flex items-start justify-between gap-4">
         <div>
-          <h3 className="font-semibold text-ink">Claude Desktop</h3>
-          <p className="mt-1 text-sm text-muted">
+          <h3 className="text-sm font-semibold text-ink">Claude Desktop</h3>
+          <p className="mt-0.5 text-sm text-muted">
             Add this to <code className="font-mono text-xs">claude_desktop_config.json</code>, then
             restart Claude Desktop.
           </p>
+          <CodeBlock
+            caption="claude_desktop_config.json"
+            copy={<CopyButton text={snippet} label="Copy config" />}
+          >
+            <pre
+              data-testid="claude-config"
+              className="max-h-80 overflow-auto p-4 font-mono text-xs leading-relaxed text-ink select-all"
+            >
+              {snippet}
+            </pre>
+          </CodeBlock>
         </div>
-        <CopyButton text={snippet} label="Copy config" />
       </div>
-      <pre
-        data-testid="claude-config"
-        className="mt-3 overflow-x-auto rounded-md bg-surface-2 p-3 font-mono text-xs text-ink select-all"
-      >
-        {snippet}
-      </pre>
     </section>
+  );
+}
+
+function CodeBlock({
+  caption,
+  copy,
+  children,
+}: {
+  caption: string;
+  copy: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mt-3 overflow-hidden rounded-sm border border-line bg-surface-2/60">
+      <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
+        <span className={`truncate ${ui.monoMeta}`}>{caption}</span>
+        {copy}
+      </div>
+      {children}
+    </div>
   );
 }

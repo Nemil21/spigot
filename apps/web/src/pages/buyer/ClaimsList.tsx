@@ -5,6 +5,7 @@ import {
   formatWhen,
   type BuyerClaim,
 } from './usageModel';
+import * as ui from '../../components/buyer/ui';
 import { Pill } from './Pill';
 
 /**
@@ -21,55 +22,61 @@ export function ClaimsList({
   onOpenCall: (callId: string) => void;
 }) {
   return (
-    <section
-      aria-labelledby="claims-title"
-      className="rounded-lg border border-line bg-surface p-5 shadow-card"
-    >
-      <h2 id="claims-title" className="text-lg font-semibold text-ink">
-        Claims
-      </h2>
+    <section aria-labelledby="claims-title" className={ui.panel}>
+      <div className={ui.panelHead}>
+        <div>
+          <h2 id="claims-title" className={ui.panelTitle}>
+            Claims
+          </h2>
+          <p className={ui.panelDesc}>
+            Records you reported as wrong. Credits go back to your Spigot balance.
+          </p>
+        </div>
+      </div>
       {claims.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">
+        <p className={`${ui.panelBody} text-sm text-muted`}>
           No claims. If a record you paid for is wrong, open the call and report it.
         </p>
       ) : (
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-muted">
+        <div className={ui.tableWrap}>
+          <table className={ui.table}>
+            <thead>
               <tr>
-                <th className="py-2 pr-4 font-medium">When</th>
-                <th className="py-2 pr-4 font-medium">Record</th>
-                <th className="py-2 pr-4 font-medium">Reason</th>
-                <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="py-2 text-right font-medium">Credit</th>
+                <th className={ui.th}>When</th>
+                <th className={ui.th}>Record</th>
+                <th className={ui.th}>Reason</th>
+                <th className={ui.th}>Status</th>
+                <th className={`${ui.th} text-right`}>Credit</th>
               </tr>
             </thead>
             <tbody>
               {claims.map((c) => (
-                <tr key={c.id} className="border-t border-line align-top" data-claim={c.id}>
-                  <td className="whitespace-nowrap py-2 pr-4 text-body">
+                <tr key={c.id} className={`${ui.tr} align-top`} data-claim={c.id}>
+                  <td className={`${ui.td} whitespace-nowrap`}>
                     <button
                       type="button"
                       onClick={() => onOpenCall(c.callId)}
-                      className="text-accent hover:underline"
+                      className="font-medium text-accent tabular-nums underline-offset-2 hover:underline"
                       aria-label={`Open the call for claim on ${c.recordKey}`}
                     >
                       {formatWhen(c.createdAt)}
                     </button>
                   </td>
-                  <td className="py-2 pr-4">
-                    <span className="font-mono text-xs text-ink">{c.recordKey}</span>
-                    {c.note && <p className="mt-0.5 text-xs text-muted">“{c.note}”</p>}
+                  <td className={`${ui.td} min-w-48`}>
+                    <span className="break-all font-mono text-xs text-ink">{c.recordKey}</span>
+                    {c.note && <p className="mt-1 text-xs text-muted">“{c.note}”</p>}
                   </td>
-                  <td className="whitespace-nowrap py-2 pr-4 text-body">
+                  <td className={`${ui.td} whitespace-nowrap text-body`}>
                     {REASON_SHORT[c.reason]}
                   </td>
-                  <td className="py-2 pr-4">
+                  <td className={ui.td}>
                     <Pill tone={CLAIM_STATUS[c.status].tone} status={c.status}>
                       {CLAIM_STATUS[c.status].label}
                     </Pill>
                   </td>
-                  <td className="py-2 text-right tabular-nums text-body">{claimMoneyLine(c)}</td>
+                  <td className={`${ui.td} text-right tabular-nums text-body`}>
+                    {claimMoneyLine(c)}
+                  </td>
                 </tr>
               ))}
             </tbody>

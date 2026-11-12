@@ -28,6 +28,8 @@ export interface CatalogPageLinks extends Links402 {
   openapi: string;
   /** `<base>/v1/catalog` (SP-017b): every site and dataset, JSON. */
   v1Catalog: string;
+  /** `<base>/`: the Spigot landing page, for the page header's brand link. */
+  home: string;
 }
 
 export function catalogPageLinks(links: Links402): CatalogPageLinks {
@@ -37,6 +39,7 @@ export function catalogPageLinks(links: Links402): CatalogPageLinks {
     terms: `${links.catalogUrl}/terms`,
     openapi: `${base}/v1/openapi.yaml`,
     v1Catalog: `${base}/v1/catalog`,
+    home: `${base}/`,
   };
 }
 
@@ -192,6 +195,7 @@ function render(
 
   return page({
     title: `${name}: data API on Spigot`,
+    home: links.home,
     extraCss: '#qs-curl:checked~#qs-curl-panel,#qs-mcp:checked~#qs-mcp-panel{display:block}',
     body,
   });

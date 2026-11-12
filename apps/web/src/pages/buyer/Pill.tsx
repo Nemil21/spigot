@@ -23,8 +23,9 @@ export function Pill({
     <span
       data-status={status}
       data-tone={tone}
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${TONE_CLASS[tone]}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${TONE_CLASS[tone]}`}
     >
+      <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-current" />
       {children}
     </span>
   );

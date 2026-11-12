@@ -40,7 +40,7 @@ export function PayPalId({
         type="button"
         onClick={copy}
         aria-label={`Copy ${label}`}
-        className="rounded-sm px-1 text-xs text-muted hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
+        className="rounded-sm px-1 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-focus"
       >
         {copied ? 'Copied' : 'Copy'}
       </button>

@@ -24,6 +24,7 @@ import {
 } from './records/model';
 import { VersionDrawer } from './records/VersionDrawer';
 import { href, paths } from '../routes';
+import { PAGE, PageHeader } from './Panel';
 
 /**
  * W07 Records browser (SP-053; screens.md §W07, features/05, features/13).
@@ -283,63 +284,71 @@ export function RecordsBrowserScreen({ client = defaultApi }: { client?: ApiClie
     const hiddenCount = dataset.fields.filter((f) => !f.visible).length;
     body = (
       <>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <label className="flex flex-col gap-1 text-sm text-muted">
-            Record type
-            <select
-              value={dataset.id}
-              onChange={(e) =>
-                setParams((p) => {
-                  const next = new URLSearchParams(p);
-                  next.set('dataset', e.target.value);
-                  return next;
-                })
-              }
-              className="rounded-md border border-border bg-surface px-3 py-1.5 text-ink"
-            >
-              {data.datasets.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.typeName} ({d.slug}) · {formatCount(d.recordCount)} records
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="text-sm text-muted" aria-live="polite">
-            {filteredCount === null
-              ? `${formatCount(dataset.recordCount)} records`
-              : filteredCount === dataset.recordCount
-                ? `${formatCount(filteredCount)} records`
-                : `${formatCount(filteredCount)} of ${formatCount(dataset.recordCount)} records match`}
-            {hiddenCount > 0 &&
-              ` · ${hiddenCount} hidden ${hiddenCount === 1 ? 'field' : 'fields'} shown to you only`}
-          </p>
-        </div>
-
         {isStale(dataset) && <StaleBanner dataset={dataset} />}
 
-        <SpigotGrid<RecordRow>
-          key={dataset.id}
-          height={600}
-          rowModelType="serverSide"
-          serverSideDatasource={datasource}
-          cacheBlockSize={BLOCK_SIZE}
-          maxBlocksInCache={30}
-          columnDefs={columnDefs}
-          defaultColDef={{ sortable: true, resizable: true, suppressHeaderMenuButton: false }}
-          getRowId={(p: GetRowIdParams<RecordRow>) => p.data.id}
-          onRowClicked={onRowClicked}
-          rowClass="cursor-pointer"
-          tooltipShowDelay={400}
-          overlayNoRowsTemplate="No records match these filters."
-        />
-        <p className="text-xs text-muted">Click a record to see its version history.</p>
+        <div className="min-w-0 overflow-hidden rounded-lg border border-line bg-surface">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-5 py-3">
+            <label className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm font-medium text-ink">
+              Record type
+              <select
+                value={dataset.id}
+                onChange={(e) =>
+                  setParams((p) => {
+                    const next = new URLSearchParams(p);
+                    next.set('dataset', e.target.value);
+                    return next;
+                  })
+                }
+                className="h-8 max-w-full rounded-md border border-border bg-surface pl-2.5 pr-8 text-sm font-normal text-ink hover:border-muted"
+              >
+                {data.datasets.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.typeName} ({d.slug}) · {formatCount(d.recordCount)} records
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="text-sm text-muted tabular-nums" aria-live="polite">
+              {filteredCount === null
+                ? `${formatCount(dataset.recordCount)} records`
+                : filteredCount === dataset.recordCount
+                  ? `${formatCount(filteredCount)} records`
+                  : `${formatCount(filteredCount)} of ${formatCount(dataset.recordCount)} records match`}
+              {hiddenCount > 0 &&
+                ` · ${hiddenCount} hidden ${hiddenCount === 1 ? 'field' : 'fields'} shown to you only`}
+            </p>
+          </div>
+
+          <SpigotGrid<RecordRow>
+            bare
+            key={dataset.id}
+            height={600}
+            rowModelType="serverSide"
+            serverSideDatasource={datasource}
+            cacheBlockSize={BLOCK_SIZE}
+            maxBlocksInCache={30}
+            columnDefs={columnDefs}
+            defaultColDef={{ sortable: true, resizable: true, suppressHeaderMenuButton: false }}
+            getRowId={(p: GetRowIdParams<RecordRow>) => p.data.id}
+            onRowClicked={onRowClicked}
+            rowClass="cursor-pointer"
+            tooltipShowDelay={400}
+            overlayNoRowsTemplate="No records match these filters."
+          />
+          <p className="border-t border-line px-5 py-3 text-xs text-muted">
+            Click a record to see its version history.
+          </p>
+        </div>
       </>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4" data-screen="W07">
-      <h1 className="text-2xl font-semibold text-ink">Records</h1>
+    <div className={PAGE} data-screen="W07">
+      <PageHeader
+        title="Records"
+        description="Every record Spigot extracted from your site, with its version history."
+      />
       {body}
       {open && (
         <VersionDrawer
@@ -357,7 +366,7 @@ function StaleBanner({ dataset }: { dataset: BrowserDataset }) {
   return (
     <div
       role="status"
-      className="rounded-md border border-warning bg-warning-tint p-4 text-warning"
+      className="rounded-lg border border-warning/30 bg-warning-tint px-4 py-3 text-warning"
       data-stale-banner=""
     >
       <p className="font-medium">

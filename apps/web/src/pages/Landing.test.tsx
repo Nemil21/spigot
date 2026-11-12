@@ -83,6 +83,10 @@ describe('W01 Landing (SP-057)', () => {
   it('gives agents an MCP config and sample JSON that parse', () => {
     setup();
     const agents = screen.getByRole('region', { name: 'For agents' });
+    expect(
+      within(agents).getByRole('heading', { level: 3, name: 'Claude Desktop (MCP)' }),
+    ).toBeInTheDocument();
+    expect(agents).toHaveTextContent('Add to claude_desktop_config.json with your API key.');
     const config = JSON.parse(within(agents).getByLabelText('MCP config').textContent ?? '');
     expect(config.mcpServers.spigot.args).toContain(`${window.location.origin}/mcp`);
     const sample = JSON.parse(
@@ -91,6 +95,25 @@ describe('W01 Landing (SP-057)', () => {
     expect(sample).toEqual(JSON.parse(SAMPLE_RESPONSE));
     expect(sample.charged).toEqual({ records: 37, priceMicros: 55500 });
     expect(within(agents).getByText('$0.0555 charged')).toBeInTheDocument();
+  });
+
+  it('switches the agent code card between MCP and REST tabs', async () => {
+    setup();
+    const agents = screen.getByRole('region', { name: 'For agents' });
+    const rest = within(agents).getByRole('tab', { name: 'REST API' });
+    expect(within(agents).getByRole('tab', { name: 'Claude Desktop (MCP)' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(within(agents).getByLabelText('Sample request')).not.toBeVisible();
+    await userEvent.click(rest);
+    expect(rest).toHaveAttribute('aria-selected', 'true');
+    expect(within(agents).getByLabelText('Sample request')).toBeVisible();
+    expect(within(agents).getByLabelText('MCP config')).not.toBeVisible();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(within(agents).getByRole('tab', { name: 'Claude Desktop (MCP)' })).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    expect(rest).toHaveAttribute('aria-selected', 'true');
   });
 
   it('builds the sample request on this origin with bracket filters', () => {

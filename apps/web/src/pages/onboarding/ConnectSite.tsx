@@ -201,7 +201,7 @@ export function StepHeading({
 }) {
   return (
     <>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">Step {step} of 2</p>
+      <p className="text-xs font-medium text-muted">Step {step} of 2</p>
       <h1 className="mt-1 text-xl font-semibold text-ink">{title}</h1>
       <p className="mt-1 text-sm text-muted">{subtitle}</p>
     </>

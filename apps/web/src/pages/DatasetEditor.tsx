@@ -33,6 +33,8 @@ import {
   type PatchResult,
   type ReinferResult,
 } from './dataset-editor/model';
+import { PAGE } from './Panel';
+import { LABEL } from '../theme/label';
 
 export const EVENTS_URL = '/api/publishers/me/events';
 /** While the APPROVE run extracts, the page re-reads its progress this often (SSE also nudges). */
@@ -409,7 +411,7 @@ export function DatasetEditorScreen({
   if (load.status === 'loading' || !detail || !baseline) {
     return (
       <Frame title="Dataset editor">
-        <div aria-busy="true" className="rounded-lg border border-line bg-surface p-5 shadow-card">
+        <div aria-busy="true" className="rounded-lg border border-line bg-surface p-5">
           <Skeleton className="mb-4 h-6 w-64" />
           <SkeletonText lines={6} />
         </div>
@@ -443,7 +445,7 @@ export function DatasetEditorScreen({
       {notice && (
         <p
           role={notice.tone === 'danger' ? 'alert' : 'status'}
-          className={`rounded-md px-4 py-3 text-sm ${
+          className={`rounded-lg px-4 py-3 text-sm ${
             notice.tone === 'danger' ? 'bg-danger-tint text-danger' : 'bg-info-tint text-info'
           }`}
         >
@@ -465,7 +467,7 @@ export function DatasetEditorScreen({
         <div
           role="alertdialog"
           aria-label="Unpublish dataset"
-          className="rounded-lg border border-danger bg-surface p-4 shadow-card"
+          className="rounded-lg border border-danger/40 bg-surface p-5"
         >
           <p className="text-sm text-ink">
             Unpublish {detail.typeName}? Buyers can no longer read it and your gate stops sending
@@ -490,12 +492,12 @@ export function DatasetEditorScreen({
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
         <section
           aria-label="Fields"
-          className="rounded-lg border border-line bg-surface p-4 shadow-card"
+          className="min-w-0 rounded-lg border border-line bg-surface p-5"
         >
-          <h2 className="text-sm font-semibold text-ink">
+          <h2 className={`-mx-5 -mt-5 mb-2 border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
             Fields{' '}
             <span className="font-normal text-muted">
               · {visibleCount} of {shownFields.length} sold
@@ -519,12 +521,12 @@ export function DatasetEditorScreen({
           />
         </section>
 
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-6">
           <section
             aria-label="Sample rows"
-            className="rounded-lg border border-line bg-surface p-4 shadow-card"
+            className="min-w-0 rounded-lg border border-line bg-surface p-5"
           >
-            <h2 className="mb-3 text-sm font-semibold text-ink">
+            <h2 className={`-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
               Sample rows{' '}
               <span className="font-normal text-muted">· {detail.sampleRows.length}</span>
             </h2>
@@ -533,9 +535,11 @@ export function DatasetEditorScreen({
 
           <section
             aria-label="Pricing"
-            className="rounded-lg border border-line bg-surface p-4 shadow-card"
+            className="min-w-0 rounded-lg border border-line bg-surface p-5"
           >
-            <h2 className="mb-3 text-sm font-semibold text-ink">Price</h2>
+            <h2 className={`-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
+              Price
+            </h2>
             <PriceInputs
               perRecord={perRecord}
               perChange={perChange}
@@ -554,7 +558,7 @@ export function DatasetEditorScreen({
                 type="button"
                 onClick={() => void savePrices()}
                 disabled={!dirtyPrices || !pricesValid || working}
-                className="mt-3 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent disabled:opacity-50"
+                className={`mt-4 h-8 rounded-md bg-accent px-3.5 ${LABEL} text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-50`}
               >
                 Save prices
               </button>
@@ -563,9 +567,11 @@ export function DatasetEditorScreen({
 
           <section
             aria-label="Endpoint preview"
-            className="rounded-lg border border-line bg-surface p-4 shadow-card"
+            className="min-w-0 rounded-lg border border-line bg-surface p-5"
           >
-            <h2 className="mb-3 text-sm font-semibold text-ink">What buyers get</h2>
+            <h2 className={`-mx-5 -mt-5 mb-5 border-b border-line px-5 py-3.5 ${LABEL} text-ink`}>
+              What buyers get
+            </h2>
             <EndpointPreview
               path={path}
               fields={shownFields}
@@ -577,15 +583,15 @@ export function DatasetEditorScreen({
           {publishable && (
             <section
               aria-label="Publish"
-              className="rounded-lg border border-line bg-surface p-4 shadow-card"
+              className="min-w-0 rounded-lg border border-line bg-surface p-5"
             >
-              <label className="flex items-start gap-2 text-sm text-ink">
+              <label className="flex items-start gap-2.5 text-sm leading-6 text-ink">
                 <input
                   type="checkbox"
                   checked={rights}
                   disabled={working}
                   onChange={(e) => setRights(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
+                  className="mt-1 h-4 w-4 accent-[var(--color-accent)]"
                 />
                 <span>I own this content or have the right to license these fields.</span>
               </label>
@@ -598,7 +604,7 @@ export function DatasetEditorScreen({
                 type="button"
                 onClick={() => void publish()}
                 disabled={working || visibleCount === 0 || !pricesValid || !hasApprovable}
-                className="mt-3 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-strong disabled:opacity-50"
+                className={`mt-4 h-10 w-full rounded-md bg-accent px-5 ${LABEL} text-on-accent shadow-sm transition-colors hover:bg-accent-strong disabled:opacity-50 sm:w-auto`}
               >
                 {phase.kind === 'saving'
                   ? 'Saving new version…'
@@ -630,7 +636,7 @@ function ProgressCard({ run, recordCount }: { run: CrawlRun | null; recordCount:
     <section
       role="status"
       aria-label="Publishing"
-      className="rounded-lg border border-accent bg-accent-tint p-4"
+      className="rounded-lg border border-accent/30 bg-accent-tint p-5"
     >
       <p className="text-sm font-medium text-ink">
         Publishing: extracting all pages
@@ -671,7 +677,7 @@ function LiveCard({
     <section
       aria-label="Live"
       data-live-card=""
-      className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-positive bg-positive-tint p-4"
+      className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-positive/30 bg-positive-tint p-5"
     >
       <div className="min-w-0 space-y-2">
         <p className="text-base font-semibold text-positive">
@@ -714,20 +720,25 @@ function Frame({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-4" data-screen="W06">
-      <Link to={paths.recordTypes} className="text-sm text-accent hover:underline">
-        ← Record types
-      </Link>
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold text-ink">{title}</h1>
-        {status && (
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_TONE[status]}`}
-            data-dataset-status={status}
-          >
-            {STATUS_LABEL[status]}
-          </span>
-        )}
+    <div className={PAGE} data-screen="W06">
+      <div className="pb-2">
+        <Link
+          to={paths.recordTypes}
+          className="inline-flex items-center gap-1 text-sm font-medium text-muted transition-colors hover:text-ink"
+        >
+          ← Record types
+        </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink tabular-nums">{title}</h1>
+          {status && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_TONE[status]}`}
+              data-dataset-status={status}
+            >
+              {STATUS_LABEL[status]}
+            </span>
+          )}
+        </div>
       </div>
       {children}
     </div>
