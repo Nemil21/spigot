@@ -12,6 +12,7 @@ import {
   type RefundPostResponse,
   type RefundsResponse,
 } from './usageModel';
+import * as ui from '../../components/buyer/ui';
 import { Pill } from './Pill';
 
 export const REFUNDS_PATH = '/api/buyer/refunds';
@@ -138,88 +139,96 @@ export function RefundCard({
   }
 
   return (
-    <section
-      aria-labelledby="refund-title"
-      className="rounded-lg border border-line bg-surface p-5 shadow-card"
-    >
-      <h2 id="refund-title" className="text-lg font-semibold text-ink">
-        Refund unused balance to PayPal
-      </h2>
-      {!data && loadError !== null ? (
-        <div className="mt-3">
-          <ErrorBanner error={loadError} onRetry={() => void load()} />
-        </div>
-      ) : !data ? (
-        <div className="mt-3" aria-busy="true">
-          <SkeletonText lines={2} />
-        </div>
-      ) : (
-        <>
-          <p className="mt-2 text-sm text-body" data-allowed-cents={data.available.allowedCents}>
-            {data.available.allowedCents > 0
-              ? `You can get ${formatCents(data.available.allowedCents)} back to the PayPal account you topped up from.`
-              : 'Nothing to refund to PayPal right now.'}
+    <section aria-labelledby="refund-title" className={ui.panel}>
+      <div className={ui.panelHead}>
+        <div>
+          <h2 id="refund-title" className={ui.panelTitle}>
+            Refund unused balance to PayPal
+          </h2>
+          <p className={ui.panelDesc}>
+            Money goes back to the PayPal account you topped up from, through a PayPal refund.
           </p>
-          {refundCapNote(data.available) && (
-            <p className="mt-1 text-xs text-muted">{refundCapNote(data.available)}</p>
-          )}
-          {data.available.allowedCents > 0 && (
-            <form onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-2">
-              <label className="text-sm text-body">
-                <span className="block text-xs text-muted">Amount (USD)</span>
-                <input
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    setSubmitError(null);
-                  }}
-                  className="mt-1 w-28 rounded-md border border-border bg-surface px-2 py-1.5 tabular-nums"
-                />
-              </label>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-strong disabled:opacity-60"
+        </div>
+      </div>
+      <div className={ui.panelBody}>
+        {!data && loadError !== null ? (
+          <div>
+            <ErrorBanner error={loadError} onRetry={() => void load()} />
+          </div>
+        ) : !data ? (
+          <div aria-busy="true">
+            <SkeletonText lines={2} />
+          </div>
+        ) : (
+          <>
+            <p
+              className="text-sm font-medium text-ink"
+              data-allowed-cents={data.available.allowedCents}
+            >
+              {data.available.allowedCents > 0
+                ? `You can get ${formatCents(data.available.allowedCents)} back to the PayPal account you topped up from.`
+                : 'Nothing to refund to PayPal right now.'}
+            </p>
+            {refundCapNote(data.available) && (
+              <p className="mt-1 text-xs text-muted">{refundCapNote(data.available)}</p>
+            )}
+            {data.available.allowedCents > 0 && (
+              <form onSubmit={submit} className="mt-4 flex flex-wrap items-end gap-2">
+                <label className="text-xs font-medium text-muted">
+                  <span className="block">Amount (USD)</span>
+                  <input
+                    inputMode="decimal"
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      setSubmitError(null);
+                    }}
+                    className={`${ui.input} max-w-32`}
+                  />
+                </label>
+                <button type="submit" disabled={submitting} className={ui.btnPrimary}>
+                  {submitting ? 'Requesting refund…' : 'Refund to PayPal'}
+                </button>
+              </form>
+            )}
+            {submitError !== null && (
+              <p role="alert" className="mt-2 text-sm text-danger">
+                {errorMessage(submitError)}
+              </p>
+            )}
+            {notice && (
+              <p role="status" className={`mt-3 ${ui.notice.info}`}>
+                {notice}
+              </p>
+            )}
+            {data.refunds.length > 0 && (
+              <ul
+                className="mt-5 divide-y divide-line border-t border-line text-sm"
+                aria-label="Refunds"
               >
-                {submitting ? 'Requesting refund…' : 'Refund to PayPal'}
-              </button>
-            </form>
-          )}
-          {submitError !== null && (
-            <p role="alert" className="mt-2 text-sm text-danger">
-              {errorMessage(submitError)}
-            </p>
-          )}
-          {notice && (
-            <p role="status" className="mt-2 rounded-md bg-info-tint px-3 py-2 text-sm text-info">
-              {notice}
-            </p>
-          )}
-          {data.refunds.length > 0 && (
-            <ul className="mt-4 divide-y divide-line text-sm" aria-label="Refunds">
-              {data.refunds.map((r) => (
-                <li
-                  key={r.refundId}
-                  data-refund={r.refundId}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2"
-                >
-                  <span className="text-body">{refundLine(r)}</span>
-                  <span className="flex items-center gap-2">
-                    <span className="text-xs text-muted">{formatWhen(r.createdAt)}</span>
-                    {r.paypalRefundId && (
-                      <PayPalId id={r.paypalRefundId} label="PayPal refund id" />
-                    )}
-                    <Pill tone={REFUND_STATUS[r.status].tone} status={r.status}>
-                      {REFUND_STATUS[r.status].label}
-                    </Pill>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+                {data.refunds.map((r) => (
+                  <li
+                    key={r.refundId}
+                    data-refund={r.refundId}
+                    className="flex flex-wrap items-center justify-between gap-2 py-3"
+                  >
+                    <span className="font-medium text-ink">{refundLine(r)}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-muted">{formatWhen(r.createdAt)}</span>
+                      {r.paypalRefundId && (
+                        <PayPalId id={r.paypalRefundId} label="PayPal refund id" />
+                      )}
+                      <Pill tone={REFUND_STATUS[r.status].tone} status={r.status}>
+                        {REFUND_STATUS[r.status].label}
+                      </Pill>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 }
