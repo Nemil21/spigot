@@ -172,14 +172,16 @@ export function diffVersions(
           });
         }
       } else if (op.op === 'add' || op.op === 'replace' || op.op === 'remove') {
-        const before = known ? getAt(doc, segs) : undefined;
+        // `add` into an array inserts (shifting the element there), so it has no before-value.
+        const intoArray = op.op === 'add' && Array.isArray(getAt(doc, segs.slice(0, -1)));
+        const before = known && !intoArray ? getAt(doc, segs) : undefined;
         lines.push({
           field,
           path: op.path,
           kind:
             op.op === 'remove'
               ? 'removed'
-              : op.op === 'add' && (!known || before === undefined)
+              : op.op === 'add' && (!known || intoArray || before === undefined)
                 ? 'added'
                 : 'changed',
           before: known ? before : undefined,

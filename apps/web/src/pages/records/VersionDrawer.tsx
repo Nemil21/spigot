@@ -53,7 +53,9 @@ export function VersionDrawer({
         signal: ctl.signal,
       })
       .then(
-        (history) => setState({ status: 'ready', history }),
+        (history) => {
+          if (!ctl.signal.aborted) setState({ status: 'ready', history });
+        },
         (error: unknown) => {
           if (!ctl.signal.aborted) setState({ status: 'error', error });
         },

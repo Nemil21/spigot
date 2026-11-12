@@ -123,6 +123,40 @@ describe('diffVersions', () => {
   });
 });
 
+describe('diffVersions: array inserts', () => {
+  it('shows an add at an existing array index as added, not as a change of the shifted element', () => {
+    const vs: RecordVersion[] = [
+      {
+        seq: 1,
+        version: 1,
+        op: 'add',
+        changedAt: 'x',
+        crawlRunId: null,
+        patch: [{ op: 'add', path: '', value: { tags: ['x'] } }],
+      },
+      {
+        seq: 2,
+        version: 2,
+        op: 'update',
+        changedAt: 'x',
+        crawlRunId: null,
+        patch: [{ op: 'add', path: '/tags/0', value: 'w' }],
+      },
+    ];
+    const [v2] = diffVersions([...vs].reverse(), []);
+    expect(v2!.lines).toEqual([
+      {
+        field: 'tags',
+        path: '/tags/0',
+        kind: 'added',
+        before: undefined,
+        after: 'w',
+        hidden: false,
+      },
+    ]);
+  });
+});
+
 describe('VersionDrawer', () => {
   it('lists versions and shows the selected version as a diff, hidden fields marked', async () => {
     const fetchImpl = vi.fn<FetchLike>(async () => json(200, history));
