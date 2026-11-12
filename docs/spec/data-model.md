@@ -151,6 +151,7 @@ Indexes: `(dataset_id, updated_at desc, id)`, `(dataset_id, removed_at)`, GIN on
 | ai_calls | int not null default 0 | **Must stay 0** for runs after approval (test asserts it) |
 | error | text | |
 | started_at, finished_at | timestamptz | |
+| idempotency_key | text null | Client `Idempotency-Key` of `POST /api/sites/:id/crawl`; unique per site (SP-009b, migration 002) |
 
 ### bot_hits (aggregated by the gate)
 | Column | Type | Notes |

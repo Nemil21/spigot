@@ -32,6 +32,8 @@ export type CrawlTrigger = (typeof CRAWL_TRIGGERS)[number];
 export interface CrawlSiteArgs {
   siteId: string;
   trigger: CrawlTrigger;
+  /** The client's `Idempotency-Key` (SP-009b), stored on the run this call creates. */
+  idempotencyKey?: string;
 }
 
 export type RunStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'PARTIAL' | 'FAILED' | 'PAUSED';
@@ -85,7 +87,7 @@ export async function startCrawl(
   args: CrawlSiteArgs,
   deps: CrawlDeps = defaultCrawlDeps(),
 ): Promise<StartedCrawl> {
-  const { siteId, trigger } = args;
+  const { siteId, trigger, idempotencyKey } = args;
   if (!(CRAWL_TRIGGERS as readonly string[]).includes(trigger)) {
     throw new CrawlSiteError(
       'BAD_TRIGGER',
@@ -101,12 +103,12 @@ export async function startCrawl(
   for (let attempt = 0; attempt < 5; attempt++) {
     const id = randomUUID();
     const inserted = await db.pool.query<{ id: string }>(
-      `INSERT INTO crawl_runs (id, site_id, trigger, status, workflow_run_id)
-       VALUES ($1::uuid, $2, $3, 'QUEUED', 'inproc:' || $1::text)
+      `INSERT INTO crawl_runs (id, site_id, trigger, status, workflow_run_id, idempotency_key)
+       VALUES ($1::uuid, $2, $3, 'QUEUED', 'inproc:' || $1::text, $4)
        ON CONFLICT (site_id) WHERE status IN ('QUEUED', 'RUNNING') AND trigger <> 'APPROVE'
        DO NOTHING
        RETURNING id`,
-      [id, siteId, trigger],
+      [id, siteId, trigger, idempotencyKey ?? null],
     );
     if (inserted.rowCount) {
       return {
