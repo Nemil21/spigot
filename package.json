@@ -1,0 +1,48 @@
+{
+  "name": "spigot",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "Spigot: publishers get paid when AI agents read their sites.",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "db"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @spigot/api",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start -w @spigot/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --project unit --maxWorkers=2",
+    "test:db": "npm test -w @spigot/db",
+    "migrate": "npm run migrate -w @spigot/db",
+    "security:secrets": "bash scripts/secret-scan.sh",
+    "security:audit": "npm audit --audit-level=high",
+    "dev:db": "bash scripts/dev-db.sh",
+    "seed:demo": "node scripts/not-yet.mjs seed:demo SP-035",
+    "sim:bots": "node scripts/not-yet.mjs sim:bots SP-037",
+    "sim:buyers": "node scripts/not-yet.mjs sim:buyers SP-036",
+    "demo:mutate": "node scripts/not-yet.mjs demo:mutate SP-004b",
+    "demo:reset": "node scripts/not-yet.mjs demo:reset SP-038",
+    "demo:payout": "node scripts/not-yet.mjs demo:payout SP-038",
+    "demo:decline": "node scripts/not-yet.mjs demo:decline SP-047b"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.5",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0",
+    "prettier": "^3.10.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^4.1.12"
+  }
+}

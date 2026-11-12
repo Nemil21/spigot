@@ -1,0 +1,22 @@
+{
+  "name": "@spigot/gate",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "spigot-gate: classify bot traffic and answer 402 with a quote. Zero runtime dependencies.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

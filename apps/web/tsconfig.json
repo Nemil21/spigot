@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // Browser only: no Node types, so a Node global or built-in in shared code fails here.
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["src"]
+}

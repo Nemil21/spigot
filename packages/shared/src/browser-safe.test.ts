@@ -13,10 +13,12 @@ const sources = readdirSync(srcDir)
 describe('packages/shared is browser-safe', () => {
   it('has sources to check', () => {
     expect(sources.map(([f]) => f).sort()).toEqual([
+      'cluster.ts',
       'copy.ts',
       'errors.ts',
       'events.ts',
       'gate.ts',
+      'globals.d.ts',
       'index.ts',
       'money.ts',
     ]);
