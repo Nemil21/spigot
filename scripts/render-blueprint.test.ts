@@ -142,6 +142,26 @@ describe('render.yaml (SP-040)', () => {
     }
   });
 
+  it('workflow service runs payoutRun on the same env group, PayPal app and database as the API (SP-041b)', () => {
+    const wf = service('spigot-workflows');
+    const api = service('spigot-api');
+    const groups = (s: Service) => s.envVars.flatMap((e) => (e.fromGroup ? [e.fromGroup] : []));
+    expect(groups(wf)).toEqual(['spigot-config']);
+    expect(groups(wf)).toEqual(groups(api));
+    expect(envVar(wf, 'DATABASE_URL')?.fromDatabase).toEqual(
+      envVar(api, 'DATABASE_URL')?.fromDatabase,
+    );
+    for (const k of ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'DEMO_PUBLISHER_PAYOUT_EMAIL']) {
+      expect(envVar(wf, k)?.sync, k).toBe(false);
+    }
+    // Group flags (PAYPAL_MODE, WORKFLOWS_MODE, …) are never overridden on the service itself.
+    const groupKeys = new Set(
+      bp.envVarGroups.find((g) => g.name === 'spigot-config')!.envVars.map((e) => e.key),
+    );
+    expect(wf.envVars.filter((e) => e.key && groupKeys.has(e.key))).toEqual([]);
+    expect(wf.autoDeployTrigger).toBe('off');
+  });
+
   it('demo site: paid, gate env, disk under DEMO_DATA_DIR, admin token shared with the API', () => {
     const site = service('bluebonnet-rentals');
     expect(site.healthCheckPath).toBe('/healthz');

@@ -29,6 +29,7 @@ export const TASKS = {
   extractTemplate: 'extractTemplate',
   extractPage: 'extractPage',
   publishWatermark: 'publishWatermark',
+  payoutRun: 'payoutRun',
 } as const;
 
 /** One share of a run's pages, fetched one at a time (≤ 2 of these per host at once). */
@@ -72,6 +73,19 @@ const publishWatermarkTask = task(
   (_ctx: TaskContext, args: ArgsOf<'publishWatermark'>) => bodies().publishWatermark(args),
 );
 
+/**
+ * SP-041b: one payout run (features/09 §Logic, SP-020). **Render-level retries are off**: this
+ * is money, and SP-020's `payoutRun` is the only retry owner (3 tries with the same
+ * `sender_batch_id` inside the run). Spec 03's "1 retry, idempotent by batch id" is that resume:
+ * a run that dies mid-way leaves its batch BUILDING / SUBMITTED, and the next `payoutRun`
+ * (this task, the weekly job or "Run payout now") resubmits it with the same batch id before it
+ * builds anything new. The advisory lock makes a Workflows run and an in-process run safe at once.
+ */
+const payoutRunTask = task(
+  { name: TASKS.payoutRun, retry: retries(0), timeoutSeconds: 600, plan: 'starter' },
+  (_ctx: TaskContext, args: ArgsOf<'payoutRun'>) => bodies().payoutRun(args),
+);
+
 export const taskNames = Object.values(TASKS);
 
 /** Registered definitions, by name (tests and `taskNames`). */
@@ -82,4 +96,5 @@ export const registered: readonly { name: string }[] = [
   extractTemplateTask,
   extractPageTask,
   publishWatermarkTask,
+  payoutRunTask,
 ];

@@ -20,6 +20,9 @@ import {
 import type { Db } from '../db/index.js';
 import { extractPage } from '../extract/extractPage.js';
 import { publishWatermark } from '../extract/publishWatermark.js';
+import { payoutPayPal, type PayoutsPayPal } from '../payouts/deps.js';
+import { payoutRun, type PayoutRunResult, type PayoutTrigger } from '../payouts/payoutRun.js';
+import { notifyBatchPublishers } from '../payouts/reconcile.js';
 import { startSchemaAgent } from '../schema-agent/runtime.js';
 
 /**
@@ -60,6 +63,8 @@ export interface WorkflowsRuntime {
   config: Config;
   crawlDeps: CrawlDeps;
   log: Log;
+  /** SP-041b: the payouts client `payoutRun` uses (`PAYPAL_MODE=stub` → FakePayPal). */
+  payouts: PayoutsPayPal;
   /** Unregister the hooks (tests). */
   stop(): void;
 }
@@ -89,7 +94,14 @@ export function workflowsRuntime(env: Record<string, string | undefined> = proce
   const config = loadConfig(env);
   const crawlDeps = defaultCrawlDeps(env);
   const stop = wireWorkflowHooks({ db: crawlDeps.db, config, log: consoleLog });
-  cached = { db: crawlDeps.db, config, crawlDeps, log: consoleLog, stop };
+  cached = {
+    db: crawlDeps.db,
+    config,
+    crawlDeps,
+    log: consoleLog,
+    payouts: payoutPayPal(config),
+    stop,
+  };
   return cached;
 }
 
@@ -102,10 +114,89 @@ export interface TaskRunContext {
 }
 
 /**
+ * `payoutRun`'s task input (SP-041b). Task arguments travel as JSON, so `periodEnd` is an ISO
+ * 8601 string here and becomes the `Date` SP-020's `payoutRun` takes.
+ */
+export interface PayoutTaskArgs {
+  trigger: PayoutTrigger;
+  /** MANUAL_DEMO only (labelled demo control): threshold for this run, min $1. */
+  thresholdCentsOverride?: number;
+  /** SCHEDULE runs are unique per `period_end`. Default now. */
+  periodEnd?: string;
+}
+
+/**
+ * What a `payoutRun` task run returns. Render keeps task results in its dashboard, so this is
+ * ids and counts only: no receiver emails (PII) and nothing a log line couldn't show.
+ */
+export interface PayoutTaskResult {
+  outcome: PayoutRunResult['outcome'];
+  batchId: string | null;
+  resumed: boolean;
+  /** Items in the batch, read back from the database (a resumed run returns none in memory). */
+  itemCount: number;
+  paypalBatchId?: string;
+  errorCode?: string;
+}
+
+/**
+ * The `payoutRun` task body: SP-020's `payoutRun` unchanged (advisory lock, resume first with the
+ * same `sender_batch_id`, its own 3 tries on network / 5xx), then `payout.updated` for W09 (a
+ * Postgres NOTIFY, so the API's SSE bus hears it from this process too).
+ */
+export async function runPayoutTask(
+  rt: { db: Pick<Db, 'pool'>; payouts: PayoutsPayPal; log: Log },
+  args: PayoutTaskArgs,
+): Promise<PayoutTaskResult> {
+  let periodEnd: Date | undefined;
+  if (args.periodEnd !== undefined) {
+    periodEnd = new Date(args.periodEnd);
+    if (Number.isNaN(periodEnd.getTime())) {
+      throw new TypeError(`payoutRun: periodEnd ${JSON.stringify(args.periodEnd)} is not a date`);
+    }
+  }
+  const res = await payoutRun(
+    {
+      trigger: args.trigger,
+      ...(args.thresholdCentsOverride !== undefined
+        ? { thresholdCentsOverride: args.thresholdCentsOverride }
+        : {}),
+      ...(periodEnd ? { periodEnd } : {}),
+    },
+    { pool: rt.db.pool, pp: rt.payouts },
+  );
+  let itemCount = 0;
+  if (res.batchId) {
+    const { rows } = await rt.db.pool.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM payout_items WHERE batch_id = $1',
+      [res.batchId],
+    );
+    itemCount = rows[0]?.n ?? 0;
+    await notifyBatchPublishers(rt.db.pool, res.batchId).catch((err) =>
+      rt.log.warn({ err, batchId: res.batchId }, 'workflows: payout.updated notify failed'),
+    );
+  }
+  const out: PayoutTaskResult = {
+    outcome: res.outcome,
+    batchId: res.batchId,
+    resumed: res.resumed,
+    itemCount,
+    ...('paypalBatchId' in res ? { paypalBatchId: res.paypalBatchId } : {}),
+    ...('errorCode' in res ? { errorCode: res.errorCode } : {}),
+  };
+  rt.log.info({ ...out, trigger: args.trigger }, 'workflows: payoutRun');
+  return out;
+}
+
+/**
  * Each Workflows task's body over a runtime. `crawlSite` executes the run the API handed off
  * and fans its pages out as **exactly `planBatches` (≤ 2 per host) `fetchBatch` task runs**.
+ * `payouts` is needed by `payoutRun` only (crawl tests leave it out).
  */
-export function workflowTaskBodies(rt: Pick<WorkflowsRuntime, 'db' | 'crawlDeps' | 'log'>) {
+export function workflowTaskBodies(
+  rt: Pick<WorkflowsRuntime, 'db' | 'crawlDeps' | 'log'> &
+    Partial<Pick<WorkflowsRuntime, 'payouts'>>,
+) {
   return {
     crawlSite: (args: CrawlSiteArgs & { runId: string }, ctx: TaskRunContext) =>
       crawlSite(
@@ -122,6 +213,12 @@ export function workflowTaskBodies(rt: Pick<WorkflowsRuntime, 'db' | 'crawlDeps'
     extractPage: (args: { pageId: string; datasetId: string; runId: string }) =>
       extractPage(args, { db: rt.db }),
     publishWatermark: (args: { datasetId: string }) => publishWatermark(args, { db: rt.db }),
+    /** SP-041b: one payout run (SP-020), JSON in and out. */
+    payoutRun: (args: PayoutTaskArgs) => {
+      const { payouts } = rt;
+      if (!payouts) throw new Error('workflowTaskBodies: payoutRun needs rt.payouts');
+      return runPayoutTask({ db: rt.db, payouts, log: rt.log }, args);
+    },
   };
 }
 

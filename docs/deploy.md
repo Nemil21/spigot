@@ -7,7 +7,7 @@ after the code freeze from the human's Render account; nothing here has been app
 |---|---|---|---|
 | Web | `spigot-api` | starter, 1 instance | API (publisher REST, buyer `/v1`, `/mcp`, gate endpoints, webhooks, in-process jobs) and the web app, served same-origin. Build `npm ci --include=dev && npm run build`; start `npm run migrate && npm start`; health `/api/healthz` |
 | Web | `bluebonnet-rentals` | starter, 1 instance | The fictional demo site with `spigot-gate`. 1 GB disk at `/var/data`, `DEMO_DATA_DIR=/var/data/bluebonnet`; health `/healthz` |
-| Workflow | `spigot-workflows` | per task (in code) | Render Workflows: `crawlSite`, `fetchBatch` (2 per host), `fetchPage`, `extractTemplate`, `extractPage`, `publishWatermark` (SP-041a, `apps/workflows/src/index.ts`); SP-041b adds `payoutRun` and checks it on Render. Unused while `WORKFLOWS_MODE=inproc` |
+| Workflow | `spigot-workflows` | per task (in code) | Render Workflows: `crawlSite`, `fetchBatch` (2 per host), `fetchPage`, `extractTemplate`, `extractPage`, `publishWatermark` (SP-041a, `apps/workflows/src/index.ts`); `payoutRun` (SP-041b, Render retries off). Unused while `WORKFLOWS_MODE=inproc` |
 | Postgres | `spigot-db` | `basic-256mb`, 1 GB, PG 16 | Private network only (`ipAllowList: []`) |
 | Env group | `spigot-config` | | Non-secret flags only (table below) |
 
@@ -141,6 +141,82 @@ Keep payouts small (the demo's ~$400 is fine; $2,500+ returned `INSUFFICIENT_FUN
    `RENDER_WORKFLOWS_SERVICE_ID`, then `WORKFLOWS_MODE=workflows` on `spigot-api` only. The API
    reads the mode per run, so setting it back to `inproc` needs no change to `spigot-workflows`;
    if Render can't start a run, the API runs it in process (`workflow_run_id = inproc:<id>`).
+   Verify it with [§Render Workflows check](#render-workflows-check-sp-041b-post-freeze) first.
+
+## Render Workflows check (SP-041b, post-freeze)
+
+Human-run, after the recording (it is not needed for the video, and step 5 sends a real sandbox
+payout). `WORKFLOWS_MODE=inproc` stays the default until steps 1–4 pass; if any fails, leave it
+`inproc` and say so in the README (the in-process path is the one the tests cover end to end).
+
+**What runs where.** `spigot-workflows` registers `crawlSite`, `fetchBatch` (≤ 2 per host),
+`fetchPage`, `extractTemplate`, `extractPage`, `publishWatermark` (SP-041a) and `payoutRun`
+(SP-041b) from `apps/workflows/src/index.ts`. Retries are per task, in code (spec 03's table);
+**`payoutRun` has Render retries off**: it is money, and SP-020's `payoutRun` is the only retry
+owner (3 tries with the same `sender_batch_id` inside the run). A run that dies mid-way leaves
+its batch BUILDING / SUBMITTED, and the next `payoutRun` (this task, the weekly job or "Run payout
+now") resubmits it with the same batch id before building anything new. The API's own payout
+callers stay in process; both sides take the same advisory lock, so they never both build.
+
+**The report.** Every step below reads its numbers from one read-only script, run from the
+`spigot-api` **Shell** (the database is private; it prints ids and counts only):
+
+```sh
+npx tsx scripts/workflows-report.ts https://<bluebonnet-rentals host>      # or the site id
+npx tsx scripts/workflows-report.ts https://<bluebonnet-rentals host> --json
+```
+
+It lists the site's runs newest first (trigger, status, **mode** `inproc` / `workflows` from
+`workflow_run_id`, page and record counters, duration), the **connect → discovery-crawl** time
+(site created → first CONNECT run finished), pages / snapshots / records / versions with
+**duplicate counts** (same page + same content hash twice; same record + same version twice),
+and the latest payout batches.
+
+1. **`inproc` baseline.** With `WORKFLOWS_MODE=inproc`, run **Crawl now** on the demo site (W03 /
+   W04) and wait for it to end. Run the report; note the run's `total / fetched / 304 / failed`,
+   and each dataset's `records`.
+2. **Same crawl on Workflows.** Set `RENDER_API_KEY`, `RENDER_WORKFLOWS_SERVICE_ID` and
+   `WORKFLOWS_MODE=workflows` on `spigot-api` (step 9 above), save (Render restarts it). Run
+   **Crawl now** again. In the Render dashboard, `spigot-workflows` shows one `crawlSite` run with
+   **exactly 2** `fetchBatch` child runs. The report shows the new run with mode `workflows`;
+   **pass** when its page counts add up to the same `total` as step 1 (pages unchanged since then
+   count as `304`), it ends SUCCEEDED, each dataset's `records` equals step 1's, and both
+   duplicate counts are 0.
+3. **Timing (spec 03: < 4 min).** Connect the demo site fresh as a second publisher (W02 → W03:
+   connect, install the gate key and verify token on `bluebonnet-rentals` as in First deploy
+   step 6, verify), which starts the discovery crawl on Workflows. The report's **connect →
+   discovery crawl** line says pass or fail. That time includes the human steps (copying the
+   key, the demo site's redeploy), so also note the CONNECT run's own duration from the runs list.
+   Record both in the README's Render Workflows row; if it misses 4 min, record the time and the
+   reason (e.g. the demo site's redeploy, or `CRAWL_MIN_GAP_MS`).
+4. **Kill a `fetchBatch` mid-way.** Run **Crawl now** on Workflows, and while the two `fetchBatch`
+   runs are going, kill one: restart or redeploy `spigot-workflows` (this kills the task runs on
+   it), or cancel one `fetchBatch` run in the dashboard. (Menu names are from the docs, not
+   checked against the account; use whichever stops a running task.) Render retries `fetchBatch` once;
+   the retry skips the pages the dead run had finished (`fetchBatch` is idempotent per run). When
+   the run ends, the report's **duplicate snapshots** and **duplicate versions** must both be 0,
+   and the run's counters must not exceed `total`. A cancelled run is not retried by Render: then
+   its unanswered pages count as failed and the run ends PARTIAL; run **Crawl now** once more and
+   check the duplicates again. (Locally: `apps/api/src/workflows/killedBatch.db.test.ts`.)
+5. **`payoutRun` through Workflows.** Only once the payout beat is recorded, since this pays the
+   demo publisher. Start task `payoutRun` on `spigot-workflows` (dashboard task page, or the
+   Render API / CLI) with input `[{"trigger":"MANUAL_DEMO","thresholdCentsOverride":100}]` (one
+   JSON argument; a SCHEDULE run takes `"periodEnd"` as an ISO 8601 string). The task result is ids and
+   counts only (`outcome`, `batchId`, `itemCount`, `paypalBatchId`). **Pass:** `outcome: PENDING`
+   with one item per eligible publisher; the report shows **one** new batch; W09 shows it and
+   flips to Paid out after the status poll; running the task again returns `NO_ITEMS` and creates
+   no batch. (Locally, on FakePayPal: `apps/api/src/workflows/payoutTask.db.test.ts`.)
+6. Leave `WORKFLOWS_MODE=workflows` only if 1–5 passed; otherwise set it back to `inproc` (no
+   redeploy of `spigot-workflows` needed). Record which mode the judged build runs in the README.
+
+| Check | Result (fill in on Render) |
+|---|---|
+| `inproc` vs `workflows` page / record counts equal | |
+| `crawlSite` → exactly 2 `fetchBatch` runs | |
+| Connect → discovery crawl (target < 4 min); CONNECT run duration | |
+| Killed `fetchBatch` → 0 duplicate snapshots / versions | |
+| `payoutRun` task → one batch; second run `NO_ITEMS` | |
+| Mode left on for judging | |
 
 ## Smoke
 

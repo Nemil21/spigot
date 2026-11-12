@@ -168,9 +168,13 @@ services:
         sync: false
 
   # Render Workflows (SP-041a: apps/workflows registers crawlSite / fetchBatch / fetchPage /
-  # extractTemplate / extractPage / publishWatermark from @spigot/api/tasks; SP-041b adds payoutRun
-  # and verifies it on Render). While WORKFLOWS_MODE=inproc nothing dispatches here. Compute plan, retries
-  # and timeouts are set per task in code. The tasks load the same config as spigot-api.
+  # extractTemplate / extractPage / publishWatermark from @spigot/api/tasks; SP-041b adds payoutRun).
+  # While WORKFLOWS_MODE=inproc nothing dispatches here. Compute plan, retries and timeouts are set
+  # per task in code; payoutRun has Render-level retries off (money: SP-020's payoutRun is the only
+  # retry owner, and the next run resumes a dead one with the same sender_batch_id). The tasks load
+  # the same config as spigot-api (same env group, same PayPal sandbox app, same database), so a
+  # payoutRun here and "Run payout now" there share the payout advisory lock.
+  # Render check (post-freeze): docs/deploy.md §Render Workflows check.
   - type: workflow
     name: spigot-workflows
     runtime: node
