@@ -296,6 +296,62 @@ describe.skipIf(!testDatabaseUrl)(
       await expectLedgerClean();
     });
 
+    it('MISSING_FIELD uses the schema in force at the call, not one approved later', async () => {
+      const w = await world();
+      const [v1] = await q<{ id: string }>(
+        `UPDATE schema_versions SET approved_at = now() - interval '1 hour'
+        WHERE dataset_id = $1 RETURNING id`,
+        [w.datasetId],
+      );
+      // v2, approved after the call: agent_phone becomes visible + required (it was null on every
+      // record), title is relaxed to optional.
+      const v2Fields = FIELDS.map((f) =>
+        f.name === 'agent_phone'
+          ? { ...f, visible: true }
+          : f.name === 'title'
+            ? { ...f, required: false }
+            : f,
+      );
+      const [v2] = await q<{ id: string }>(
+        `INSERT INTO schema_versions (dataset_id, version, status, fields, extractor, record_key, proposed_by, approved_at)
+       VALUES ($1, 2, 'APPROVED', $2, '{}', '{"from":"url"}', 'OWNER', now() + interval '1 second') RETURNING id`,
+        [w.datasetId, JSON.stringify(v2Fields)],
+      );
+      await q(`UPDATE schema_versions SET status = 'SUPERSEDED' WHERE id = $1`, [v1!.id]);
+      await q(`UPDATE datasets SET active_schema_id = $2 WHERE id = $1`, [w.datasetId, v2!.id]);
+
+      // agent_phone was hidden when served: its null is not a missing field.
+      const later = await claim(w.key, {
+        callId: w.callId,
+        recordKey: 'listings/l-7',
+        reason: 'MISSING_FIELD',
+      });
+      expect(later.body).toMatchObject({ status: 'OPEN', creditMicros: 0 });
+      // title was required when served: relaxing it afterwards doesn't void the claim.
+      const relaxed = await claim(w.key, {
+        callId: w.callId,
+        recordKey: 'listings/l-3',
+        reason: 'MISSING_FIELD',
+      });
+      expect(relaxed.body).toMatchObject({ status: 'AUTO_CREDITED', creditMicros: UNIT });
+      await expectLedgerClean();
+    });
+
+    it('no schema approved by the call time and the active one is newer → MISSING_FIELD stays OPEN', async () => {
+      const w = await world();
+      // The only version (approved_at NULL until now) gets approved after the call.
+      await q(
+        `UPDATE schema_versions SET approved_at = now() + interval '1 second' WHERE dataset_id = $1`,
+        [w.datasetId],
+      );
+      const r = await claim(w.key, {
+        callId: w.callId,
+        recordKey: 'listings/l-3',
+        reason: 'MISSING_FIELD',
+      });
+      expect(r.body).toMatchObject({ status: 'OPEN', creditMicros: 0 });
+    });
+
     it('a record not in the call → 422; other ineligible claims are refused without a row', async () => {
       const w = await world();
       const bad = await claim(w.key, {

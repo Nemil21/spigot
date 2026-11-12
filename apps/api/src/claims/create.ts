@@ -118,16 +118,12 @@ export async function createClaim(
       `SELECT version, op, patch, hash FROM record_versions WHERE record_id = $1 ORDER BY version`,
       [recordId],
     );
-    const schema = await tx.query<{ fields: unknown }>(
-      `SELECT fields FROM schema_versions WHERE id = $1`,
-      [call.activeSchemaId],
-    );
     const check = runCheck({
       reason: input.reason,
       key: input.recordKey,
       served,
       versions: versions.rows,
-      storedFields: schema.rows[0]?.fields ?? null,
+      storedFields: await schemaAtCall(tx, call),
     });
     if (!check.confirmed || !call.publisherId) return { claimId, status: 'OPEN', creditMicros: 0 };
 
@@ -178,6 +174,27 @@ async function loadCall(tx: Tx, buyerId: string, callId: string): Promise<CallRo
     [callId, buyerId],
   );
   return rows[0] ?? null;
+}
+
+/**
+ * The schema fields in force when the call was served (`api_calls` has no schema snapshot): the
+ * newest version approved at or before the call. Falls back to the active schema only when it
+ * wasn't approved after the call (e.g. seeded rows with no `approved_at`). Otherwise `null`: the
+ * required set is unknown, so `MISSING_FIELD` stays OPEN rather than charging the publisher for a
+ * field that may not have been required when served.
+ */
+async function schemaAtCall(tx: Tx, call: CallRow): Promise<unknown> {
+  const { rows } = await tx.query<{ fields: unknown }>(
+    `(SELECT fields, 0 AS pick FROM schema_versions
+       WHERE dataset_id = $1 AND status IN ('APPROVED', 'SUPERSEDED') AND approved_at <= $2
+       ORDER BY approved_at DESC, version DESC LIMIT 1)
+     UNION ALL
+     (SELECT fields, 1 AS pick FROM schema_versions
+       WHERE id = $3 AND (approved_at IS NULL OR approved_at <= $2))
+     ORDER BY pick LIMIT 1`,
+    [call.datasetId, call.createdAt, call.activeSchemaId],
+  );
+  return rows[0]?.fields ?? null;
 }
 
 async function existingClaim(tx: Tx, callId: string, recordId: string): Promise<ClaimResult> {
