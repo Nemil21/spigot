@@ -14,7 +14,14 @@ import { buildServer } from '../server.js';
 import { generateSiteSecrets } from '../sites/keys.js';
 import { REQUIRED_ENV } from '../test/env.js';
 import { routeTable } from './routeTable.js';
-import { loadTenancyCases, routeKey, uncoveredRoutes, type LoadedCase } from './tenancyCases.js';
+import {
+  loadTenancyCases,
+  routeKey,
+  tenantUrls,
+  uncoveredRoutes,
+  type LoadedCase,
+  type TenantB,
+} from './tenancyCases.js';
 
 /**
  * SP-042: the cross-tenant matrix (features/14 §Tenancy rules, §Acceptance criteria).
@@ -22,7 +29,9 @@ import { loadTenancyCases, routeKey, uncoveredRoutes, type LoadedCase } from './
  * Generated, not hand-listed: every route in Fastify's route table that is tenant-scoped must have
  * a case in `tenancy/*.cases.ts` (glob-loaded), and every case is *run* here against two tenants
  * of each kind. Probes are picked from the route's shape, so a case file added by a later ticket
- * is executed without editing this file:
+ * is executed without editing this file. An `/api/…/:param` route gets B's real ids from its case's
+ * `ids(b)` or the built-in map (`tenantUrls`); with neither, it fails rather than being probed with
+ * ids that exist for nobody:
  *
  * - `/api/…/:id` routes: tenant A's session with tenant B's id → 404, the same error as an id that
  *   doesn't exist (B's ids are never confirmed); no session → 401.
@@ -397,26 +406,21 @@ describe.skipIf(!testDatabaseUrl)(
       }
     }
 
-    /** B's resource ids for each `:param` (every variant is probed). Unknown params: a random uuid. */
-    function fillVariants(url: string): string[] {
-      const ids: [RegExp, string[]][] = [
-        [/^\/api\/sites\/:id/, [B.siteId]],
-        [/^\/admin\/sites\/:id/, [B.siteId]],
-        [/^\/api\/datasets\/:id/, [B.liveDatasetId, B.proposedDatasetId]],
-        [/^\/api\/crawl-runs\/:id/, [B.runId]],
-        [/^\/api\/buyer\/keys\/:id/, [bB.keyId]],
-        [/^\/api\/buyer\/topups\/:id/, [bB.topupId]],
-        [/^\/api\/buyer\/calls\/:id/, [bB.callId]],
-      ];
-      const hit = ids.find(([re]) => re.test(url));
-      return (hit?.[1] ?? [randomUUID()]).map((id) =>
-        url
-          .replace(':site', B.slug)
-          .replace(':dataset', 'listings')
-          .replace(':key', 'r-1')
-          .replace(/:[A-Za-z_]+/g, () => id),
-      );
-    }
+    const tenantB = (): TenantB => ({
+      publisherId: B.id,
+      siteId: B.siteId,
+      siteSlug: B.slug,
+      liveDatasetId: B.liveDatasetId,
+      proposedDatasetId: B.proposedDatasetId,
+      proposedSchemaId: B.proposedSchemaId,
+      crawlRunId: B.runId,
+      buyerId: bB.id,
+      apiKeyId: bB.keyId,
+      topupId: bB.topupId,
+      callId: bB.callId,
+    });
+    /** B's real ids in the case's `:param`s (throws for an `/api` param with no known id). */
+    const fillVariants = (c: LoadedCase) => tenantUrls(c, tenantB(), randomUUID);
     const withRandomIds = (url: string) => url.replace(/:[A-Za-z_]+/g, () => randomUUID());
 
     /** Bodies that get past validation to the ownership check, with B's ids smuggled in. */
@@ -542,7 +546,7 @@ describe.skipIf(!testDatabaseUrl)(
 
       if (c.url.startsWith('/admin/')) {
         // Deliberately cross-tenant: admins only (ADMIN_EMAILS is empty here).
-        for (const url of fillVariants(c.url)) {
+        for (const url of fillVariants(c)) {
           const r = await call(c.method, url, { ...cred, body: bodyFor(c) });
           expect(r.status, `${label} as a non-admin publisher`).toBe(403);
           expectNoMarkers(r, tenantMarkers(), label);
@@ -558,14 +562,14 @@ describe.skipIf(!testDatabaseUrl)(
         // Tenant A's session against tenant B's ids: 404, indistinguishable from a missing id.
         const missing = await call(c.method, withRandomIds(c.url), { ...cred, body: bodyFor(c) });
         expect(missing.status, `${label} with a random id`).toBe(404);
-        for (const url of fillVariants(c.url)) {
+        for (const url of fillVariants(c)) {
           const r = await call(c.method, url, { ...cred, body: bodyFor(c) });
           expect(r.status, `${label} with B's id (${url})`).toBe(404);
           expect(r.json?.error?.code, label).toBe(missing.json?.error?.code);
           expectNoMarkers(r, tenantMarkers(), label);
         }
         if (sessionRoute) {
-          const anon = await call(c.method, fillVariants(c.url)[0]!, { body: bodyFor(c) });
+          const anon = await call(c.method, fillVariants(c)[0]!, { body: bodyFor(c) });
           expect(anon.status, `${label} no session`).toBe(401);
         }
         return;
@@ -576,7 +580,7 @@ describe.skipIf(!testDatabaseUrl)(
       const smuggle = `publisherId=${B.id}&buyerId=${bB.id}`;
       const urls = c.url.startsWith('/topups/return')
         ? [`${c.url}?token=ORDER-${randomUUID()}`] // a token isn't a session; an unknown one credits nobody
-        : fillVariants(c.url).map((u) =>
+        : fillVariants(c).map((u) =>
             c.method === 'GET' && !c.url.startsWith('/v1/') ? `${u}?${smuggle}` : u,
           );
       const markers = sessionRoute ? tenantMarkers() : privateMarkers();

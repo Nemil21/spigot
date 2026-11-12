@@ -12,9 +12,27 @@ import {
   loadTenancyCases,
   routeKey,
   staleCases,
+  tenantUrls,
   uncoveredRoutes,
   type LoadedCase,
+  type TenantB,
 } from './tenancyCases.js';
+
+/** Distinct, recognisable stand-ins for tenant B's ids. */
+const B: TenantB = {
+  publisherId: 'b-publisher',
+  siteId: 'b-site',
+  siteSlug: 'b-slug',
+  liveDatasetId: 'b-live',
+  proposedDatasetId: 'b-proposed',
+  proposedSchemaId: 'b-schema',
+  crawlRunId: 'b-run',
+  buyerId: 'b-buyer',
+  apiKeyId: 'b-key',
+  topupId: 'b-topup',
+  callId: 'b-call',
+};
+const RANDOM = () => 'random-id';
 
 /**
  * SP-042: the route-table half of the cross-tenant matrix, with no database, so the `check` job
@@ -63,6 +81,60 @@ describe('SP-042 tenancy coverage (route table vs tenancy/*.cases.ts)', () => {
       expect(['publisher', 'buyer', 'none'], `${c.file}: ${routeKey(c)}`).toContain(c.as);
       expect(c.expect.length, `${c.file}: ${routeKey(c)}`).toBeGreaterThan(10);
     }
+  });
+
+  it("every case's :params resolve to tenant B's real ids (never ids that exist for nobody)", () => {
+    for (const c of cases.filter((x) => x.url.startsWith('/api/') && x.url.includes('/:'))) {
+      const urls = tenantUrls(c, B, RANDOM);
+      expect(urls.length, routeKey(c)).toBeGreaterThan(0);
+      for (const u of urls) {
+        expect(u, routeKey(c)).toMatch(/\/b-[a-z]+(\/|$)/);
+        expect(u, routeKey(c)).not.toContain('random-id');
+        expect(u, routeKey(c)).not.toContain(':');
+      }
+    }
+    for (const c of cases) expect(() => tenantUrls(c, B, RANDOM), routeKey(c)).not.toThrow();
+  });
+
+  describe('tenantUrls', () => {
+    const base = { method: 'GET' as const, as: 'publisher' as const, expect: 'x'.repeat(12) };
+
+    it('built-in ids: every variant is probed', () => {
+      expect(tenantUrls({ ...base, url: '/api/datasets/:id/approve' }, B, RANDOM)).toEqual([
+        '/api/datasets/b-live/approve',
+        '/api/datasets/b-proposed/approve',
+      ]);
+      expect(tenantUrls({ ...base, url: '/api/buyer/calls/:id' }, B, RANDOM)).toEqual([
+        '/api/buyer/calls/b-call',
+      ]);
+    });
+
+    it('an unmapped /api :param throws, naming the route and the fix', () => {
+      expect(() => tenantUrls({ ...base, url: '/api/payouts/:id' }, B, RANDOM)).toThrow(
+        /GET \/api\/payouts\/:id: no tenant-B id .*ids: \(b\) =>/,
+      );
+      expect(() =>
+        tenantUrls({ ...base, url: '/api/sites/:siteId/things/:thingId' }, B, RANDOM),
+      ).toThrow(/no tenant-B id/); // the built-in map knows `/api/sites/:id`, not other names
+    });
+
+    it("a case's own ids(b) win, so a later route needs no edit to the matrix", () => {
+      const c = { ...base, url: '/api/payouts/:id', ids: (b: TenantB) => [b.publisherId] };
+      expect(tenantUrls(c, B, RANDOM)).toEqual(['/api/payouts/b-publisher']);
+      expect(() => tenantUrls({ ...c, ids: () => [] }, B, RANDOM)).toThrow(/no tenant-B id/);
+    });
+
+    it('public slugs take B’s slugs; admin params may fall back to a random id', () => {
+      expect(
+        tenantUrls({ ...base, url: '/v1/:site/datasets/:dataset/records/:key' }, B, RANDOM),
+      ).toEqual(['/v1/b-slug/datasets/listings/records/r-1']);
+      expect(tenantUrls({ ...base, url: '/c/:site/terms' }, B, RANDOM)).toEqual([
+        '/c/b-slug/terms',
+      ]);
+      expect(tenantUrls({ ...base, url: '/admin/payouts/:batchId/reconcile' }, B, RANDOM)).toEqual([
+        '/admin/payouts/random-id/reconcile',
+      ]);
+    });
   });
 
   describe('meta: a new tenant-scoped route without a case file fails the matrix', () => {
