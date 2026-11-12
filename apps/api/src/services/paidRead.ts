@@ -48,6 +48,7 @@ import {
 import { loadSite402, requireSold, resolveDataset } from './lookup.js';
 import type { Queryable } from '../db/pool.js';
 import { autoTopupError, autoTopupHook, type AutoTopupDeps } from '../topups/autoTopup.js';
+import { enqueueThresholdTopup } from '../topups/thresholdTopup.js';
 import {
   normalizeRead,
   unitPriceMicros,
@@ -65,8 +66,9 @@ export interface PaidReadContext extends MeterContext {
    */
   afterQuery?: () => Promise<void>;
   /**
-   * Auto top-up on a short balance (SP-047a): the PayPal client and config. Unset → no auto
-   * top-up (a short call is a plain 402). An explicit `onInsufficient` wins over this.
+   * Auto top-up on a short balance (SP-047a) and below the threshold after a charge (SP-047c): the
+   * PayPal client and config. Unset → no auto top-up (a short call is a plain 402). An explicit
+   * `onInsufficient` wins over this for the short-balance hook.
    */
   autoTopup?: Omit<AutoTopupDeps, 'db'>;
 }
@@ -352,6 +354,14 @@ export async function paidRead(
     },
   });
   const autoTopupCents = auto?.toppedUpCents() ?? null;
+  // SP-047c: the charge committed; top up in the background if it left the balance below the
+  // buyer's threshold, so their next call doesn't come back 402.
+  if (ctx.autoTopup && res.chargedMicros > 0) {
+    enqueueThresholdTopup(
+      { db: ctx.db, ...ctx.autoTopup },
+      { buyerId: ctx.buyerId, balanceMicros: res.balanceMicros },
+    );
+  }
 
   return {
     status: res.status,

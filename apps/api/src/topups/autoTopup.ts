@@ -87,6 +87,11 @@ export interface ReserveVaultTopupInput {
   amountCents?: number;
   /** The short call's price. Set → skip if the balance already covers it, refuse if `amount` wouldn't. */
   priceMicros?: number;
+  /**
+   * `buyers.auto_topup_threshold_micros` (SP-047c's after-charge trigger). Set → skip
+   * (`BALANCE_OK`) unless the balance, re-read under the lock, is still below it.
+   */
+  whenBelowMicros?: number;
   /** Clock for the cap's month (tests). */
   now?: Date;
 }
@@ -137,6 +142,9 @@ export async function reserveVaultTopup(
     // Re-read under the lock: a call queued behind another's top-up sees the new balance here.
     const balanceMicros = await balanceOf(tx, input.buyerId);
     if (input.priceMicros !== undefined && balanceMicros >= input.priceMicros) {
+      return { kind: 'BALANCE_OK', balanceMicros };
+    }
+    if (input.whenBelowMicros !== undefined && balanceMicros >= input.whenBelowMicros) {
       return { kind: 'BALANCE_OK', balanceMicros };
     }
     if (input.trigger === 'AUTO' && !b.enabled) return { kind: 'DISABLED' };
@@ -194,6 +202,7 @@ export async function reserveVaultTopup(
         monthUsedCents: usedCents,
         monthlyCapCents: b.capCents,
         ...(input.priceMicros !== undefined ? { shortCallPriceMicros: input.priceMicros } : {}),
+        ...(input.whenBelowMicros !== undefined ? { thresholdMicros: input.whenBelowMicros } : {}),
       },
     });
     return {
@@ -267,7 +276,8 @@ export async function chargeVaultTopup(
   }
 }
 
-async function settleVaultTopup(
+/** Apply a vault create's answer (the first call's or SP-047c's sweep replay) to its row. */
+export async function settleVaultTopup(
   deps: TopupDeps,
   topup: TopupRow,
   vault: VaultRefRow,
