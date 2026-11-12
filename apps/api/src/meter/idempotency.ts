@@ -57,7 +57,7 @@ export function checkClientKey(key: string): string {
 }
 
 /** States whose stored response is final: a retry replays it and never charges again. */
-const REPLAYABLE = ['CHARGED', 'NOT_CHARGED', 'PARTIALLY_CREDITED', 'CREDITED'];
+export const REPLAYABLE = ['CHARGED', 'NOT_CHARGED', 'PARTIALLY_CREDITED', 'CREDITED'];
 /** Not terminal: a retry with the same key and request re-runs the charge on the same row. */
 const RETRYABLE = ['PAYMENT_REQUIRED', 'REJECTED'] as const;
 
