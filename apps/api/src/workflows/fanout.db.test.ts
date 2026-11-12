@@ -7,7 +7,7 @@ import { crawlKeyHash, deriveCrawlKey } from '../crawl/crawlKey.js';
 import { crawlSite, startCrawl } from '../crawl/crawlSite.js';
 import type { CrawlDeps } from '../crawl/deps.js';
 import type { FetchBatchArgs } from '../crawl/fetchBatch.js';
-import { clearCrawlHooks } from '../crawl/hooks.js';
+import { clearCrawlHooks, onRunFinished } from '../crawl/hooks.js';
 import { resetHostQueues } from '../crawl/queue.js';
 import { createDb, type Db } from '../db/index.js';
 import { testDatabaseUrl, twoPools, type TwoPools } from '../db/test-db.js';
@@ -204,6 +204,52 @@ describe.skipIf(!testDatabaseUrl)('Render Workflows fan-out (SP-041a)', () => {
     expect(await pageCount(localSite)).toEqual(await pageCount(wfSite));
     expect(await pageCount(wfSite)).toEqual({ pages: PAGES, snaps: PAGES });
     expect(local.log.stats().maxInFlight).toBeLessThanOrEqual(2);
+  });
+
+  it('one fetchBatch run fails for good: the run waits for the other, ends from its counters', async () => {
+    const { origin } = await serve();
+    const siteId = await newSite(origin);
+    const bodies = workflowTaskBodies({ db, crawlDeps: deps, log: silentLog });
+    const order: string[] = [];
+    onRunFinished((runId) => void order.push(`finished:${runId}`));
+    let n = 0;
+    const res = await bodies.crawlSite(
+      {
+        siteId,
+        trigger: 'CONNECT',
+        runId: (
+          await startCrawl(
+            { siteId, trigger: 'CONNECT' },
+            { ...deps, handOff: async () => 'trn-1' },
+          )
+        ).runId,
+      },
+      {
+        taskRunId: 'trn-1',
+        runFetchBatch: async (batch) => {
+          if (++n === 1) {
+            order.push('batch-1:rejected');
+            throw new Error('task run timed out');
+          }
+          const r = await bodies.fetchBatch(batch);
+          order.push('batch-2:done');
+          return r;
+        },
+      },
+    );
+    // Not FAILED by the rejection: PARTIAL from the counters, with the lost share counted failed.
+    expect(res.status).toBe('PARTIAL');
+    expect(res.counters).toEqual({
+      pages_total: PAGES,
+      pages_fetched: PAGES / 2,
+      pages_not_modified: 0,
+      pages_failed: PAGES / 2,
+    });
+    expect((await runRow(res.runId)).error).toBeNull();
+    // 50% fetched is below the discovery bar; the site stays VERIFIED.
+    expect(res.discovery).toBe(false);
+    // The run ended (and its hooks fired) only after the surviving batch finished.
+    expect(order).toEqual(['batch-1:rejected', 'batch-2:done', `finished:${res.runId}`]);
   });
 
   it('Render down: the run falls back to this process and keeps inproc:<id>', async () => {
