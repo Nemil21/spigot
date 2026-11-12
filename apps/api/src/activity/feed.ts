@@ -123,6 +123,11 @@ export async function activityFeed(
      picked AS (
        (SELECT e.id FROM audit_events e
          WHERE e.publisher_id = $1 AND e.action = ANY($2::text[])
+           -- Hidden calls are dropped before the limit, or a demo reset's many hidden calls
+           -- would use it up and starve older visible events.
+           AND NOT EXISTS (SELECT 1 FROM api_calls hc
+                            WHERE e.entity IN ('api_calls', 'api_call') AND hc.id = e.entity_id
+                              AND hc.hidden_at IS NOT NULL)
          ORDER BY e.at DESC, e.id DESC LIMIT $3)
        UNION
        (SELECT e.id FROM audit_events e
@@ -163,7 +168,6 @@ export async function activityFeed(
                  END
              AND EXISTS (SELECT 1 FROM sites so WHERE so.id = ds.site_id AND so.publisher_id = $1)
        LEFT JOIN buyers b ON b.id = COALESCE(t.buyer_id, c.buyer_id)
-      WHERE c.hidden_at IS NULL
       ORDER BY e.at DESC, e.id DESC
       LIMIT $3`,
     [publisherId, actions, limit],

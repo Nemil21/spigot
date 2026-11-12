@@ -796,5 +796,36 @@ describe.skipIf(!testDatabaseUrl)('SP-027a bots + activity APIs (Postgres)', () 
       expect(res.body.events).toHaveLength(50);
       expect(res.body.events[0].at).toBe(new Date(Date.UTC(2026, 10, 1, 0, 54)).toISOString());
     });
+
+    it('hidden calls never use up the limit: older visible events still come back', async () => {
+      const p = await newPublisher('Feed hidden');
+      const site = await newSite(p.id);
+      const ds = await addDataset(site, 'LIVE', 1500, 10, 10);
+      const acme = await newBuyer('Acme Agents');
+      await addAudit({
+        at: '2026-11-12T07:00:00.000Z',
+        action: 'DATASET_PUBLISHED',
+        publisherId: p.id,
+        entity: 'datasets',
+        entityId: ds,
+      });
+      // More hidden-call CALL_CHARGED rows than the limit, all newer than the publish.
+      for (let i = 0; i < 6; i++) {
+        const call = await addCall(acme, ds, { price: 1500, hidden: true });
+        await addAudit({
+          at: new Date(Date.UTC(2026, 10, 12, 8, i)).toISOString(),
+          action: 'CALL_CHARGED',
+          publisherId: p.id,
+          entity: 'api_call',
+          entityId: call,
+          actorType: 'BUYER',
+        });
+      }
+      const res = await activity(p.cookie, { limit: '5' });
+      expect(res.status).toBe(200);
+      expect((res.body.events as { action: string }[]).map((e) => e.action)).toEqual([
+        'DATASET_PUBLISHED',
+      ]);
+    });
   });
 });
