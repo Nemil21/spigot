@@ -4,7 +4,7 @@ import { notify, transition, withAdvisoryXactLock, type Db } from '../db/index.j
 import { deriveCrawlKey, sentCrawlKeyVersionSql } from './crawlKey.js';
 import { CRAWL_DEFAULTS, crawlerUserAgent, defaultCrawlDeps, type CrawlDeps } from './deps.js';
 import { fetchPage, type FetchPageResult } from './fetchPage.js';
-import { emitDiscoveryDone, emitPageChanged, emitRunFinished } from './hooks.js';
+import { emitDiscoveryDone, emitPageChanged, emitRunEnding, emitRunFinished } from './hooks.js';
 import { upsertPages } from './pages.js';
 import { drainPings, hasPendingPings, pingLockKey } from './ping.js';
 import { readSitemap } from './sitemap.js';
@@ -575,6 +575,8 @@ async function finishRun(
   error?: string,
 ): Promise<CrawlRunResult> {
   for (;;) {
+    // SP-052a: pages held for the drift probe are written before the run turns terminal.
+    await emitRunEnding(runId);
     const ended = await endRun(deps, runId, siteId, error);
     if (ended !== PINGS_PENDING) return ended;
     const drained = await drainPings(deps, runId, siteId, () => resyncSitemap(deps, runId, siteId));

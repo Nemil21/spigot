@@ -10,11 +10,12 @@ import {
   type FetchBatchResult,
 } from '../crawl/fetchBatch.js';
 import { fetchPage, type FetchPageArgs } from '../crawl/fetchPage.js';
-import { onPageChanged, onRunFinished } from '../crawl/hooks.js';
+import { onPageChanged, onRunEnding, onRunFinished } from '../crawl/hooks.js';
 import {
   extractChangedPage,
   publishRunDatasets,
   runApproveExtract,
+  settleRunDatasets,
   type ApproveRunArgs,
 } from '../datasets/extractRun.js';
 import type { Db } from '../db/index.js';
@@ -31,6 +32,7 @@ import { startSchemaAgent } from '../schema-agent/runtime.js';
  * fires them in the workflow service instead, so the same handlers are registered here:
  *
  * - `onPageChanged` → extract the page into its sold datasets (SP-014a);
+ * - `onRunEnding` → settle the run's drift probes, writing held pages (SP-052a);
  * - `onRunFinished` → publish the site's watermarks (SP-014a) and audit `CRAWL_RUN_DONE` (SP-009b);
  * - `onDiscoveryDone` → the schema agent (SP-012a; the API's resume job covers a miss).
  *
@@ -74,6 +76,9 @@ export function wireWorkflowHooks(opts: { db: Db; config: Config; log: Log }): (
   const offPage = onPageChanged(async (pageId, runId) => {
     await extractChangedPage(opts.db, pageId, runId);
   });
+  const offEnding = onRunEnding(async (runId) => {
+    await settleRunDatasets(opts.db, runId);
+  });
   const offRun = onRunFinished(async (runId) => {
     await publishRunDatasets(opts.db, runId);
     await auditCrawlRunDone(opts.db, runId);
@@ -81,6 +86,7 @@ export function wireWorkflowHooks(opts: { db: Db; config: Config; log: Log }): (
   const offSchema = startSchemaAgent(opts);
   return () => {
     offPage();
+    offEnding();
     offRun();
     offSchema();
   };

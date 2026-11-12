@@ -23,6 +23,7 @@ npm run demo:mutate -w @spigot/demo-site -- --prices 30 --leased 5 --new 3 --see
 | `SPIGOT_SITE_ID` | unset | `demo:mutate --ping`: the site's id in Spigot |
 | `SPIGOT_CRAWL_KEY` | unset | `demo:mutate --ping`: the site's crawl key `ck_…` (never printed) |
 | `SPIGOT_GATE_DEMO` | unset | `1`: requests with `X-Spigot-Sim: 1` (sim:bots) count as simulated |
+| `DEMO_LAYOUT` | `v1` | `v2`: the "redesign" for the drift demo (SP-052a). Listing pages rename every CSS class (`dl.facts` → `dl.specs`, `.agent-card` → `.contact-box`, `.status-badge` → `.avail-pill`, …) and `available_from` moves out of the facts list into `.move-in time.move-in-date[datetime]`; JSON-LD is unchanged. Listing sitemap `lastmod` becomes at least the boot time, so a scheduled crawl re-fetches them. Restart the site to switch |
 
 ## Pages
 

@@ -1,4 +1,4 @@
-import { createApp } from './app.js';
+import { createApp, parseDemoLayout } from './app.js';
 import { DEFAULT_DATA_DIR, openStore } from './data/store.js';
 import { gateFromEnv, noopGate } from './gate.js';
 
@@ -15,12 +15,13 @@ const app = createApp({
   gate: gate?.handler ?? noopGate,
   verifyToken: process.env.SPIGOT_VERIFY_TOKEN || undefined,
   adminToken: process.env.DEMO_ADMIN_TOKEN || undefined,
+  layout: parseDemoLayout(process.env.DEMO_LAYOUT),
 });
 
 const server = app.listen(port, () => {
   const c = store.counts();
   console.log(
-    `Bluebonnet Rentals (fictional demo) on :${port}: ${c.listings} listings, ${c.agents} agents, ${c.openHouses} open houses; data in ${dataDir}; ${store.state().mutations} demo mutation(s) replayed; admin ${process.env.DEMO_ADMIN_TOKEN ? 'on' : 'off'}`,
+    `Bluebonnet Rentals (fictional demo) on :${port}: ${c.listings} listings, ${c.agents} agents, ${c.openHouses} open houses; data in ${dataDir}; ${store.state().mutations} demo mutation(s) replayed; admin ${process.env.DEMO_ADMIN_TOKEN ? 'on' : 'off'}; layout ${parseDemoLayout(process.env.DEMO_LAYOUT)}`,
   );
 });
 
