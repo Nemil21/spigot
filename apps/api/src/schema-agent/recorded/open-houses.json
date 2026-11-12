@@ -1,0 +1,79 @@
+{
+  "pathPattern": "/open-houses/:id",
+  "model": "claude-opus-5-5",
+  "source": "hand-authored",
+  "capturedAt": "2026-11-12",
+  "usage": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0
+  },
+  "input": {
+    "typeName": "Open House",
+    "recordKey": { "from": "url" },
+    "fields": [
+      {
+        "name": "starts_at",
+        "type": "datetime",
+        "description": "Start time (with the Central time offset)",
+        "required": true,
+        "source": { "css": "time.oh-start", "attr": "datetime" },
+        "transforms": ["datetime"],
+        "filterable": ["eq", "lt", "lte", "gt", "gte"]
+      },
+      {
+        "name": "ends_at",
+        "type": "datetime",
+        "description": "End time",
+        "source": { "css": "time.oh-end", "attr": "datetime" },
+        "transforms": ["datetime"]
+      },
+      {
+        "name": "listing_url",
+        "type": "url",
+        "description": "The listing being shown",
+        "source": { "css": "a.oh-listing", "attr": "href" },
+        "transforms": ["absoluteUrl"]
+      },
+      {
+        "name": "listing_address",
+        "type": "string",
+        "description": "Street address and city of the listing",
+        "source": { "css": "a.oh-listing", "attr": "text" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "rent_usd",
+        "type": "integer",
+        "description": "Monthly rent of the listing in USD",
+        "source": { "css": "dl.facts dd[data-k=rent]", "attr": "text" },
+        "transforms": ["money", "toInt"],
+        "filterable": ["lt", "lte", "gt", "gte"]
+      },
+      {
+        "name": "host_name",
+        "type": "string",
+        "description": "Agent hosting the open house",
+        "source": { "css": "a.oh-host", "attr": "text" },
+        "transforms": ["trim"]
+      },
+      {
+        "name": "host_phone",
+        "type": "string",
+        "description": "Host agent's phone number",
+        "source": { "css": "dl.facts dd[data-k=host] .agent-phone", "attr": "text" },
+        "transforms": ["trim"],
+        "visible": true
+      },
+      {
+        "name": "notes",
+        "type": "string",
+        "description": "Visiting notes",
+        "source": { "css": "p.oh-notes", "attr": "text" },
+        "transforms": ["trim"]
+      }
+    ],
+    "rationale": "Open-house pages have no JSON-LD. Start and end times come from the machine-readable datetime attributes of the two time elements; the listing link, rent and host come from the facts list, and notes from the paragraph below it."
+  }
+}

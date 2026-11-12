@@ -8,6 +8,10 @@ export const AUDIT_ACTIONS = [
   'SITE_VERIFIED',
   'CRAWL_RUN_DONE',
   'SCHEMA_PROPOSED',
+  // SP-012a: a proposal run started (the resume job's 5-minute marker) / finished (per-template
+  // outcomes; `data.message` = "no repeated structure found" is W05's empty state).
+  'SCHEMA_PROPOSAL_STARTED',
+  'SCHEMA_PROPOSAL_DONE',
   'SCHEMA_APPROVED',
   'DATASET_PUBLISHED',
   'DATASET_UNPUBLISHED',
