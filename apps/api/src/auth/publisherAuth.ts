@@ -29,9 +29,12 @@ export interface PublisherAccount {
   email: string;
   payoutEmail: string;
   isDemo: boolean;
+  /** Linked with Log in with PayPal (SP-058): `paypal_payer_id` is set. */
+  paypalConnected: boolean;
 }
 
-const COLUMNS = `id, name, email, payout_email AS "payoutEmail", is_demo AS "isDemo"`;
+const COLUMNS = `id, name, email, payout_email AS "payoutEmail", is_demo AS "isDemo",
+  paypal_payer_id IS NOT NULL AS "paypalConnected"`;
 
 /** Create a publisher. A taken email → `409 STATE_CONFLICT` (race-safe: the unique index decides). */
 export async function signupPublisher(

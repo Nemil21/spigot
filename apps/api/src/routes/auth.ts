@@ -54,6 +54,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         email: publisher.email,
         payoutEmail: publisher.payoutEmail,
         isDemo: publisher.isDemo,
+        paypalConnected: publisher.paypalConnected,
       },
       buyer: buyer && { id: buyer.id, name: buyer.name, email: buyer.email },
       isAdmin: !!publisher && isAdmin(req, publisher.email),

@@ -96,6 +96,15 @@ If the request's `Accept` prefers `text/html`, the gate returns a small static H
 
 ### `POST /api/auth/signup` `{ "name", "email", "password", "payoutEmail" }` → `201 { "publisherId" }` · `POST /api/auth/login` · `POST /api/auth/logout`
 
+### Log in with PayPal (P1, SP-058): `GET /api/auth/paypal/start` · `GET /api/auth/paypal/callback`
+- `start` → `302` to PayPal consent (`scope=openid email https://uri.paypal.com/services/paypalattributes`, fresh `state` + `nonce` kept in a signed 10-minute HttpOnly cookie). Signed in as a publisher → the flow links PayPal to that account (W16 "Connect with PayPal").
+- `callback?code&state` → checks `state`, exchanges the code (`nonce` checked against the `id_token`), reads userinfo (`schema=paypalv1.1`), requires a verified email and a payer id, then `302`:
+  - payer id known → signed in, `/app` (the payout email is left as the publisher set it);
+  - new payer id and email → publisher created (no password, `payout_email` = PayPal email), signed in, `/app/connect`;
+  - linking → `paypal_payer_id` set, `payout_email` = PayPal email, `/app/settings?tab=payout&paypal=connected`.
+- Failures `302` to `/app/login` (or `/app/settings?tab=payout` when linking) with `?paypal=cancelled | state | unverified | link-required | taken | error`. `link-required`: the email belongs to an unlinked password account; it is never merged on email alone (log in with the password, then connect from Settings).
+- `GET /api/auth/me` gains `publisher.paypalConnected`.
+
 ### `POST /api/sites`
 ```json
 { "origin": "https://bluebonnet-rentals.onrender.com" }

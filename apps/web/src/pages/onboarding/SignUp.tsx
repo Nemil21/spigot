@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { api as defaultApi, ApiError, type ApiClient } from '../../api/client';
 import { errorMessage } from '../../components';
+import { PayPalAlternative } from '../../components/PayPalSignIn';
 import { paths } from '../../routes';
 import { ConnectSiteCard, StepHeading } from './ConnectSite';
 import { cardClass, OnboardingLayout, primaryButton, TextField } from './kit';
@@ -17,6 +18,7 @@ const looksLikeEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim()
  * W02 Sign up + connect site (screens.md §W02; features/03, 14): one card, two steps.
  * (1) Account: `POST /api/auth/signup` `{ name, email, password, payoutEmail }` signs the new
  * publisher in. (2) Site: the connect form with its live origin check (ConnectSite.tsx).
+ * "Sign up with PayPal" (SP-058) skips step 1: the callback creates the account and lands on step 2.
  */
 export function SignUpFlow({
   client = defaultApi,
@@ -144,6 +146,10 @@ export function SignUpFlow({
         <button type="submit" disabled={submitting} className={`mt-6 w-full ${primaryButton}`}>
           {submitting ? 'Creating your account…' : 'Continue'}
         </button>
+        <PayPalAlternative
+          label="Sign up with PayPal"
+          hint="Your verified PayPal email becomes your payout email."
+        />
       </form>
       <p className="mt-4 text-center text-sm text-muted">
         Already have an account?{' '}
