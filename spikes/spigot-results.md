@@ -16,7 +16,7 @@ Request ids follow features/08 and 09: order create `PayPal-Request-Id` = `custo
 | S9 | Partial refund with `PayPal-Request-Id`; replay; refund above remaining | **PASS.** $20 capture: refund $7.40 → 201 `COMPLETED`. Replay same id → **200, same refund id**. Replay same id with a *different* amount ($3.00) → **200, same refund, amount still $7.40** (the body is ignored on replay). Second refund $5.00 (new id) → 201 `COMPLETED`. $10.00 (new id, $7.60 left) → **422 `REFUND_AMOUNT_EXCEEDED`**. Capture → `PARTIALLY_REFUNDED`. | Refund unused balance (SP-049) is in. Several partial refunds per capture work. Insert `balance_refunds` before the call and always retry with the same id. |
 | S10 | One Payouts batch, 3 items; poll to terminal; resubmit the same `sender_batch_id` | **PASS.** POST 201 `PENDING` → `PROCESSING` → `SUCCESS` in ≈ 33 s (polled every 10 s). Items: publisher `SUCCESS`, publisher 2nd item `SUCCESS`, unregistered `UNCLAIMED` with `errors.name: RECEIVER_UNREGISTERED` (batch is still `SUCCESS`). $0.25 fee per item. Resubmitting the same `sender_batch_id` → **400 `USER_BUSINESS_ERROR`**, issue `Batch with given sender_batch_id already exists`, both **immediately with the same `PayPal-Request-Id`** and after the batch was terminal with a new one. | SP-020: `UNCLAIMED` is in flight ("waiting for publisher to claim"), batch `SUCCESS` does not mean every item paid. A duplicate `sender_batch_id` is never replayed, even with the same request id; on that 400 the batch already exists, so stay SUBMITTED and find it (see RECONCILE). |
 | S11 | `POST /v1/notifications/verify-webhook-signature` call shape | **SCRIPT ONLY** (runs for real in SP-059 once the Render URL and `PAYPAL_WEBHOOK_ID` exist). Dry run with synthetic headers: **HTTP 200 with `verification_status: FAILURE`**. A `webhook_id` with non-alphanumerics is rejected earlier: 400 `INVALID_REQUEST` (`must match ^[a-zA-Z0-9]+$`). | SP-059: verification failure is **200 + `FAILURE`**, so check the field, never the HTTP status. Body: `auth_algo, cert_url, transmission_id, transmission_sig, transmission_time` from the `paypal-*` headers, `webhook_id`, `webhook_event` = the parsed raw body. Run `node scripts/spikes-spigot.mjs s11 <delivery.json>` with `{headers, rawBody}`. |
-| – | Nothing left to clean up | **PASS.** All 8 orders GET-checked: 5 `COMPLETED` (captured), 2 `PAYER_ACTION_REQUIRED` (S7b/S8b wallet, never approved), 1 `CREATED` (S7a no-source replay order, never approved). None approved-but-uncaptured; no cleanup needed. | – |
+| – | Nothing left to clean up | **PASS.** All 8 orders GET-checked: 5 `COMPLETED` (captured), 2 `PAYER_ACTION_REQUIRED` (S7b/S8b wallet, never approved), 1 `CREATED` (the S7a no-source order, never approved; its replay returned the same order). None approved-but-uncaptured; no cleanup needed. | – |
 
 ## RECONCILE mapping for CAPTURE-intent calls (hand-off to SP-001b / SP-001c / SP-018a / SP-020 / SP-047a / SP-049)
 
@@ -140,11 +140,12 @@ Attempts: 2026-11-12T02:10:07.509Z PENDING-HUMAN · 2026-11-12T02:11:24.295Z PEN
 
 ### S8c: MIT CAPTURE with mock INSTRUMENT_DECLINED
 
-Last run 2026-11-12T01:55:44.672Z: **PASS**
+Last run 2026-11-12T02:13:46.244Z: **PASS**
+Attempts: 2026-11-12T01:55:44.672Z PASS · 2026-11-12T02:13:46.244Z PASS
 
 | call | PayPal-Request-Id | HTTP | body status | issue / name | debug id | ms | note |
 |---|---|---|---|---|---|---|---|
-| MIT CAPTURE + mock INSTRUMENT_DECLINED | `3bd76b9b-9bc1-4540-9532-f6d6e3022060` | 422 | – | INSTRUMENT_DECLINED | 70c28ae654da | 677 | order id: none; capture –; body keys: name,details,message,debug_id,links |
+| MIT CAPTURE + mock INSTRUMENT_DECLINED | `ae7c3c42-0277-499e-ba2f-bb7e9701f69f` | 422 | – | INSTRUMENT_DECLINED | 70c28ae654da | 354 | order id: none; capture –; body keys: name,details,message,debug_id,links |
 
 ```json
 {

@@ -592,8 +592,11 @@ async function s8c() {
     captureStatus: d.captureStatus ?? null,
     realState,
   };
-  // PASS = the decline is observable (non-2xx, or a capture that is not COMPLETED).
-  const pass = d.http >= 400 || (d.captureStatus && d.captureStatus !== 'COMPLETED');
+  // PASS = the decline itself: 422 INSTRUMENT_DECLINED, or a capture that is not COMPLETED.
+  // Any other error (400 INVALID_REQUEST, 401, 5xx) is a FAIL, not the decline path.
+  const pass =
+    (d.http === 422 && d.issue === 'INSTRUMENT_DECLINED') ||
+    (!!d.captureStatus && d.captureStatus !== 'COMPLETED');
   return saveAttempt('s8c', { result: pass ? 'PASS' : 'FAIL', calls, summary: shape });
 }
 
@@ -630,7 +633,8 @@ async function s9() {
     r1.bodyStatus === 'COMPLETED' &&
     r2.json.id === r1.json.id &&
     r4.bodyStatus === 'COMPLETED' &&
-    r5.http >= 400;
+    r5.http === 422 &&
+    r5.issue === 'REFUND_AMOUNT_EXCEEDED';
   return saveAttempt('s9', {
     result: pass ? 'PASS' : 'FAIL',
     calls,
@@ -743,7 +747,8 @@ async function s10() {
     b.bodyStatus === 'SUCCESS' &&
     itemStates.publisher?.startsWith('SUCCESS') &&
     itemStates.unregistered?.startsWith('UNCLAIMED') &&
-    p3.http >= 400;
+    p3.http === 400 &&
+    p3.name === 'USER_BUSINESS_ERROR';
   return saveAttempt('s10', {
     result: pass ? 'PASS' : 'FAIL',
     calls,
