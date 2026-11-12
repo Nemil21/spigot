@@ -1,16 +1,18 @@
 import { createApp } from './app.js';
 import { DEFAULT_DATA_DIR, openStore } from './data/store.js';
-import { noopGate } from './gate.js';
+import { gateFromEnv, noopGate } from './gate.js';
 
 const port = Number(process.env.PORT ?? 4100);
 const scale = process.env.DEMO_SEED_SCALE ? Number(process.env.DEMO_SEED_SCALE) : 1;
 const dataDir = process.env.DEMO_DATA_DIR || DEFAULT_DATA_DIR;
 
 const store = await openStore({ dataDir, scale });
-// SP-006b replaces noopGate with spigot-gate here.
+// spigot-gate (SP-006b): fails open, so the site serves normally if Spigot is down or unset.
+const gate = gateFromEnv(process.env);
+if (!gate) console.log('spigot-gate off: set SPIGOT_API_BASE and SPIGOT_GATE_KEY to enable it');
 const app = createApp({
   store,
-  gate: noopGate,
+  gate: gate?.handler ?? noopGate,
   verifyToken: process.env.SPIGOT_VERIFY_TOKEN || undefined,
   adminToken: process.env.DEMO_ADMIN_TOKEN || undefined,
 });
@@ -23,5 +25,9 @@ const server = app.listen(port, () => {
 });
 
 for (const sig of ['SIGINT', 'SIGTERM'] as const) {
-  process.on(sig, () => server.close(() => process.exit(0)));
+  process.on(sig, () => {
+    gate?.stop();
+    // Last counts out (2 s timeout, never rejects), then close.
+    void (gate?.flush() ?? Promise.resolve()).finally(() => server.close(() => process.exit(0)));
+  });
 }
