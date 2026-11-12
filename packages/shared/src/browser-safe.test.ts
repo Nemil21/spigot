@@ -30,10 +30,10 @@ describe('packages/shared is browser-safe', () => {
     expect(code).not.toMatch(/\b(process|Buffer|__dirname|__filename)\b/);
   });
 
-  it('depends only on zod', () => {
+  it('depends only on zod and cheerio (imported via its browser build, cheerio/slim)', () => {
     const pkg = JSON.parse(readFileSync(join(srcDir, '..', 'package.json'), 'utf8')) as {
       dependencies?: Record<string, string>;
     };
-    expect(Object.keys(pkg.dependencies ?? {})).toEqual(['zod']);
+    expect(Object.keys(pkg.dependencies ?? {})).toEqual(['cheerio', 'zod']);
   });
 });
