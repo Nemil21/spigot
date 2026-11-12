@@ -179,6 +179,14 @@ export function autoTopupDeclinedMessage(args: { method?: 'CARD' | 'PAYPAL' } = 
 export const DATASET_UNPUBLISHED_MESSAGE = 'The owner stopped selling this data.';
 
 /**
+ * W13 "site paused" state (screens.md §W13). A PAUSED site (data-model §Site: owner pause or
+ * origin 429s) isn't crawled, but its LIVE datasets are still sold, so the copy says updates
+ * stopped, not sales.
+ */
+export const SITE_PAUSED_MESSAGE =
+  'The owner paused updates for this site. You can still buy the records below; they may not include the latest changes.';
+
+/**
  * Human duration: "45 s", "12 min", "6 h", "3 d". The unit is picked from the floored value, then
  * the number is rounded within it:
  *   - `floor` (default) for ages, so data never looks fresher than it is;

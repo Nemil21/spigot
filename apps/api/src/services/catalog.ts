@@ -39,7 +39,8 @@ const iso = (d: Date | null) => (d ? d.toISOString() : null);
  * without a slug have nothing on `/v1` and are skipped. `lastCrawlAt` is the site's last
  * finished crawl that fetched pages (SUCCEEDED or PARTIAL).
  */
-export async function catalog(q: Queryable): Promise<Catalog> {
+export async function catalog(q: Queryable, opts: { site?: string } = {}): Promise<Catalog> {
+  // `opts.site` narrows to one site (W13's `/c/:site` JSON variant, SP-033); same shape.
   const { rows } = await q.query<Row>(
     `SELECT s.slug AS site_slug, nullif(p.name, '') AS site_name, d.slug, d.type_name, d.record_count,
             d.price_per_record_micros, d.price_per_change_micros, d.stale_since,
@@ -49,7 +50,9 @@ export async function catalog(q: Queryable): Promise<Catalog> {
        JOIN sites s ON s.id = d.site_id
        JOIN publishers p ON p.id = s.publisher_id
       WHERE d.status IN ('LIVE', 'LIVE_STALE') AND s.slug IS NOT NULL
+        AND ($1::text IS NULL OR s.slug = $1)
       ORDER BY s.slug, d.slug`,
+    [opts.site ?? null],
   );
   const sites: CatalogSite[] = [];
   for (const r of rows) {
