@@ -25,7 +25,7 @@ const jobsPool = createPool(config.DATABASE_URL, { max: 2, applicationName: 'spi
 const jobHandles: JobHandle[] = [];
 await startJobs((name, everyMs, fn) => {
   jobHandles.push(
-    runEvery(jobsPool, name, everyMs, async () => fn(), {
+    runEvery(jobsPool, name, everyMs, async (tick) => fn(tick), {
       onError: (err) => app.log.error({ job: name, err }, 'job failed'),
     }),
   );

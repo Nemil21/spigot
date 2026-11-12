@@ -10,11 +10,16 @@ export interface Job {
   /** Unique name; also the advisory-lock key, so two API processes never run it twice. */
   name: string;
   everyMs: number;
-  run: () => Promise<void> | void;
+  /** `tick` = floor(epochMs / everyMs), the tick `runEvery` claimed for this run. */
+  run: (tick?: number) => Promise<void> | void;
 }
 
 /** The shape of SP-002's `runEvery(name, ms, fn)` (advisory-locked interval). */
-export type RunEvery = (name: string, everyMs: number, fn: () => Promise<void> | void) => unknown;
+export type RunEvery = (
+  name: string,
+  everyMs: number,
+  fn: (tick?: number) => Promise<void> | void,
+) => unknown;
 
 export const JOBS_DIR = fileURLToPath(new URL('.', import.meta.url));
 

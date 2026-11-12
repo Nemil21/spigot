@@ -10,7 +10,7 @@ import { tryAdvisoryLock } from './locks.js';
  *      slow run never overlaps the next one, in this process or another);
  *   2. claims the tick in `job_ticks` (`last_tick < tick`), so a process whose timer fires a
  *      little later than another's doesn't run the same tick again;
- *   3. runs `fn`.
+ *   3. runs `fn(tick)`.
  * Jobs self-register from `jobs/*.job.ts` (SP-001a's loader calls this).
  */
 export interface JobHandle {
@@ -37,7 +37,7 @@ export async function runJobTick(
   pool: pg.Pool,
   name: string,
   tick: number,
-  fn: () => Promise<void>,
+  fn: (tick: number) => Promise<void>,
 ): Promise<boolean> {
   const lock = await tryAdvisoryLock(pool, `job:${name}`);
   if (!lock) return false;
@@ -49,7 +49,7 @@ export async function runJobTick(
       [name, tick],
     );
     if (claimed.rowCount === 0) return false;
-    await fn();
+    await fn(tick);
     return true;
   } finally {
     await lock.release();
@@ -60,7 +60,7 @@ export function runEvery(
   pool: pg.Pool,
   name: string,
   everyMs: number,
-  fn: () => Promise<void>,
+  fn: (tick: number) => Promise<void>,
   opts: RunEveryOptions = {},
 ): JobHandle {
   if (!NAME_RE.test(name)) throw new Error(`runEvery: bad job name ${name}`);

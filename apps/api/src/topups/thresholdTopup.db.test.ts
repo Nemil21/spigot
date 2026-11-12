@@ -259,8 +259,9 @@ describe.skipIf(!testDatabaseUrl)(
       const w = await world({ balanceMicros: DOLLAR });
       fake.latencyMs = 40;
       // 10 paid calls (5 per "process") plus 10 direct triggers, so the DB rule is what dedupes,
-      // not the per-process map.
-      const results = await Promise.all([
+      // not the per-process map. allSettled: a failure must not leave the rest running into the
+      // next test (a stray CREATED row there is swept and replayed as a second request id).
+      const settled = await Promise.allSettled([
         ...Array.from({ length: 10 }, (_, i) => read(w, i % 2 ? dbB : db)),
         ...Array.from({ length: 10 }, (_, i) =>
           thresholdTopUp(
@@ -270,6 +271,8 @@ describe.skipIf(!testDatabaseUrl)(
         ),
       ]);
       await settleThresholdTopups();
+      expect(settled.filter((s) => s.status === 'rejected')).toEqual([]);
+      const results = settled.map((s) => (s as PromiseFulfilledResult<unknown>).value);
       expect(results.slice(0, 10).every((r) => (r as PaidReadResult).status === 200)).toBe(true);
       const rows = await topups(w);
       expect(rows).toHaveLength(1);
@@ -304,6 +307,162 @@ describe.skipIf(!testDatabaseUrl)(
         } else {
           expect(trigger).toMatchObject({ result: 'TOPPED_UP', topupId: rows[0]!.id });
         }
+      }
+    });
+
+    it('lock order: reservations, a charge and a credit on one buyer never deadlock', async () => {
+      // The interleaving behind main's red burst test, made deterministic. Foreign keys lock the
+      // buyer row: inserting `api_calls` takes FOR KEY SHARE on it, and so does a second UPDATE of a
+      // `topups` row in one transaction (creditTopupTx's ledger_txn_id). With reservations taking
+      // FOR UPDATE: (1) reservation A holds the buyer row; (2) a charge's FK check waits for A;
+      // (3) reservation B queues behind it; (4) a credit holding the ledger row runs its FK check
+      // and queues behind B; (5) A commits, the charge locks the row and waits for the credit's
+      // ledger row, B waits for the charge, the credit waits for B: 40P01, and the captured
+      // top-up's credit rolls back.
+      const w = await world({ balanceMicros: DOLLAR });
+      const [acct] = await q<{ id: string }>(
+        `SELECT id FROM ledger_accounts WHERE kind = 'BUYER_BALANCE' AND owner_id = $1`,
+        [w.buyerId],
+      );
+      const [row] = await q<{ id: string }>(
+        `INSERT INTO topups (buyer_id, amount_cents, method) VALUES ($1, 2000, 'CARD') RETURNING id`,
+        [w.buyerId],
+      );
+      const pidOf = async (c: pg.PoolClient) =>
+        (await c.query<{ pid: number }>('SELECT pg_backend_pid() AS pid')).rows[0]!.pid;
+      const waiting = async (pid: number) =>
+        (
+          await q<{ w: boolean }>(
+            `SELECT wait_event_type = 'Lock' AS w FROM pg_stat_activity WHERE pid = $1`,
+            [pid],
+          )
+        )[0]?.w === true;
+      const reservationsWaiting = async () =>
+        (
+          await q<{ n: number }>(
+            `SELECT count(*)::int AS n FROM pg_stat_activity
+              WHERE datname = current_database() AND wait_event_type = 'Lock'
+                AND query LIKE '%FROM buyers WHERE id = $1 FOR%'`,
+          )
+        )[0]!.n;
+      /** Settled, or blocked on a row / tuple lock (the fixed lock order never blocks there). */
+      const settledOrWaiting = async (p: { done: boolean }, pid?: number) => {
+        for (let i = 0; i < 200; i++) {
+          if (p.done || (pid !== undefined && (await waiting(pid)))) return;
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        throw new Error('neither settled nor waiting');
+      };
+      const track = <T>(promise: Promise<T>) => {
+        const t = { done: false, promise };
+        promise.then(
+          () => (t.done = true),
+          () => (t.done = true),
+        );
+        return t;
+      };
+
+      // (1) Reservation A, paused right after it locks the buyer row (the real reserveVaultTopup).
+      let release!: () => void;
+      const gate = new Promise<void>((r) => (release = r));
+      let locked!: () => void;
+      const isLocked = new Promise<void>((r) => (locked = r));
+      const paused: Db = {
+        pool,
+        tx: (fn) =>
+          db.tx((tx) => {
+            let first = true;
+            const query = tx.query.bind(tx) as (...a: unknown[]) => Promise<unknown>;
+            const proxy = new Proxy(tx, {
+              get: (t, p) =>
+                p === 'query'
+                  ? async (...a: unknown[]) => {
+                      const r = await query(...a);
+                      if (first) {
+                        first = false;
+                        locked();
+                        await gate;
+                      }
+                      return r;
+                    }
+                  : Reflect.get(t, p),
+            });
+            return fn(proxy);
+          }),
+      };
+      const opts = { buyerId: w.buyerId, trigger: 'AUTO' as const, whenBelowMicros: 0 };
+      const a = track(reserveVaultTopup(paused, opts));
+      await isLocked;
+
+      const charge = await pool.connect();
+      const credit = await poolB.connect();
+      try {
+        // (2) The charge: claimCall's insert (FK check on the buyer row).
+        const chargePid = await pidOf(charge);
+        await charge.query('BEGIN');
+        const claim = track(
+          charge.query(
+            `INSERT INTO api_calls (buyer_id, api_key_id, channel, request_hash, idempotency_key)
+             VALUES ($1, $2, 'REST', 'h', $3)`,
+            [w.buyerId, w.apiKeyId, randomUUID()],
+          ),
+        );
+        await settledOrWaiting(claim, chargePid);
+        // (3) Reservation B (the real one) queues for the buyer row.
+        const b = track(reserveVaultTopup(dbB, opts));
+        for (let i = 0; i < 200 && (await reservationsWaiting()) < 1; i++) {
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        expect(await reservationsWaiting()).toBe(1);
+        // (4) The credit: transition, post() locks the ledger row, then the second UPDATE.
+        const creditPid = await pidOf(credit);
+        await credit.query('BEGIN');
+        await credit.query(`UPDATE topups SET updated_at = now() WHERE id = $1`, [row!.id]);
+        await credit.query(`SELECT 1 FROM ledger_accounts WHERE id = $1 FOR UPDATE`, [acct!.id]);
+        const second = track(
+          credit.query(`UPDATE topups SET updated_at = now() WHERE id = $1`, [row!.id]),
+        );
+        await settledOrWaiting(second, creditPid);
+        // (5) A commits; the charge goes on to post(), which needs the credit's ledger row.
+        release();
+        await a.promise;
+        await claim.promise;
+        const post = track(
+          charge.query(`SELECT 1 FROM ledger_accounts WHERE id = $1 FOR UPDATE`, [acct!.id]),
+        );
+        // Postgres reports a deadlock within deadlock_timeout (1 s); the fixed order has none.
+        await Promise.race([
+          second.promise,
+          post.promise,
+          b.promise,
+          new Promise((r) => setTimeout(r, 3_000)),
+        ]).catch(() => {});
+        // An aborted transaction keeps its locks until ROLLBACK: end the free one first.
+        if (post.done) {
+          await charge.query('ROLLBACK');
+          await second.promise.catch(() => {});
+          await credit.query('ROLLBACK');
+        } else {
+          await second.promise.catch(() => {});
+          await credit.query('ROLLBACK');
+          await post.promise.catch(() => {});
+          await charge.query('ROLLBACK');
+        }
+        const outcomes = await Promise.allSettled([
+          second.promise,
+          post.promise,
+          b.promise,
+          a.promise,
+        ]);
+        expect(outcomes.filter((o) => o.status === 'rejected')).toEqual([]);
+        expect(await b.promise).toMatchObject({ kind: 'BALANCE_OK', balanceMicros: DOLLAR });
+      } finally {
+        release();
+        await credit.query('ROLLBACK').catch(() => {});
+        await charge.query('ROLLBACK').catch(() => {});
+        credit.release();
+        charge.release();
+        await q(`UPDATE topups SET status = 'FAILED' WHERE id = $1`, [row!.id]);
       }
     });
 

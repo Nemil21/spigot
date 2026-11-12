@@ -1,3 +1,4 @@
+import { isUniqueViolation } from '../auth/credentials.js';
 import { startCrawl, type CrawlRunResult } from '../crawl/crawlSite.js';
 import { CRAWL_DEFAULTS, defaultCrawlDeps, type CrawlDeps } from '../crawl/deps.js';
 import type { LedgerCheckResult } from '../ledger/check.js';
@@ -14,6 +15,11 @@ import { handOffToWorkflows } from '../workflows/dispatch.js';
  *   pages that last answered 404/410 (a SCHEDULE run never refetches everything; MANUAL does).
  *   A site with a live run (heartbeating) is skipped; a live run whose process died is adopted
  *   and finished, as "Crawl now" would.
+ * - One SCHEDULE run per site per 15-min slot, enforced by the database: the run carries the
+ *   idempotency key `schedule·<slot>` (`crawl_runs_site_idempotency_key` is unique per site).
+ *   "No live run" alone is not enough: at 00:00 UTC `crawl.schedule` and `nightly.check` (two
+ *   jobs, two advisory locks) both scan, and a small site's run can finish before the second scan
+ *   reaches it, which then started a second run for the same tick.
  * - Nightly (00:00 UTC tick): the same sitemap re-check, then `ledgerCheck()` recorded through
  *   `recordLedgerCheck` (audit `LEDGER_CHECKED`; a mismatch adds an `ALERT` and flips
  *   `/admin/health` to degraded).
@@ -22,28 +28,74 @@ import { handOffToWorkflows } from '../workflows/dispatch.js';
 export const RECRAWL_EVERY_MS = 15 * 60_000;
 export const NIGHTLY_EVERY_MS = 24 * 60 * 60_000;
 
-export type ScheduledOutcome = 'STARTED' | 'RESUMED' | 'SKIPPED_LIVE' | 'FAILED';
+export type ScheduledOutcome =
+  | 'STARTED'
+  | 'RESUMED'
+  | 'SKIPPED_LIVE'
+  /** This slot's run for the site exists already (another process, or the other job). */
+  | 'ALREADY_SCHEDULED'
+  | 'FAILED';
+
+/** The 15-min schedule slot containing `epochMs` (= `crawl.schedule`'s `runEvery` tick). */
+export function scheduleSlot(epochMs: number = Date.now()): number {
+  return Math.floor(epochMs / RECRAWL_EVERY_MS);
+}
+
+/** The schedule slot of `nightly.check`'s day tick: its 00:00 slot. */
+export function nightlySlot(dayTick: number): number {
+  return dayTick * (NIGHTLY_EVERY_MS / RECRAWL_EVERY_MS);
+}
+
+/**
+ * The run's idempotency key for a slot. `·` is outside the printable ASCII a client may send as
+ * an Idempotency-Key (`checkClientKey`), so "Crawl now" keys never collide with it.
+ */
+export function scheduleKey(slot: number): string {
+  return `schedule·${slot}`;
+}
+
+export interface RecrawlOptions {
+  /** The schedule slot this scan is for. Default: the one containing now. */
+  slot?: number;
+}
 
 export interface ScheduledCrawl {
   siteId: string;
   outcome: ScheduledOutcome;
-  /** The run started or adopted, or the live run that caused the skip. */
+  /** The run started or adopted, or the live run / this slot's run that caused the skip. */
   runId?: string;
   error?: string;
   /** STARTED / RESUMED only: settles when the run ends (never rejects). */
   done?: Promise<CrawlRunResult | undefined>;
 }
 
-/** One SCHEDULE crawl per READY site, without waiting for the runs to end. */
-export async function recrawlReadySites(deps: CrawlDeps): Promise<ScheduledCrawl[]> {
+/** One SCHEDULE crawl per READY site and slot, without waiting for the runs to end. */
+export async function recrawlReadySites(
+  deps: CrawlDeps,
+  opts: RecrawlOptions = {},
+): Promise<ScheduledCrawl[]> {
   const { pool } = deps.db;
   const staleMs = deps.staleRunMs ?? CRAWL_DEFAULTS.staleRunMs;
+  const key = scheduleKey(opts.slot ?? scheduleSlot());
+  const slotRun = async (siteId: string) =>
+    (
+      await pool.query<{ id: string }>(
+        `SELECT id FROM crawl_runs WHERE site_id = $1 AND idempotency_key = $2`,
+        [siteId, key],
+      )
+    ).rows[0]?.id;
   const { rows: sites } = await pool.query<{ id: string }>(
     `SELECT id FROM sites WHERE status = 'READY' ORDER BY created_at, id`,
   );
 
   const out: ScheduledCrawl[] = [];
   for (const { id: siteId } of sites) {
+    // This slot already has its run for the site (live or ended): never a second one.
+    const prior = await slotRun(siteId);
+    if (prior) {
+      out.push({ siteId, outcome: 'ALREADY_SCHEDULED', runId: prior });
+      continue;
+    }
     // A live run that is still heartbeating: skip. Calling startCrawl for it would leave a poller
     // waiting on another process's run. A stale one falls through and startCrawl adopts it.
     const live = await pool.query<{ id: string }>(
@@ -57,7 +109,7 @@ export async function recrawlReadySites(deps: CrawlDeps): Promise<ScheduledCrawl
       continue;
     }
     try {
-      const started = await startCrawl({ siteId, trigger: 'SCHEDULE' }, deps);
+      const started = await startCrawl({ siteId, trigger: 'SCHEDULE', idempotencyKey: key }, deps);
       if (started.created || started.resumed) {
         out.push({
           siteId,
@@ -71,6 +123,14 @@ export async function recrawlReadySites(deps: CrawlDeps): Promise<ScheduledCrawl
         out.push({ siteId, outcome: 'SKIPPED_LIVE', runId: started.runId });
       }
     } catch (err) {
+      // Another scan of this slot inserted the site's run between our check and our insert.
+      const winner = isUniqueViolation(err)
+        ? await slotRun(siteId).catch(() => undefined)
+        : undefined;
+      if (winner) {
+        out.push({ siteId, outcome: 'ALREADY_SCHEDULED', runId: winner });
+        continue;
+      }
       // One bad site (deleted meanwhile, DB blip) must not starve the others.
       out.push({ siteId, outcome: 'FAILED', error: (err as Error).message });
     }
@@ -84,9 +144,12 @@ export interface NightlyResult {
 }
 
 /** Nightly: sitemap re-check for READY sites, then the recorded ledger check. */
-export async function nightlyCheck(deps: CrawlDeps): Promise<NightlyResult> {
+export async function nightlyCheck(
+  deps: CrawlDeps,
+  opts: RecrawlOptions = {},
+): Promise<NightlyResult> {
   // The ledger check runs even if starting the crawls failed.
-  const crawls = await recrawlReadySites(deps).catch((err: unknown) => {
+  const crawls = await recrawlReadySites(deps, opts).catch((err: unknown) => {
     console.error(`[nightly] re-crawl failed: ${(err as Error).message}`);
     return [] as ScheduledCrawl[];
   });

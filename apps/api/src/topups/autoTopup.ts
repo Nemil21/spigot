@@ -19,8 +19,9 @@ import { TOPUP_COLUMNS, type TopupRow } from './row.js';
  * 11; SP-047a). When a paid call is short, SP-016's `chargeAndRecord` rolls back and calls the
  * `onInsufficient` hook **outside** any transaction. The hook:
  *
- * 1. **Tx A** (`reserveVaultTopup`): `SELECT … FROM buyers WHERE id=$1 FOR UPDATE`, then re-read the
- *    balance. If another call's top-up already landed (`balance ≥ price`), skip to step 4.
+ * 1. **Tx A** (`reserveVaultTopup`): `SELECT … FROM buyers WHERE id=$1 FOR NO KEY UPDATE`, then
+ *    re-read the balance. If another call's top-up already landed (`balance ≥ price`), skip to
+ *    step 4.
  * 2. Still in tx A: require `auto_topup_enabled`, a vault, **no `VAULT_MIT` top-up `CREATED`** for
  *    this buyer (AUTO or MCP), this UTC month's `VAULT_MIT` sum + amount ≤ the cap, and
  *    `balance + amount ≥ price`. Insert `topups` (AUTO, VAULT_MIT, CREATED) and COMMIT: the buyer
@@ -35,7 +36,19 @@ import { TOPUP_COLUMNS, type TopupRow } from './row.js';
  * Lock order: tx A takes only the buyer row (the balance read and the `topups` insert take no
  * other row locks). Everything else that touches the buyer row (`creditTopupTx` saving the vault,
  * the decline below) takes it **last**, after `topups` / `ledger_accounts`, and tx A never waits on
- * those, so no cycle is possible. The metering transaction never locks the buyer row.
+ * those, so no cycle is possible.
+ *
+ * Tx A locks `FOR NO KEY UPDATE`, never `FOR UPDATE`. Foreign keys lock the buyer row too: every
+ * insert referencing `buyers` (the metering transaction's `api_calls` row) and every second UPDATE
+ * of a `topups` row in one transaction (`creditTopupTx`'s `ledger_txn_id`) takes `FOR KEY SHARE`
+ * on it. The metering transaction takes it **first** and then `ledger_accounts`; a credit takes
+ * `ledger_accounts` and then it. `FOR KEY SHARE` locks never conflict with each other, so those two
+ * orders are harmless, but `FOR UPDATE` conflicts with them: a burst of reservations held and
+ * queued on the row made a credit's FK check wait behind a reservation that waited on a charge
+ * that waited on the credit's ledger row (40P01, main's red SP-047c burst test; the rolled-back
+ * credit left a captured top-up uncredited until the sweep). `FOR NO KEY UPDATE` still serialises
+ * reservations with each other and with every `UPDATE buyers`, and never blocks a foreign-key
+ * check, so a FK check on `buyers` never waits.
  *
  * SP-047b's MCP `top_up` uses the same `reserveVaultTopup` (`trigger: 'MCP'`) and
  * `chargeVaultTopup`, so the cap and the one-in-flight rule cover both.
@@ -130,10 +143,11 @@ export async function reserveVaultTopup(
   input: ReserveVaultTopupInput,
 ): Promise<Reservation> {
   return db.tx(async (tx) => {
+    // NO KEY UPDATE, never UPDATE: see the lock order above (FOR UPDATE blocks FK checks).
     const { rows } = await tx.query<BuyerVaultRow>(
       `SELECT auto_topup_enabled AS enabled, auto_topup_amount_cents AS "amountCents",
               monthly_topup_cap_cents AS "capCents", vault_id AS "vaultId", vault_kind AS "vaultKind"
-         FROM buyers WHERE id = $1 FOR UPDATE`,
+         FROM buyers WHERE id = $1 FOR NO KEY UPDATE`,
       [input.buyerId],
     );
     const b = rows[0];
